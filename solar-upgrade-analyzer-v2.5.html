@@ -1,0 +1,3490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar Upgrade Analyzer v2.5</title>
+  <style>
+    :root {
+      --bg: #f4f6ef;
+      --panel: #ffffff;
+      --panel-soft: #f8fbf4;
+      --text: #1e2d22;
+      --muted: #516457;
+      --line: #d6e0d1;
+      --accent: #0d7750;
+      --accent-soft: #d8f1e4;
+      --warn: #a74d1a;
+      --warn-soft: #ffe7d8;
+      --good: #197a44;
+      --bad: #992f22;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Avenir Next", "Segoe UI", "Trebuchet MS", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 0%, #fdf4dd 0%, rgba(253, 244, 221, 0) 45%),
+        radial-gradient(circle at 90% 0%, #dff4ec 0%, rgba(223, 244, 236, 0) 42%),
+        var(--bg);
+    }
+
+    .shell {
+      max-width: 1240px;
+      margin: 0 auto;
+      padding: 20px 16px 28px;
+    }
+
+    .title {
+      margin: 0;
+      font-size: 1.9rem;
+      letter-spacing: 0.015em;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--muted);
+      font-size: 0.96rem;
+      line-height: 1.42;
+      max-width: 900px;
+    }
+
+    .layout {
+      margin-top: 18px;
+      display: grid;
+      grid-template-columns: 370px 1fr;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: 0 8px 22px rgba(23, 40, 28, 0.06);
+    }
+
+    .panel.inputs {
+      position: sticky;
+      top: 10px;
+      max-height: calc(100vh - 20px);
+      overflow: auto;
+      padding: 12px;
+    }
+
+    .panel.results {
+      padding: 12px;
+      background: linear-gradient(180deg, #fcfffb 0%, #f7fbf5 100%);
+    }
+
+    h2 {
+      margin: 4px 0 10px;
+      font-size: 1.05rem;
+    }
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 0.94rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: #384b3f;
+    }
+
+    .group {
+      background: var(--panel-soft);
+      border: 1px solid #e3ebdf;
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+
+    .field {
+      margin-bottom: 9px;
+    }
+
+    .field:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.85rem;
+      color: #3f5145;
+    }
+
+    input,
+    select,
+    button {
+      width: 100%;
+      border-radius: 9px;
+      border: 1px solid #c8d3c3;
+      background: #fff;
+      color: var(--text);
+      font: inherit;
+      font-size: 0.95rem;
+      padding: 9px 10px;
+    }
+
+    input:focus,
+    select:focus,
+    button:focus {
+      outline: none;
+      border-color: #6ea886;
+      box-shadow: 0 0 0 2px rgba(110, 168, 134, 0.22);
+    }
+
+    input[type="checkbox"] {
+      width: auto;
+      transform: translateY(1px);
+      margin-right: 7px;
+    }
+
+    .checkline {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.91rem;
+      color: #3f5145;
+    }
+
+    .month-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .month-grid .checkline {
+      font-size: 0.8rem;
+      padding: 3px 4px;
+      border-radius: 6px;
+      background: #f2f7ef;
+      border: 1px solid #dde8d8;
+    }
+
+    .hint {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+
+    .field-error {
+      margin-top: 4px;
+      color: var(--bad);
+      font-size: 0.78rem;
+      line-height: 1.25;
+      min-height: 1em;
+    }
+
+    .input-error {
+      border-color: #ce553d !important;
+      background: #fff7f4 !important;
+    }
+
+    .actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      background: linear-gradient(180deg, #0e915f 0%, #0a744b 100%);
+      color: #fff;
+      border-color: #0a744b;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: 0.52;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .cards-header {
+      margin: 0 0 6px;
+      font-size: 0.75rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #5b6f61;
+    }
+
+    .cards-group {
+      margin-bottom: 10px;
+    }
+
+    .card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 10px;
+      min-height: 90px;
+    }
+
+    .k {
+      font-size: 0.8rem;
+      letter-spacing: 0.01em;
+      color: #4e6154;
+      margin-bottom: 4px;
+    }
+
+    .v {
+      font-size: 1.22rem;
+      font-weight: 700;
+      color: #183025;
+      line-height: 1.2;
+    }
+
+    .sub {
+      margin-top: 3px;
+      color: #5c7163;
+      font-size: 0.78rem;
+      line-height: 1.25;
+    }
+
+    .good {
+      color: var(--good);
+    }
+
+    .bad {
+      color: var(--bad);
+    }
+
+    .section {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid #dce6d8;
+      border-radius: 8px;
+      background: #fff;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+    }
+
+    .results-table th,
+    .results-table td {
+      border-bottom: 1px solid #e3ece0;
+      border-right: 1px solid #e8f0e5;
+      padding: 6px 7px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .results-table th:first-child,
+    .results-table td:first-child {
+      text-align: left;
+    }
+
+    .results-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eff7ea;
+      color: #355043;
+      font-weight: 700;
+    }
+
+    .matrix-cell {
+      cursor: pointer;
+    }
+
+    .matrix-cell-selected {
+      background: #e6f4ec;
+      outline: 2px solid #2f8e63;
+      outline-offset: -2px;
+    }
+
+    .row-selected {
+      background: #eff8f1;
+    }
+
+    details.calc-details {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    details.calc-details > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 10px;
+      font-weight: 600;
+      color: #2c4035;
+      background: #f4f8f1;
+      border-bottom: 1px solid #e1eadc;
+    }
+
+    details.calc-details > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .calc-body {
+      padding: 10px;
+      font-size: 0.85rem;
+      line-height: 1.45;
+      color: #33483b;
+    }
+
+    .calc-line {
+      margin: 0 0 6px;
+    }
+
+    .calc-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 8px 0 10px;
+      font-size: 0.8rem;
+    }
+
+    .calc-table th,
+    .calc-table td {
+      border: 1px solid #dbe6d6;
+      padding: 6px 7px;
+      text-align: right;
+      white-space: nowrap;
+    }
+
+    .calc-table th:first-child,
+    .calc-table td:first-child {
+      text-align: left;
+    }
+
+    .calc-table thead th {
+      background: #f2f7ef;
+      color: #355043;
+      font-weight: 600;
+    }
+
+    .inline-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 7px;
+    }
+
+    .pill {
+      background: #f4f8f1;
+      border: 1px solid #dce8d7;
+      border-radius: 999px;
+      padding: 5px 10px;
+      font-size: 0.78rem;
+      color: #3e5145;
+    }
+
+    .summary {
+      margin: 6px 0 0;
+      color: #304338;
+      font-size: 0.88rem;
+      line-height: 1.35;
+    }
+
+    .error-box {
+      display: none;
+      margin-bottom: 10px;
+      border: 1px solid #e3a67e;
+      border-radius: 10px;
+      background: var(--warn-soft);
+      color: #6d3012;
+      padding: 9px 10px;
+      font-size: 0.85rem;
+      line-height: 1.35;
+    }
+
+    .checks {
+      color: #32463a;
+      font-size: 0.84rem;
+      line-height: 1.35;
+    }
+
+    .check-row {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .check-ok {
+      color: #176f3f;
+      font-weight: 600;
+    }
+
+    .check-warn {
+      color: #8e331f;
+      font-weight: 600;
+    }
+
+    .mono {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.78rem;
+      color: #4d6357;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    @media (max-width: 1100px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .panel.inputs {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 560px) {
+      .cards {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <h1 class="title">Solar Upgrade Analyzer v2.5</h1>
+    <p class="subtitle">
+      Solar + storage sizing with hourly dispatch, annual true-up rollover, clipping-aware PV limits, and VPP-aware returns.
+      <strong>Objective is configurable (NPV, total outflow, or utility-bill knee point).</strong>
+    </p>
+
+    <div class="layout">
+      <aside class="panel inputs">
+        <h2>Inputs</h2>
+
+        <div class="group">
+          <h3>Sizing</h3>
+          <div class="field">
+            <label for="powerwallCount">Preferred Powerwalls for primary view</label>
+            <select id="powerwallCount">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2" selected>2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="checkline"><input id="lockPowerwallCount" type="checkbox" /> Lock optimization to selected Powerwalls</label>
+          </div>
+          <div class="field">
+            <label for="solarSearchMinKw">Solar search min (kW)</label>
+            <input id="solarSearchMinKw" type="number" min="0" step="0.05" value="2" />
+          </div>
+          <div class="field">
+            <label for="solarSearchMaxKw">Solar search max (kW)</label>
+            <input id="solarSearchMaxKw" type="number" min="0" step="0.05" value="20" />
+          </div>
+          <div class="field">
+            <label for="solarSearchStepKw">Solar search step (kW)</label>
+            <input id="solarSearchStepKw" type="number" min="0.01" step="0.01" value="0.1" />
+          </div>
+          <div class="field">
+            <label for="sizingObjective">Sizing objective</label>
+            <select id="sizingObjective">
+              <option value="return_npv" selected>Maximize return (NPV + payback tie-break)</option>
+              <option value="total_outflow">Minimize total outflow (Mortgage + PG&amp;E)</option>
+              <option value="utility_bill_knee">Utility bill knee-point (Pareto)</option>
+            </select>
+          </div>
+          <div class="hint" id="sizingObjectiveHint">Objective: maximize NPV, then faster payback, then lower outflow.</div>
+          <div class="hint" id="sweepModeHint">Optimizer sweeps all battery counts (0-4) across your solar range.</div>
+        </div>
+
+        <div class="group">
+          <h3>Load Shaping: Whole House Fan</h3>
+          <div class="field">
+            <label class="checkline"><input id="enableWhf" type="checkbox" /> Enable WHF load replacement</label>
+          </div>
+          <div id="whfFields">
+            <div class="field">
+              <label for="whfFanWatts">Fan power (W)</label>
+              <input id="whfFanWatts" type="number" min="0" step="10" value="200" />
+            </div>
+            <div class="field">
+              <label for="whfDisplacedAcWatts">Displaced AC load (W)</label>
+              <input id="whfDisplacedAcWatts" type="number" min="0" step="50" value="3500" />
+            </div>
+            <div class="field">
+              <label for="whfStartHour">Start hour</label>
+              <input id="whfStartHour" type="number" min="0" max="23" step="1" value="20" />
+            </div>
+            <div class="field">
+              <label for="whfStartMinute">Start minute</label>
+              <input id="whfStartMinute" type="number" min="0" max="59" step="1" value="30" />
+            </div>
+            <div class="field">
+              <label for="whfEndHour">End hour</label>
+              <input id="whfEndHour" type="number" min="0" max="23" step="1" value="6" />
+            </div>
+            <div class="field">
+              <label for="whfEndMinute">End minute</label>
+              <input id="whfEndMinute" type="number" min="0" max="59" step="1" value="0" />
+            </div>
+            <div class="field">
+              <label>Active months</label>
+              <div class="month-grid" id="whfMonths">
+                <label class="checkline"><input data-whf-month="0" type="checkbox" /> Jan</label>
+                <label class="checkline"><input data-whf-month="1" type="checkbox" /> Feb</label>
+                <label class="checkline"><input data-whf-month="2" type="checkbox" /> Mar</label>
+                <label class="checkline"><input data-whf-month="3" type="checkbox" /> Apr</label>
+                <label class="checkline"><input data-whf-month="4" type="checkbox" checked /> May</label>
+                <label class="checkline"><input data-whf-month="5" type="checkbox" checked /> Jun</label>
+                <label class="checkline"><input data-whf-month="6" type="checkbox" checked /> Jul</label>
+                <label class="checkline"><input data-whf-month="7" type="checkbox" checked /> Aug</label>
+                <label class="checkline"><input data-whf-month="8" type="checkbox" checked /> Sep</label>
+                <label class="checkline"><input data-whf-month="9" type="checkbox" /> Oct</label>
+                <label class="checkline"><input data-whf-month="10" type="checkbox" /> Nov</label>
+                <label class="checkline"><input data-whf-month="11" type="checkbox" /> Dec</label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="whfSuccessRatePct">WHF success rate (%)</label>
+              <input id="whfSuccessRatePct" type="number" min="0" max="100" step="1" value="85" />
+            </div>
+          </div>
+          <div class="hint" id="whfNote">WHF: OFF.</div>
+          <div class="hint">Rescue preset: May-Sep, 20:30-06:00, 3500W displaced AC, 200W fan, 85% success.</div>
+        </div>
+
+        <div class="group">
+          <h3>Physical Constraints: Home + Yield</h3>
+          <div class="field">
+            <label for="annualLoadKwh">Annual home load (non-EV kWh)</label>
+            <input id="annualLoadKwh" type="number" min="0" step="100" value="24000" />
+          </div>
+          <div class="field">
+            <label for="zipCode">ZIP code (5-digit)</label>
+            <input id="zipCode" type="text" value="95672" />
+          </div>
+          <div class="hint" id="zipYieldNote">Yield profile: --</div>
+        </div>
+
+        <div class="group">
+          <h3>Load Shaping: EV Charging</h3>
+          <div class="field">
+            <label class="checkline"><input id="hasEvCharging" type="checkbox" /> Include EV charging load</label>
+          </div>
+          <div id="evFields">
+            <div class="field">
+              <label for="evMilesPerMonth">Miles driven per month</label>
+              <input id="evMilesPerMonth" type="number" min="0" step="10" value="800" />
+            </div>
+            <div class="field">
+              <label for="evKwhPerMile">EV efficiency (kWh/mile)</label>
+              <input id="evKwhPerMile" type="number" min="0.01" step="0.01" value="0.30" />
+            </div>
+            <div class="field">
+              <label for="evDayChargingPct">Daytime charging share (%)</label>
+              <input id="evDayChargingPct" type="number" min="0" max="100" step="1" value="60" />
+            </div>
+          </div>
+          <div class="hint" id="evLoadNote">EV load: OFF.</div>
+          <div class="hint">Charging windows: Day 09:00-16:00, Night 21:00-06:00. Day charging is solar-only; unmet day charging shifts to night.</div>
+        </div>
+
+        <div class="group">
+          <h3>Load Shaping: HomeAssistant HVAC Shift</h3>
+          <div class="field">
+            <label for="tempUnitsDisplay">Temperature units</label>
+            <input id="tempUnitsDisplay" type="text" value="F (fixed)" readonly />
+          </div>
+          <div class="field">
+            <label for="summerSetpointF">Summer HVAC setpoint (F)</label>
+            <input id="summerSetpointF" type="number" min="55" max="90" step="1" value="74" />
+          </div>
+          <div class="field">
+            <label for="winterSetpointF">Winter HVAC setpoint (F)</label>
+            <input id="winterSetpointF" type="number" min="55" max="90" step="1" value="68" />
+          </div>
+          <div class="hint">Setpoints always affect utility/load estimates, even if HVAC shifting is OFF.</div>
+          <div class="field">
+            <label class="checkline"><input id="enableHaShift" type="checkbox" /> Enable HVAC pre-cool/pre-heat load shift</label>
+          </div>
+          <div id="haFields">
+            <div class="field">
+              <label for="maxPrecoolOffsetF">Max pre-cool offset (F)</label>
+              <input id="maxPrecoolOffsetF" type="number" min="0" max="10" step="0.5" value="3" />
+            </div>
+            <div class="field">
+              <label for="maxPreheatOffsetF">Max pre-heat offset (F)</label>
+              <input id="maxPreheatOffsetF" type="number" min="0" max="10" step="0.5" value="2" />
+            </div>
+            <div class="field">
+              <label for="maxPeakRelaxOffsetF">Max peak-hour setpoint drift (F)</label>
+              <input id="maxPeakRelaxOffsetF" type="number" min="0" max="10" step="0.5" value="2" />
+            </div>
+            <div class="field">
+              <label for="hvacSensitivityKwhPerDegHour">HVAC sensitivity (kWh / deg-hour)</label>
+              <input id="hvacSensitivityKwhPerDegHour" type="number" min="0.01" step="0.01" value="0.60" />
+            </div>
+            <div class="field">
+              <label for="hvacShiftSuccessRatePct">Shift success rate (%)</label>
+              <input id="hvacShiftSuccessRatePct" type="number" min="0" max="100" step="1" value="70" />
+            </div>
+            <div class="field">
+              <label for="preCoolStartHour">Pre-window start hour (0-23)</label>
+              <input id="preCoolStartHour" type="number" min="0" max="23" step="1" value="12" />
+            </div>
+            <div class="field">
+              <label for="preCoolEndHour">Pre-window end hour (0-23)</label>
+              <input id="preCoolEndHour" type="number" min="0" max="23" step="1" value="16" />
+            </div>
+            <div class="field">
+              <label for="maxShiftHoursPerDay">Max shift hours/day</label>
+              <input id="maxShiftHoursPerDay" type="number" min="1" max="12" step="1" value="4" />
+            </div>
+            <div class="field">
+              <label for="maxShiftKwhPerDay">Max shift kWh/day</label>
+              <input id="maxShiftKwhPerDay" type="number" min="0" step="0.1" value="6" />
+            </div>
+          </div>
+          <div class="hint" id="haLoadShiftNote">HVAC shift: OFF.</div>
+          <div class="hint">Season map is fixed: Summer May-Sep, Winter Nov-Feb, Shoulder Mar-Apr-Oct. Peak drift lets temp move away from setpoint during 4-9pm before recovery.</div>
+        </div>
+
+        <div class="group">
+          <h3>Tariff &amp; Programs</h3>
+          <div class="field">
+            <label for="importOffPeak">Import off-peak ($/kWh)</label>
+            <input id="importOffPeak" type="number" min="0" step="0.01" value="0.36" />
+          </div>
+          <div class="field">
+            <label for="importPeak">Import peak ($/kWh)</label>
+            <input id="importPeak" type="number" min="0" step="0.01" value="0.58" />
+          </div>
+          <div class="field">
+            <label for="fixedMonthlyCharge">Fixed monthly charge ($)</label>
+            <input id="fixedMonthlyCharge" type="number" min="0" step="0.01" value="24.15" />
+          </div>
+          <div class="field">
+            <label for="nbcPerImportKwh">NBC on imports ($/kWh)</label>
+            <input id="nbcPerImportKwh" type="number" min="0" step="0.001" value="0.03" />
+          </div>
+          <div class="field">
+            <label for="exportRateMode">Export rate mode</label>
+            <select id="exportRateMode">
+              <option value="nem3_override" selected>NEM 3.0 override</option>
+              <option value="tou_export">TOU export rates</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nem3ExportRate">NEM 3.0 export rate ($/kWh)</label>
+            <input id="nem3ExportRate" type="number" min="0" step="0.01" value="0.04" />
+          </div>
+          <div class="field">
+            <label for="exportOffPeak">Export off-peak ($/kWh)</label>
+            <input id="exportOffPeak" type="number" min="0" step="0.01" value="0.05" />
+          </div>
+          <div class="field">
+            <label for="exportPeak">Export peak ($/kWh)</label>
+            <input id="exportPeak" type="number" min="0" step="0.01" value="0.12" />
+          </div>
+          <div class="field">
+            <label for="exportPeakShare">Export in peak window (%)</label>
+            <input id="exportPeakShare" type="number" min="0" max="100" step="1" value="25" />
+          </div>
+          <div class="field">
+            <label class="checkline"><input id="vppEnabled" type="checkbox" checked /> Include VPP revenue (DSGS/ELRP proxy)</label>
+          </div>
+          <div class="hint" id="exportModeNote">Export note: --</div>
+          <div class="hint">Annual true-up logic: export value offsets annual energy import charges only. Fixed charge and NBC remain non-offsettable.</div>
+          <div class="hint">VPP credit model: Powerwalls * 11.5 kW * $35/kW-year. This can make annual utility results negative (net profit).</div>
+        </div>
+
+        <div class="group">
+          <h3>Physical Constraints: System Pricing</h3>
+          <div class="field">
+            <label for="solarBaseCost">Solar base cost ($)</label>
+            <input id="solarBaseCost" type="number" min="0" step="50" value="2710" />
+          </div>
+          <div class="field">
+            <label for="solarCostPerKw">Solar cost per kW ($)</label>
+            <input id="solarCostPerKw" type="number" min="0" step="25" value="2785" />
+          </div>
+          <div class="field">
+            <label for="batteryCost1">1 Powerwall cost ($)</label>
+            <input id="batteryCost1" type="number" min="0" step="50" value="16875" />
+          </div>
+          <div class="field">
+            <label for="batteryCost2">2 Powerwalls cost ($)</label>
+            <input id="batteryCost2" type="number" min="0" step="50" value="31250" />
+          </div>
+          <div class="field">
+            <label for="batteryCost3">3 Powerwalls cost ($)</label>
+            <input id="batteryCost3" type="number" min="0" step="50" value="45625" />
+          </div>
+          <div class="field">
+            <label for="batteryCost4">4 Powerwalls cost ($)</label>
+            <input id="batteryCost4" type="number" min="0" step="50" value="60000" />
+          </div>
+        </div>
+
+        <div class="group">
+          <h3>Physical Constraints: Battery + Inverter</h3>
+          <div class="field">
+            <label for="cyclesPerDay">Cycles/day</label>
+            <input id="cyclesPerDay" type="number" min="0" max="2" step="0.01" value="0.85" />
+          </div>
+          <div class="field">
+            <label for="solarToHomeEfficiencyPct">Solar-to-home efficiency (%)</label>
+            <input id="solarToHomeEfficiencyPct" type="number" min="80" max="100" step="0.1" value="97.5" />
+          </div>
+          <div class="field">
+            <label for="roundTripEfficiency">Round-trip efficiency (%)</label>
+            <input id="roundTripEfficiency" type="number" min="50" max="100" step="1" value="90" />
+          </div>
+          <div class="hint">Powerwall 3 clipping: solar AC output is capped at 11.5 kW per Powerwall when Powerwalls &gt;= 1. For 0 Powerwalls, clipping cap is disabled.</div>
+          <div class="hint">Dispatch policy: cost-priority with peak-first discharge, then post-peak (21:00-23:00) if SOC remains above reserve.</div>
+        </div>
+
+        <div class="group">
+          <h3>Financing</h3>
+          <div class="field">
+            <label for="apr">APR (%)</label>
+            <input id="apr" type="number" min="0" step="0.01" value="6" />
+          </div>
+          <div class="field">
+            <label for="financeYears">Loan term (years)</label>
+            <input id="financeYears" type="number" min="1" step="1" value="15" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="recalculateBtn" type="button">Recalculate Ideal System</button>
+          <div class="hint mono" id="candidateNote">Candidate set: --</div>
+        </div>
+      </aside>
+
+      <section class="panel results">
+        <h2>Results</h2>
+
+        <div class="error-box" id="errorBox"></div>
+
+        <div class="cards">
+          <div class="cards-group" style="grid-column: 1 / -1;">
+            <div class="cards-header">System</div>
+            <div class="cards">
+              <div class="card">
+                <div class="k">Ideal Solar Size (kW)</div>
+                <div class="v" id="cardIdealSolarKw">--</div>
+                <div class="sub" id="cardPowerwallChoice">Powerwalls: --</div>
+              </div>
+              <div class="card">
+                <div class="k">Financed Principal</div>
+                <div class="v" id="cardFinanced">$0</div>
+                <div class="sub" id="cardFinancedNote">Based on gross system cost.</div>
+              </div>
+              <div class="card">
+                <div class="k">Mortgage / Month</div>
+                <div class="v" id="cardMortgage">$0</div>
+                <div class="sub" id="cardOutflow">Total outflow (Mortgage + PG&amp;E After): --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cards-group" style="grid-column: 1 / -1;">
+            <div class="cards-header">Utility Comparison</div>
+            <div class="cards">
+              <div class="card">
+                <div class="k">PG&amp;E Baseline / Month (No WHF/HA)</div>
+                <div class="v" id="cardPgeBefore">$0</div>
+              </div>
+              <div class="card">
+                <div class="k">PG&amp;E After / Month (True-Up)</div>
+                <div class="v" id="cardPgeAfter">$0</div>
+                <div class="sub" id="cardTrueUpNote">Annual true-up bill: --</div>
+              </div>
+              <div class="card">
+                <div class="k">Clipping Impact</div>
+                <div class="v" id="cardClippedSolar">--</div>
+                <div class="sub" id="cardClippedSolarNote">Annual clipped solar: --</div>
+              </div>
+              <div class="card">
+                <div class="k">Utility Bill Change / Month</div>
+                <div class="v" id="cardSavings">$0</div>
+                <div class="sub" id="cardUtilityChangeFormula">(PG&amp;E After) - (PG&amp;E Baseline No WHF/HA)</div>
+                <div class="sub mono" id="cardSolarOnlyDelta">Solar-only delta (same-load baseline): --</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cards-group" style="grid-column: 1 / -1;">
+            <div class="cards-header">Net Payment Impact</div>
+            <div class="cards">
+              <div class="card" style="grid-column: span 3;">
+                <div class="k">Net Change In Payment / Month</div>
+                <div class="v" id="cardNetPaymentChange">$0</div>
+                <div class="sub" id="cardNetPaymentFormula">(Primary Utility Bill Change / Month) + (Mortgage / Month)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cards-group" style="grid-column: 1 / -1;">
+            <div class="cards-header">HVAC Impact Analysis</div>
+            <div class="cards">
+              <div class="card" style="grid-column: span 3;">
+                <div class="k">Dual View (Fixed-size + Re-optimized)</div>
+                <div class="sub" id="hvacImpactOutput">HVAC impact analysis runs after a valid calculation.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Assumptions</h3>
+          <div class="inline-pills">
+            <div class="pill">Hourly dispatch retained</div>
+            <div class="pill">Battery dispatch: peak-first + post-peak (reserve enforced)</div>
+            <div class="pill">ZIP-only yield source</div>
+            <div class="pill" id="tariffAssumptionPill">Tariff floor: --</div>
+            <div class="pill" id="vppAssumptionPill">VPP: --</div>
+            <div class="pill" id="clipAssumptionPill">Clipping: --</div>
+            <div class="pill" id="yieldAssumptionPill">Yield profile: --</div>
+            <div class="pill" id="evAssumptionPill">EV: --</div>
+            <div class="pill" id="haAssumptionPill">HA HVAC shift: --</div>
+            <div class="pill" id="whfAssumptionPill">WHF: --</div>
+          </div>
+          <p class="summary" id="objectiveSummary">
+            Ideal size is selected by minimizing <strong>Mortgage/Month + PG&amp;E After/Month</strong>. Tie-breakers: lower financed principal, then lower kW.
+          </p>
+        </div>
+
+        <div class="section">
+          <h3>Scenario Matrix (Solar kW x Powerwalls)</h3>
+          <div class="table-wrap">
+            <table class="results-table" id="scenarioMatrixTable"></table>
+          </div>
+          <p class="summary" id="scenarioMatrixNote">Matrix will render after a valid calculation. Click a cell to select a scenario.</p>
+        </div>
+
+        <div class="section">
+          <h3>Top Scenarios</h3>
+          <div class="table-wrap" style="max-height: 260px;">
+            <table class="results-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Solar kW</th>
+                  <th>PW</th>
+                  <th>NPV</th>
+                  <th>Payback</th>
+                  <th>PG&amp;E After/mo</th>
+                  <th>Total Outflow/mo</th>
+                  <th>Import kWh/yr</th>
+                  <th>Export kWh/yr</th>
+                </tr>
+              </thead>
+              <tbody id="topScenariosBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Model Checks</h3>
+          <div class="checks" id="checksOutput">Checks will run after a valid calculation.</div>
+        </div>
+
+        <div class="section">
+          <h3>Regression Probe Notes</h3>
+          <p class="summary" id="regressionOutput">
+            Probe pending. This panel compares v2 best size against a v1-like baseline (module-grid search + alternate objective) to explain expected sizing deltas.
+          </p>
+        </div>
+
+        <details class="calc-details" id="calcDetails">
+          <summary>Calculation Breakdown (Expandable)</summary>
+          <div class="calc-body" id="calcBreakdown">
+            Enter valid inputs to see step-by-step calculations.
+          </div>
+        </details>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    "use strict";
+
+    const BATTERY_USABLE_KWH = 13.5 * 0.9;
+    const DAYS_PER_YEAR = 365;
+    const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const MONTHLY_DAYLIGHT_HOURS = [9.8, 10.7, 11.9, 13.1, 14.1, 14.6, 14.4, 13.5, 12.3, 11.1, 10.0, 9.5];
+    const PEAK_HOURS = new Set([16, 17, 18, 19, 20]);
+    const DAY_CHARGING_HOURS = [9, 10, 11, 12, 13, 14, 15];
+    const NIGHT_CHARGING_HOURS = [21, 22, 23, 0, 1, 2, 3, 4, 5];
+    const POST_PEAK_HOURS = [21, 22, 23];
+    const DAY_CHARGING_HOUR_SET = new Set(DAY_CHARGING_HOURS);
+    const NIGHT_CHARGING_HOUR_SET = new Set(NIGHT_CHARGING_HOURS);
+    const POST_PEAK_HOUR_SET = new Set(POST_PEAK_HOURS);
+    const SUMMER_MONTHS = new Set([4, 5, 6, 7, 8]);
+    const WINTER_MONTHS = new Set([10, 11, 0, 1]);
+    const PEAK_WINDOW_HOURS = [16, 17, 18, 19, 20];
+    const PEAK_WINDOW_HOUR_SET = new Set(PEAK_WINDOW_HOURS);
+    const BASE_SUMMER_SETPOINT_F = 74;
+    const BASE_WINTER_SETPOINT_F = 68;
+    const SUMMER_SETPOINT_LOAD_SENSITIVITY_PER_DEG = 0.03;
+    const WINTER_SETPOINT_LOAD_SENSITIVITY_PER_DEG = 0.025;
+    const MODULE_KW = 0.395;
+    const V1_LIKE_OPPORTUNITY_RATE = 0.05;
+    const ZIP_DEFAULT_YIELD = 1700;
+    const POWERWALL3_AC_KW = 11.5;
+    const VPP_CREDIT_PER_KW_YEAR = 35;
+    const RESCUE_ZIP = "95672";
+    const RESCUE_HVAC_SENSITIVITY = 0.45;
+    const DEFAULT_HVAC_SENSITIVITY = 0.60;
+
+    const DEFAULT_LOAD_PROFILE_RAW = [1.02, 0.95, 0.91, 0.82, 0.79, 0.83, 0.96, 1.07, 0.96, 0.89, 0.91, 0.99];
+    const DEFAULT_SOLAR_PROFILE_RAW = [0.58, 0.66, 0.86, 1.02, 1.12, 1.18, 1.16, 1.08, 0.98, 0.83, 0.64, 0.53];
+    const BASE_LOAD_HOURLY_RAW = [
+      0.021, 0.019, 0.018, 0.018, 0.018, 0.021,
+      0.028, 0.037, 0.043, 0.045, 0.043, 0.041,
+      0.040, 0.039, 0.040, 0.044, 0.054, 0.066,
+      0.074, 0.078, 0.070, 0.056, 0.042, 0.031
+    ];
+
+    const ZIP_YIELD_HINTS = [
+      { start: 90000, end: 93599, annualYield: 1850, label: "SoCal inland profile" },
+      { start: 93600, end: 96199, annualYield: 1700, label: "NorCal inland profile" },
+      { start: 97000, end: 98699, annualYield: 1300, label: "Pacific Northwest profile" },
+      { start: 80000, end: 81699, annualYield: 1650, label: "Mountain West profile" },
+      { start: 85000, end: 86599, annualYield: 1950, label: "Desert Southwest profile" }
+    ];
+
+    const LOAD_PROFILE = normalizeProfile(DEFAULT_LOAD_PROFILE_RAW);
+    const SOLAR_PROFILE = normalizeProfile(DEFAULT_SOLAR_PROFILE_RAW);
+    const BASE_LOAD_HOURLY = normalizeProfile(BASE_LOAD_HOURLY_RAW);
+
+    const el = {
+      powerwallCount: document.getElementById("powerwallCount"),
+      lockPowerwallCount: document.getElementById("lockPowerwallCount"),
+      solarSearchMinKw: document.getElementById("solarSearchMinKw"),
+      solarSearchMaxKw: document.getElementById("solarSearchMaxKw"),
+      solarSearchStepKw: document.getElementById("solarSearchStepKw"),
+      sizingObjective: document.getElementById("sizingObjective"),
+      sizingObjectiveHint: document.getElementById("sizingObjectiveHint"),
+      sweepModeHint: document.getElementById("sweepModeHint"),
+      enableWhf: document.getElementById("enableWhf"),
+      whfFields: document.getElementById("whfFields"),
+      whfFanWatts: document.getElementById("whfFanWatts"),
+      whfDisplacedAcWatts: document.getElementById("whfDisplacedAcWatts"),
+      whfStartHour: document.getElementById("whfStartHour"),
+      whfStartMinute: document.getElementById("whfStartMinute"),
+      whfEndHour: document.getElementById("whfEndHour"),
+      whfEndMinute: document.getElementById("whfEndMinute"),
+      whfMonthNodes: Array.from(document.querySelectorAll("input[data-whf-month]")),
+      whfSuccessRatePct: document.getElementById("whfSuccessRatePct"),
+      whfNote: document.getElementById("whfNote"),
+      annualLoadKwh: document.getElementById("annualLoadKwh"),
+      hasEvCharging: document.getElementById("hasEvCharging"),
+      evFields: document.getElementById("evFields"),
+      evMilesPerMonth: document.getElementById("evMilesPerMonth"),
+      evKwhPerMile: document.getElementById("evKwhPerMile"),
+      evDayChargingPct: document.getElementById("evDayChargingPct"),
+      evLoadNote: document.getElementById("evLoadNote"),
+      enableHaShift: document.getElementById("enableHaShift"),
+      haFields: document.getElementById("haFields"),
+      tempUnitsDisplay: document.getElementById("tempUnitsDisplay"),
+      summerSetpointF: document.getElementById("summerSetpointF"),
+      winterSetpointF: document.getElementById("winterSetpointF"),
+      maxPrecoolOffsetF: document.getElementById("maxPrecoolOffsetF"),
+      maxPreheatOffsetF: document.getElementById("maxPreheatOffsetF"),
+      maxPeakRelaxOffsetF: document.getElementById("maxPeakRelaxOffsetF"),
+      hvacSensitivityKwhPerDegHour: document.getElementById("hvacSensitivityKwhPerDegHour"),
+      hvacShiftSuccessRatePct: document.getElementById("hvacShiftSuccessRatePct"),
+      preCoolStartHour: document.getElementById("preCoolStartHour"),
+      preCoolEndHour: document.getElementById("preCoolEndHour"),
+      maxShiftHoursPerDay: document.getElementById("maxShiftHoursPerDay"),
+      maxShiftKwhPerDay: document.getElementById("maxShiftKwhPerDay"),
+      haLoadShiftNote: document.getElementById("haLoadShiftNote"),
+      zipCode: document.getElementById("zipCode"),
+      zipYieldNote: document.getElementById("zipYieldNote"),
+      exportRateMode: document.getElementById("exportRateMode"),
+      importOffPeak: document.getElementById("importOffPeak"),
+      importPeak: document.getElementById("importPeak"),
+      fixedMonthlyCharge: document.getElementById("fixedMonthlyCharge"),
+      nbcPerImportKwh: document.getElementById("nbcPerImportKwh"),
+      nem3ExportRate: document.getElementById("nem3ExportRate"),
+      exportOffPeak: document.getElementById("exportOffPeak"),
+      exportPeak: document.getElementById("exportPeak"),
+      exportPeakShare: document.getElementById("exportPeakShare"),
+      vppEnabled: document.getElementById("vppEnabled"),
+      exportModeNote: document.getElementById("exportModeNote"),
+      solarBaseCost: document.getElementById("solarBaseCost"),
+      solarCostPerKw: document.getElementById("solarCostPerKw"),
+      batteryCost1: document.getElementById("batteryCost1"),
+      batteryCost2: document.getElementById("batteryCost2"),
+      batteryCost3: document.getElementById("batteryCost3"),
+      batteryCost4: document.getElementById("batteryCost4"),
+      cyclesPerDay: document.getElementById("cyclesPerDay"),
+      solarToHomeEfficiencyPct: document.getElementById("solarToHomeEfficiencyPct"),
+      roundTripEfficiency: document.getElementById("roundTripEfficiency"),
+      apr: document.getElementById("apr"),
+      financeYears: document.getElementById("financeYears"),
+      recalculateBtn: document.getElementById("recalculateBtn"),
+      candidateNote: document.getElementById("candidateNote"),
+      errorBox: document.getElementById("errorBox"),
+      cardIdealSolarKw: document.getElementById("cardIdealSolarKw"),
+      cardPowerwallChoice: document.getElementById("cardPowerwallChoice"),
+      cardPgeBefore: document.getElementById("cardPgeBefore"),
+      cardPgeAfter: document.getElementById("cardPgeAfter"),
+      cardTrueUpNote: document.getElementById("cardTrueUpNote"),
+      cardClippedSolar: document.getElementById("cardClippedSolar"),
+      cardClippedSolarNote: document.getElementById("cardClippedSolarNote"),
+      cardSavings: document.getElementById("cardSavings"),
+      cardUtilityChangeFormula: document.getElementById("cardUtilityChangeFormula"),
+      cardSolarOnlyDelta: document.getElementById("cardSolarOnlyDelta"),
+      cardNetPaymentChange: document.getElementById("cardNetPaymentChange"),
+      cardNetPaymentFormula: document.getElementById("cardNetPaymentFormula"),
+      cardFinanced: document.getElementById("cardFinanced"),
+      cardFinancedNote: document.getElementById("cardFinancedNote"),
+      cardMortgage: document.getElementById("cardMortgage"),
+      cardOutflow: document.getElementById("cardOutflow"),
+      yieldAssumptionPill: document.getElementById("yieldAssumptionPill"),
+      tariffAssumptionPill: document.getElementById("tariffAssumptionPill"),
+      vppAssumptionPill: document.getElementById("vppAssumptionPill"),
+      clipAssumptionPill: document.getElementById("clipAssumptionPill"),
+      evAssumptionPill: document.getElementById("evAssumptionPill"),
+      haAssumptionPill: document.getElementById("haAssumptionPill"),
+      whfAssumptionPill: document.getElementById("whfAssumptionPill"),
+      scenarioMatrixTable: document.getElementById("scenarioMatrixTable"),
+      scenarioMatrixNote: document.getElementById("scenarioMatrixNote"),
+      topScenariosBody: document.getElementById("topScenariosBody"),
+      checksOutput: document.getElementById("checksOutput"),
+      regressionOutput: document.getElementById("regressionOutput"),
+      objectiveSummary: document.getElementById("objectiveSummary"),
+      hvacImpactOutput: document.getElementById("hvacImpactOutput"),
+      calcDetails: document.getElementById("calcDetails"),
+      calcBreakdown: document.getElementById("calcBreakdown")
+    };
+    let selectedScenarioKey = null;
+    let hvacSensitivityTouched = false;
+    const optimizationCache = new Map();
+    const OPTIMIZATION_CACHE_LIMIT = 12;
+
+    function normalizeProfile(values) {
+      const total = values.reduce((acc, v) => acc + v, 0);
+      if (!Number.isFinite(total) || total <= 0) {
+        return new Array(values.length).fill(1 / values.length);
+      }
+      return values.map((v) => v / total);
+    }
+
+    function clamp(n, low, high) {
+      return Math.min(high, Math.max(low, n));
+    }
+
+    function decimalPlaces(value) {
+      const asText = String(value);
+      if (!asText.includes(".")) return 0;
+      return asText.length - asText.indexOf(".") - 1;
+    }
+
+    function usd(value) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+    }
+
+    function usdPrecise(value) {
+      return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(value);
+    }
+
+    function fmt(value, digits = 2) {
+      return Number(value).toFixed(digits);
+    }
+
+    function usdSigned(value) {
+      const abs = Math.abs(value);
+      const formatted = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 2 }).format(abs);
+      if (Math.abs(value) < 0.005) return "$0.00";
+      return (value > 0 ? "+" : "-") + formatted;
+    }
+
+    function formatPaybackYears(value, years = 15) {
+      return Number.isFinite(value) ? (fmt(value, 1) + "y") : ("No payback in " + years + "y");
+    }
+
+    function scenarioKey(solarKw, powerwallCount) {
+      return Number(solarKw).toFixed(6) + "|" + powerwallCount;
+    }
+
+    function inputCacheKey(inputs) {
+      return JSON.stringify(inputs);
+    }
+
+    function getOptimizationCached(inputs) {
+      const key = inputCacheKey(inputs);
+      if (optimizationCache.has(key)) {
+        return optimizationCache.get(key);
+      }
+      const value = optimizeIdealScenario(inputs);
+      optimizationCache.set(key, value);
+      if (optimizationCache.size > OPTIMIZATION_CACHE_LIMIT) {
+        const oldestKey = optimizationCache.keys().next().value;
+        optimizationCache.delete(oldestKey);
+      }
+      return value;
+    }
+
+    function objectiveLabel(mode) {
+      if (mode === "return_npv") return "highest NPV (payback and outflow tie-breakers)";
+      if (mode === "utility_bill_knee") return "utility bill Pareto knee-point";
+      return "minimum total outflow";
+    }
+
+    function objectiveFormula(mode) {
+      if (mode === "return_npv") return "maximize NPV (discounted annual utility savings - system cost)";
+      if (mode === "utility_bill_knee") return "select Pareto knee on (System Cost, PG&E After / Month)";
+      return "Mortgage / Month + PG&E After / Month (True-Up)";
+    }
+
+    function renderDelta(node, value) {
+      node.textContent = usdSigned(value);
+      node.classList.toggle("good", value < 0);
+      node.classList.toggle("bad", value > 0);
+    }
+
+    function parseZip(zipRaw) {
+      const trimmed = String(zipRaw || "").trim();
+      return /^\d{5}$/.test(trimmed) ? Number(trimmed) : null;
+    }
+
+    function monthSeason(monthIndex) {
+      if (SUMMER_MONTHS.has(monthIndex)) return "summer";
+      if (WINTER_MONTHS.has(monthIndex)) return "winter";
+      return "shoulder";
+    }
+
+    function buildHourRange(startHour, endHour, maxHours) {
+      const start = ((startHour % 24) + 24) % 24;
+      const end = ((endHour % 24) + 24) % 24;
+      const hours = [];
+      let cursor = start;
+      let guard = 0;
+      while (cursor !== end && guard < 24 && hours.length < maxHours) {
+        hours.push(cursor);
+        cursor = (cursor + 1) % 24;
+        guard += 1;
+      }
+      return hours;
+    }
+
+    function inferYieldFromZip(zipRaw) {
+      const parsedZip = parseZip(zipRaw);
+      if (parsedZip === null) return { ok: false, annualYield: null, label: "invalid ZIP" };
+
+      for (const hint of ZIP_YIELD_HINTS) {
+        if (parsedZip >= hint.start && parsedZip <= hint.end) {
+          return { ok: true, annualYield: hint.annualYield, label: hint.label };
+        }
+      }
+      return {
+        ok: true,
+        annualYield: ZIP_DEFAULT_YIELD,
+        label: "default profile (no regional preset)"
+      };
+    }
+
+    function setFieldError(node, message) {
+      node.classList.add("input-error");
+      let errNode = node.parentElement.querySelector(".field-error");
+      if (!errNode) {
+        errNode = document.createElement("div");
+        errNode.className = "field-error";
+        node.parentElement.appendChild(errNode);
+      }
+      errNode.textContent = message;
+    }
+
+    function clearFieldError(node) {
+      node.classList.remove("input-error");
+      const errNode = node.parentElement.querySelector(".field-error");
+      if (errNode) errNode.textContent = "";
+    }
+
+    function clearAllFieldErrors() {
+      const fields = document.querySelectorAll("input, select");
+      fields.forEach((node) => clearFieldError(node));
+    }
+
+    function applyRescueDefaults() {
+      if (hvacSensitivityTouched) return;
+      const zip = String(el.zipCode.value || "").trim();
+      const defaultSensitivity = zip === RESCUE_ZIP ? RESCUE_HVAC_SENSITIVITY : DEFAULT_HVAC_SENSITIVITY;
+      el.hvacSensitivityKwhPerDegHour.value = fmt(defaultSensitivity, 2);
+    }
+
+    function readNumber(node, label, errors, opts = {}) {
+      const value = Number(node.value);
+      if (!Number.isFinite(value)) {
+        errors.push(label + " must be a valid number.");
+        setFieldError(node, "Enter a valid number.");
+        return null;
+      }
+
+      if (opts.integer && !Number.isInteger(value)) {
+        errors.push(label + " must be an integer.");
+        setFieldError(node, "Must be an integer.");
+        return null;
+      }
+
+      if (opts.min !== undefined && value < opts.min) {
+        errors.push(label + " must be >= " + opts.min + ".");
+        setFieldError(node, "Must be >= " + opts.min + ".");
+        return null;
+      }
+
+      if (opts.max !== undefined && value > opts.max) {
+        errors.push(label + " must be <= " + opts.max + ".");
+        setFieldError(node, "Must be <= " + opts.max + ".");
+        return null;
+      }
+
+      return value;
+    }
+
+    function collectInputs() {
+      clearAllFieldErrors();
+      const errors = [];
+
+      const powerwallCount = readNumber(el.powerwallCount, "Powerwalls", errors, { integer: true, min: 0, max: 4 });
+      const lockPowerwallCount = el.lockPowerwallCount.checked;
+      const solarSearchMinKw = readNumber(el.solarSearchMinKw, "Solar search min", errors, { min: 0 });
+      const solarSearchMaxKw = readNumber(el.solarSearchMaxKw, "Solar search max", errors, { min: 0 });
+      const solarSearchStepKw = readNumber(el.solarSearchStepKw, "Solar search step", errors, { min: 0.000001 });
+      const rawObjective = el.sizingObjective.value;
+      const sizingObjective = (rawObjective === "return_npv" || rawObjective === "utility_bill_knee" || rawObjective === "total_outflow")
+        ? rawObjective
+        : "return_npv";
+      const enableWhf = el.enableWhf.checked;
+      let whfFanWatts = Math.max(0, Number(el.whfFanWatts.value) || 0);
+      let whfDisplacedAcWatts = Math.max(0, Number(el.whfDisplacedAcWatts.value) || 0);
+      let whfStartHour = clamp(Math.floor(Number(el.whfStartHour.value) || 0), 0, 23);
+      let whfStartMinute = clamp(Math.floor(Number(el.whfStartMinute.value) || 0), 0, 59);
+      let whfEndHour = clamp(Math.floor(Number(el.whfEndHour.value) || 0), 0, 23);
+      let whfEndMinute = clamp(Math.floor(Number(el.whfEndMinute.value) || 0), 0, 59);
+      let whfSuccessRatePct = clamp(Number(el.whfSuccessRatePct.value) || 0, 0, 100);
+      const whfActiveMonths = el.whfMonthNodes
+        .filter((node) => node.checked)
+        .map((node) => Number(node.dataset.whfMonth))
+        .filter((month) => Number.isInteger(month) && month >= 0 && month <= 11);
+      const annualLoadKwh = readNumber(el.annualLoadKwh, "Annual load", errors, { min: 0 });
+      const hasEvCharging = el.hasEvCharging.checked;
+      let evMilesPerMonth = 0;
+      let evKwhPerMile = 0.30;
+      let evDayChargingPct = 0;
+      const enableHaShift = el.enableHaShift.checked;
+      const summerSetpointF = readNumber(el.summerSetpointF, "Summer setpoint", errors, { min: 55, max: 90 });
+      const winterSetpointF = readNumber(el.winterSetpointF, "Winter setpoint", errors, { min: 55, max: 90 });
+      const rawMaxPrecoolOffsetF = Number(el.maxPrecoolOffsetF.value);
+      const rawMaxPreheatOffsetF = Number(el.maxPreheatOffsetF.value);
+      const rawMaxPeakRelaxOffsetF = Number(el.maxPeakRelaxOffsetF.value);
+      const rawHvacSensitivityKwhPerDegHour = Number(el.hvacSensitivityKwhPerDegHour.value);
+      const rawHvacShiftSuccessRatePct = Number(el.hvacShiftSuccessRatePct.value);
+      const rawPreCoolStartHour = Number(el.preCoolStartHour.value);
+      const rawPreCoolEndHour = Number(el.preCoolEndHour.value);
+      const rawMaxShiftHoursPerDay = Number(el.maxShiftHoursPerDay.value);
+      const rawMaxShiftKwhPerDay = Number(el.maxShiftKwhPerDay.value);
+
+      let maxPrecoolOffsetF = clamp(Number.isFinite(rawMaxPrecoolOffsetF) ? rawMaxPrecoolOffsetF : 3, 0, 10);
+      let maxPreheatOffsetF = clamp(Number.isFinite(rawMaxPreheatOffsetF) ? rawMaxPreheatOffsetF : 2, 0, 10);
+      let maxPeakRelaxOffsetF = clamp(Number.isFinite(rawMaxPeakRelaxOffsetF) ? rawMaxPeakRelaxOffsetF : 2, 0, 10);
+      let hvacSensitivityKwhPerDegHour = Math.max(0.000001, Number.isFinite(rawHvacSensitivityKwhPerDegHour) ? rawHvacSensitivityKwhPerDegHour : DEFAULT_HVAC_SENSITIVITY);
+      let hvacShiftSuccessRatePct = clamp(Number.isFinite(rawHvacShiftSuccessRatePct) ? rawHvacShiftSuccessRatePct : 70, 0, 100);
+      let preCoolStartHour = clamp(Math.floor(Number.isFinite(rawPreCoolStartHour) ? rawPreCoolStartHour : 12), 0, 23);
+      let preCoolEndHour = clamp(Math.floor(Number.isFinite(rawPreCoolEndHour) ? rawPreCoolEndHour : 16), 0, 23);
+      let maxShiftHoursPerDay = clamp(Math.floor(Number.isFinite(rawMaxShiftHoursPerDay) ? rawMaxShiftHoursPerDay : 4), 1, 12);
+      let maxShiftKwhPerDay = Math.max(0, Number.isFinite(rawMaxShiftKwhPerDay) ? rawMaxShiftKwhPerDay : 6);
+
+      if (enableWhf) {
+        whfFanWatts = readNumber(el.whfFanWatts, "WHF fan watts", errors, { min: 0 });
+        whfDisplacedAcWatts = readNumber(el.whfDisplacedAcWatts, "WHF displaced AC watts", errors, { min: 0 });
+        whfStartHour = readNumber(el.whfStartHour, "WHF start hour", errors, { integer: true, min: 0, max: 23 });
+        whfStartMinute = readNumber(el.whfStartMinute, "WHF start minute", errors, { integer: true, min: 0, max: 59 });
+        whfEndHour = readNumber(el.whfEndHour, "WHF end hour", errors, { integer: true, min: 0, max: 23 });
+        whfEndMinute = readNumber(el.whfEndMinute, "WHF end minute", errors, { integer: true, min: 0, max: 59 });
+        whfSuccessRatePct = readNumber(el.whfSuccessRatePct, "WHF success rate", errors, { min: 0, max: 100 });
+      }
+
+      if (hasEvCharging) {
+        evMilesPerMonth = readNumber(el.evMilesPerMonth, "EV miles per month", errors, { min: 0 });
+        evKwhPerMile = readNumber(el.evKwhPerMile, "EV kWh per mile", errors, { min: 0.000001 });
+        evDayChargingPct = readNumber(el.evDayChargingPct, "EV daytime charging share", errors, { min: 0, max: 100 });
+      }
+
+      if (enableHaShift) {
+        maxPrecoolOffsetF = readNumber(el.maxPrecoolOffsetF, "Max pre-cool offset", errors, { min: 0, max: 10 });
+        maxPreheatOffsetF = readNumber(el.maxPreheatOffsetF, "Max pre-heat offset", errors, { min: 0, max: 10 });
+        maxPeakRelaxOffsetF = readNumber(el.maxPeakRelaxOffsetF, "Max peak-hour setpoint drift", errors, { min: 0, max: 10 });
+        hvacSensitivityKwhPerDegHour = readNumber(el.hvacSensitivityKwhPerDegHour, "HVAC sensitivity", errors, { min: 0.000001 });
+        hvacShiftSuccessRatePct = readNumber(el.hvacShiftSuccessRatePct, "HVAC shift success rate", errors, { min: 0, max: 100 });
+        preCoolStartHour = readNumber(el.preCoolStartHour, "Pre-window start hour", errors, { integer: true, min: 0, max: 23 });
+        preCoolEndHour = readNumber(el.preCoolEndHour, "Pre-window end hour", errors, { integer: true, min: 0, max: 23 });
+        maxShiftHoursPerDay = readNumber(el.maxShiftHoursPerDay, "Max shift hours/day", errors, { integer: true, min: 1, max: 12 });
+        maxShiftKwhPerDay = readNumber(el.maxShiftKwhPerDay, "Max shift kWh/day", errors, { min: 0 });
+      }
+
+      const zipInfo = inferYieldFromZip(el.zipCode.value);
+      if (!zipInfo.ok) {
+        errors.push("ZIP code must be a valid 5-digit value.");
+        setFieldError(el.zipCode, "Enter a 5-digit ZIP.");
+      }
+
+      if (solarSearchMinKw !== null && solarSearchMaxKw !== null && solarSearchMaxKw < solarSearchMinKw) {
+        errors.push("Solar search max must be >= min.");
+        setFieldError(el.solarSearchMaxKw, "Must be >= min.");
+      }
+
+      if (solarSearchStepKw !== null && solarSearchStepKw <= 0) {
+        errors.push("Solar search step must be > 0.");
+        setFieldError(el.solarSearchStepKw, "Must be > 0.");
+      }
+
+      const exportRateMode = el.exportRateMode.value === "tou_export" ? "tou_export" : "nem3_override";
+      const vppEnabled = el.vppEnabled.checked;
+
+      const importOffPeak = readNumber(el.importOffPeak, "Import off-peak rate", errors, { min: 0 });
+      const importPeak = readNumber(el.importPeak, "Import peak rate", errors, { min: 0 });
+      const fixedMonthlyCharge = readNumber(el.fixedMonthlyCharge, "Fixed monthly charge", errors, { min: 0 });
+      const nbcPerImportKwh = readNumber(el.nbcPerImportKwh, "NBC rate", errors, { min: 0 });
+      const exportPeakSharePct = readNumber(el.exportPeakShare, "Export peak share", errors, { min: 0, max: 100 });
+
+      const nem3ExportRate = readNumber(el.nem3ExportRate, "NEM 3.0 export rate", errors, { min: 0 });
+      const exportOffPeak = readNumber(el.exportOffPeak, "Export off-peak rate", errors, { min: 0 });
+      const exportPeak = readNumber(el.exportPeak, "Export peak rate", errors, { min: 0 });
+
+      const solarBaseCost = readNumber(el.solarBaseCost, "Solar base cost", errors, { min: 0 });
+      const solarCostPerKw = readNumber(el.solarCostPerKw, "Solar cost per kW", errors, { min: 0 });
+      const batteryCost1 = readNumber(el.batteryCost1, "1 Powerwall cost", errors, { min: 0 });
+      const batteryCost2 = readNumber(el.batteryCost2, "2 Powerwalls cost", errors, { min: 0 });
+      const batteryCost3 = readNumber(el.batteryCost3, "3 Powerwalls cost", errors, { min: 0 });
+      const batteryCost4 = readNumber(el.batteryCost4, "4 Powerwalls cost", errors, { min: 0 });
+
+      const cyclesPerDay = readNumber(el.cyclesPerDay, "Cycles/day", errors, { min: 0, max: 2 });
+      const solarToHomeEfficiencyPct = readNumber(el.solarToHomeEfficiencyPct, "Solar-to-home efficiency", errors, { min: 80, max: 100 });
+      const roundTripEfficiencyPct = readNumber(el.roundTripEfficiency, "Round-trip efficiency", errors, { min: 50, max: 100 });
+
+      const aprPct = readNumber(el.apr, "APR", errors, { min: 0 });
+      const financeYears = readNumber(el.financeYears, "Loan term", errors, { integer: true, min: 1 });
+
+      const requiredValues = [
+        powerwallCount, solarSearchMinKw, solarSearchMaxKw, solarSearchStepKw, annualLoadKwh,
+        summerSetpointF, winterSetpointF,
+        importOffPeak, importPeak, fixedMonthlyCharge, nbcPerImportKwh, exportPeakSharePct,
+        nem3ExportRate, exportOffPeak, exportPeak, solarBaseCost, solarCostPerKw,
+        batteryCost1, batteryCost2, batteryCost3, batteryCost4, cyclesPerDay,
+        solarToHomeEfficiencyPct, roundTripEfficiencyPct, aprPct, financeYears
+      ];
+      if (hasEvCharging) {
+        requiredValues.push(evMilesPerMonth, evKwhPerMile, evDayChargingPct);
+      }
+      if (enableHaShift) {
+        requiredValues.push(
+          summerSetpointF,
+          winterSetpointF,
+          maxPrecoolOffsetF,
+          maxPreheatOffsetF,
+          maxPeakRelaxOffsetF,
+          hvacSensitivityKwhPerDegHour,
+          hvacShiftSuccessRatePct,
+          preCoolStartHour,
+          preCoolEndHour,
+          maxShiftHoursPerDay,
+          maxShiftKwhPerDay
+        );
+      }
+      if (enableWhf) {
+        requiredValues.push(whfFanWatts, whfDisplacedAcWatts, whfStartHour, whfStartMinute, whfEndHour, whfEndMinute, whfSuccessRatePct);
+      }
+
+      if (requiredValues.some((v) => v === null) || !zipInfo.ok) {
+        return { errors, inputs: null, zipInfo };
+      }
+
+      if (enableHaShift) {
+        const candidateHours = buildHourRange(preCoolStartHour, preCoolEndHour, 24);
+        if (candidateHours.length === 0) {
+          errors.push("Pre-window start and end hour must define a non-zero window.");
+          setFieldError(el.preCoolEndHour, "Must define non-zero window.");
+        }
+      }
+      if (enableWhf) {
+        const whfStartMinuteOfDay = (whfStartHour * 60) + whfStartMinute;
+        const whfEndMinuteOfDay = (whfEndHour * 60) + whfEndMinute;
+        if (whfStartMinuteOfDay === whfEndMinuteOfDay) {
+          errors.push("WHF start and end times must define a non-zero window.");
+          setFieldError(el.whfEndMinute, "Must define non-zero window.");
+        }
+        if (!whfActiveMonths.length) {
+          errors.push("WHF must have at least one active month.");
+          setFieldError(el.whfSuccessRatePct, "Select >= 1 active month.");
+        }
+      }
+
+      if (errors.length) {
+        return { errors, inputs: null, zipInfo };
+      }
+
+      const evDayChargingShare = hasEvCharging ? clamp(evDayChargingPct / 100, 0, 1) : 0;
+      const evNightChargingShare = hasEvCharging ? (1 - evDayChargingShare) : 0;
+      const evKwhPerMonth = hasEvCharging ? evMilesPerMonth * evKwhPerMile : 0;
+
+      const inputs = {
+        sizing: {
+          powerwallCount,
+          lockPowerwallCount,
+          solarSearchMinKw,
+          solarSearchMaxKw,
+          solarSearchStepKw,
+          objectiveMode: sizingObjective
+        },
+        analysis: {
+          years: 15,
+          discountRate: 0.05,
+          utilityEscalation: 0.03,
+          solarDegradation: 0.005,
+          batteryDegradation: 0.02
+        },
+        production: {
+          annualYield: zipInfo.annualYield,
+          zipLabel: zipInfo.label,
+          solarToHomeEfficiency: clamp(solarToHomeEfficiencyPct / 100, 0.8, 1)
+        },
+        load: {
+          annualKwh: annualLoadKwh,
+          peakShare: 0.4,
+          monthProfile: LOAD_PROFILE,
+          summerSetpointF,
+          winterSetpointF
+        },
+        ev: {
+          enabled: hasEvCharging,
+          milesPerMonth: hasEvCharging ? evMilesPerMonth : 0,
+          kwhPerMile: hasEvCharging ? evKwhPerMile : 0.30,
+          dayChargingShare: evDayChargingShare,
+          nightChargingShare: evNightChargingShare,
+          kwhPerMonth: evKwhPerMonth,
+          chargingRule: "solar_first_shift"
+        },
+        ha: {
+          enabled: enableHaShift,
+          tempUnits: "F",
+          summerSetpointF,
+          winterSetpointF,
+          maxPrecoolOffsetF: enableHaShift ? maxPrecoolOffsetF : 0,
+          maxPreheatOffsetF: enableHaShift ? maxPreheatOffsetF : 0,
+          maxPeakRelaxOffsetF: enableHaShift ? maxPeakRelaxOffsetF : 0,
+          hvacSensitivityKwhPerDegHour: enableHaShift ? hvacSensitivityKwhPerDegHour : DEFAULT_HVAC_SENSITIVITY,
+          successRate: enableHaShift ? clamp(hvacShiftSuccessRatePct / 100, 0, 1) : 0,
+          preCoolStartHour: enableHaShift ? preCoolStartHour : 12,
+          preCoolEndHour: enableHaShift ? preCoolEndHour : 16,
+          maxShiftHoursPerDay: enableHaShift ? maxShiftHoursPerDay : 0,
+          maxShiftKwhPerDay: enableHaShift ? maxShiftKwhPerDay : 0,
+          horizon: "day_ahead_heuristic",
+          seasonMap: {
+            summerMonths: [4, 5, 6, 7, 8],
+            winterMonths: [10, 11, 0, 1],
+            shoulderMonths: [2, 3, 9]
+          }
+        },
+        vpp: {
+          enabled: vppEnabled
+        },
+        whf: {
+          enabled: enableWhf,
+          fanWatts: enableWhf ? whfFanWatts : 0,
+          displacedAcWatts: enableWhf ? whfDisplacedAcWatts : 0,
+          startMinuteOfDay: enableWhf ? ((whfStartHour * 60) + whfStartMinute) : 0,
+          endMinuteOfDay: enableWhf ? ((whfEndHour * 60) + whfEndMinute) : 0,
+          activeMonths: enableWhf ? whfActiveMonths : [],
+          successRate: enableWhf ? clamp(whfSuccessRatePct / 100, 0, 1) : 0
+        },
+        rates: {
+          importOffPeak,
+          importPeak,
+          fixedMonthlyCharge,
+          nbcPerImportKwh,
+          exportRateMode,
+          nem3ExportRate,
+          exportOffPeak,
+          exportPeak,
+          exportPeakShare: clamp(exportPeakSharePct / 100, 0, 1)
+        },
+        pricing: {
+          solarBaseCost,
+          solarCostPerKw,
+          batteryCosts: {
+            0: 0,
+            1: batteryCost1,
+            2: batteryCost2,
+            3: batteryCost3,
+            4: batteryCost4
+          }
+        },
+        battery: {
+          usableKwhPerBattery: BATTERY_USABLE_KWH,
+          cyclesPerDay,
+          roundTripEfficiency: clamp(roundTripEfficiencyPct / 100, 0.5, 1),
+          dispatchMode: "cost_priority_peak_then_postpeak",
+          minSocReservePct: 0.20
+        },
+        financing: {
+          apr: aprPct / 100,
+          years: financeYears
+        }
+      };
+
+      return { errors, inputs, zipInfo };
+    }
+
+    function buildSolarCandidates(minKw, maxKw, stepKw) {
+      const precision = Math.min(6, Math.max(decimalPlaces(minKw), decimalPlaces(maxKw), decimalPlaces(stepKw), 3));
+      const factor = Math.pow(10, precision);
+
+      const start = Math.round(minKw * factor);
+      const end = Math.round(maxKw * factor);
+      const inc = Math.round(stepKw * factor);
+
+      if (inc <= 0 || end < start) return [];
+
+      const values = [];
+      let guard = 0;
+      for (let value = start; value <= end; value += inc) {
+        values.push(Number((value / factor).toFixed(precision)));
+        guard += 1;
+        if (guard > 50000) break;
+      }
+
+      const exactMax = Number((end / factor).toFixed(precision));
+      if (!values.length) {
+        values.push(exactMax);
+      } else if (Math.abs(values[values.length - 1] - exactMax) > 1e-9) {
+        values.push(exactMax);
+      }
+
+      const uniqueSorted = Array.from(new Set(values)).sort((a, b) => a - b);
+      return uniqueSorted;
+    }
+
+    function buildHourlyLoadShape(targetPeakShare) {
+      const basePeakShare = BASE_LOAD_HOURLY.reduce((acc, v, hour) => acc + (PEAK_HOURS.has(hour) ? v : 0), 0);
+      if (basePeakShare <= 0 || basePeakShare >= 1) {
+        return BASE_LOAD_HOURLY;
+      }
+
+      const constrainedTarget = clamp(targetPeakShare, 0.05, 0.95);
+      const peakScale = constrainedTarget / basePeakShare;
+      const offScale = (1 - constrainedTarget) / (1 - basePeakShare);
+      return normalizeProfile(BASE_LOAD_HOURLY.map((v, hour) => v * (PEAK_HOURS.has(hour) ? peakScale : offScale)));
+    }
+
+    function buildSolarHourlyShape(monthIndex) {
+      const daylight = MONTHLY_DAYLIGHT_HOURS[monthIndex] || 12;
+      const sunrise = 12 - daylight / 2;
+      const sunset = 12 + daylight / 2;
+      const sigma = Math.max(1.4, daylight / 4.2);
+      const profile = new Array(24).fill(0).map((_, hour) => {
+        const center = hour + 0.5;
+        if (center < sunrise || center > sunset) return 0;
+        const spread = center - 12;
+        return Math.exp(-(spread * spread) / (2 * sigma * sigma));
+      });
+      return normalizeProfile(profile);
+    }
+
+    function getSeasonDailyHvacShiftCapacity(ha, monthIndex, preWindowHours) {
+      const summerCap = ha.maxPrecoolOffsetF * ha.hvacSensitivityKwhPerDegHour * preWindowHours;
+      const winterCap = ha.maxPreheatOffsetF * ha.hvacSensitivityKwhPerDegHour * preWindowHours;
+      const summerRelaxCap = ha.maxPeakRelaxOffsetF * ha.hvacSensitivityKwhPerDegHour * PEAK_WINDOW_HOURS.length;
+      const winterRelaxCap = ha.maxPeakRelaxOffsetF * ha.hvacSensitivityKwhPerDegHour * PEAK_WINDOW_HOURS.length;
+      const shoulderCap = 0.5 * summerCap + 0.5 * winterCap;
+      const shoulderRelaxCap = 0.5 * summerRelaxCap + 0.5 * winterRelaxCap;
+      const season = monthSeason(monthIndex);
+      const seasonPreCap = season === "summer" ? summerCap : (season === "winter" ? winterCap : shoulderCap);
+      const seasonRelaxCap = season === "summer" ? summerRelaxCap : (season === "winter" ? winterRelaxCap : shoulderRelaxCap);
+      const seasonRawTotal = seasonPreCap + seasonRelaxCap;
+      const seasonCap = Math.min(seasonRawTotal, ha.maxShiftKwhPerDay);
+      const denom = seasonRawTotal > 0 ? seasonRawTotal : 1;
+      const preShare = seasonRawTotal > 0 ? (seasonPreCap / denom) : 0;
+      return {
+        season,
+        summerCap,
+        winterCap,
+        shoulderCap,
+        seasonPreCap,
+        seasonRelaxCap,
+        seasonCap,
+        preShare,
+        relaxShare: 1 - preShare
+      };
+    }
+
+    function getSeasonLoadMultiplier(loadConfig, monthIndex) {
+      const summerRaw = 1 + ((BASE_SUMMER_SETPOINT_F - loadConfig.summerSetpointF) * SUMMER_SETPOINT_LOAD_SENSITIVITY_PER_DEG);
+      const winterRaw = 1 + ((loadConfig.winterSetpointF - BASE_WINTER_SETPOINT_F) * WINTER_SETPOINT_LOAD_SENSITIVITY_PER_DEG);
+      const summerMult = clamp(summerRaw, 0.7, 1.4);
+      const winterMult = clamp(winterRaw, 0.7, 1.4);
+      const shoulderMult = clamp(0.5 * summerMult + 0.5 * winterMult, 0.7, 1.4);
+      const season = monthSeason(monthIndex);
+      return season === "summer" ? summerMult : (season === "winter" ? winterMult : shoulderMult);
+    }
+
+    function getHvacShiftPlan(dayInput, loadShape) {
+      if (!dayInput.haEnabled) {
+        return {
+          enabled: false,
+          shiftByHour: new Array(24).fill(0),
+          preWindowHours: 0,
+          season: monthSeason(dayInput.monthIndex),
+          activeSetpointF: null,
+          activeOffsetF: 0,
+          dailyShiftCapacityKwh: 0,
+          dailyShiftScheduledKwh: 0,
+          dailyShiftExecutedKwh: 0,
+          dailyShiftToPreWindowKwh: 0,
+          dailyShiftToPostPeakKwh: 0
+        };
+      }
+
+      const preCandidate = buildHourRange(dayInput.haPreCoolStartHour, dayInput.haPreCoolEndHour, 24);
+      const preWindowHoursList = preCandidate.slice(0, dayInput.haMaxShiftHoursPerDay);
+      const preWindowHours = preWindowHoursList.length;
+
+      const seasonInfo = getSeasonDailyHvacShiftCapacity(dayInput.ha, dayInput.monthIndex, preWindowHours);
+      const peakHomeLoadAvailable = PEAK_WINDOW_HOURS.reduce((sum, hour) => sum + (dayInput.dayHomeLoadKwh * loadShape[hour]), 0);
+      const dailyShiftCapacityKwh = seasonInfo.seasonCap;
+      const dailyShiftScheduledKwh = Math.min(dailyShiftCapacityKwh, peakHomeLoadAvailable);
+      const targetExecuted = dailyShiftScheduledKwh * dayInput.haSuccessRate;
+
+      const shiftByHour = new Array(24).fill(0);
+      let actualShiftExecuted = 0;
+
+      let shiftToPreWindow = 0;
+      let shiftToPostPeak = 0;
+      const postPeakHours = [21, 22, 23];
+
+      if (targetExecuted > 0 && peakHomeLoadAvailable > 0) {
+        for (const hour of PEAK_WINDOW_HOURS) {
+          const hourLoad = dayInput.dayHomeLoadKwh * loadShape[hour];
+          const proportionalRemoval = targetExecuted * (hourLoad / peakHomeLoadAvailable);
+          const removed = Math.min(hourLoad, proportionalRemoval);
+          shiftByHour[hour] -= removed;
+          actualShiftExecuted += removed;
+        }
+
+        shiftToPreWindow = actualShiftExecuted * seasonInfo.preShare;
+        shiftToPostPeak = actualShiftExecuted - shiftToPreWindow;
+
+        if (preWindowHoursList.length === 0) {
+          shiftToPostPeak = actualShiftExecuted;
+          shiftToPreWindow = 0;
+        }
+
+        if (preWindowHoursList.length > 0 && shiftToPreWindow > 0) {
+          const addPerPreWindowHour = shiftToPreWindow / preWindowHoursList.length;
+          for (const hour of preWindowHoursList) {
+            shiftByHour[hour] += addPerPreWindowHour;
+          }
+        }
+
+        if (shiftToPostPeak > 0) {
+          const addPerPostHour = shiftToPostPeak / postPeakHours.length;
+          for (const hour of postPeakHours) {
+            shiftByHour[hour] += addPerPostHour;
+          }
+        }
+      }
+
+      const season = seasonInfo.season;
+      const activeSetpointF = season === "summer"
+        ? dayInput.haSummerSetpointF
+        : (season === "winter" ? dayInput.haWinterSetpointF : (dayInput.haSummerSetpointF + dayInput.haWinterSetpointF) / 2);
+      const activeOffsetF = season === "summer"
+        ? dayInput.haMaxPrecoolOffsetF
+        : (season === "winter" ? dayInput.haMaxPreheatOffsetF : (dayInput.haMaxPrecoolOffsetF + dayInput.haMaxPreheatOffsetF) / 2);
+
+      return {
+        enabled: true,
+        shiftByHour,
+        preWindowHours,
+        season,
+        activeSetpointF,
+        activeOffsetF,
+        dailyShiftCapacityKwh,
+        dailyShiftScheduledKwh,
+        dailyShiftExecutedKwh: actualShiftExecuted,
+        dailyShiftToPreWindowKwh: shiftToPreWindow,
+        dailyShiftToPostPeakKwh: shiftToPostPeak
+      };
+    }
+
+    function minuteInWindow(minuteOfDay, startMinuteOfDay, endMinuteOfDay) {
+      if (startMinuteOfDay === endMinuteOfDay) return false;
+      if (startMinuteOfDay < endMinuteOfDay) {
+        return minuteOfDay >= startMinuteOfDay && minuteOfDay < endMinuteOfDay;
+      }
+      return minuteOfDay >= startMinuteOfDay || minuteOfDay < endMinuteOfDay;
+    }
+
+    function getWholeHouseFanPlan(dayInput) {
+      if (!dayInput.whfEnabled || !dayInput.whfActiveMonth) {
+        return {
+          enabled: false,
+          activeHourSet: new Set(),
+          fanKwhPerHour: 0,
+          displacedKwhPerHour: 0,
+          netReductionKwhPerHour: 0
+        };
+      }
+
+      const activeHours = [];
+      for (let hour = 0; hour < 24; hour += 1) {
+        const minute = (hour * 60) + 30;
+        if (minuteInWindow(minute, dayInput.whfStartMinuteOfDay, dayInput.whfEndMinuteOfDay)) {
+          activeHours.push(hour);
+        }
+      }
+      const displacedKwhPerHour = (dayInput.whfDisplacedAcWatts / 1000) * dayInput.whfSuccessRate;
+      const fanKwhPerHour = (dayInput.whfFanWatts / 1000) * dayInput.whfSuccessRate;
+      const netReductionKwhPerHour = Math.max(0, displacedKwhPerHour - fanKwhPerHour);
+
+      return {
+        enabled: true,
+        activeHourSet: new Set(activeHours),
+        fanKwhPerHour,
+        displacedKwhPerHour,
+        netReductionKwhPerHour
+      };
+    }
+
+    function simulateRepresentativeDay(dayInput) {
+      const loadShape = buildHourlyLoadShape(dayInput.peakShare);
+      const solarShape = buildSolarHourlyShape(dayInput.monthIndex);
+      const batteryCapacity = dayInput.powerwallCount * dayInput.usableKwhPerBattery;
+      const maxDailyDischarge = batteryCapacity * dayInput.cyclesPerDay;
+      const minSocReserveKwh = batteryCapacity * (dayInput.minSocReservePct || 0);
+      const solarToHomeEfficiency = clamp(dayInput.solarToHomeEfficiency || 1, 0.8, 1);
+      const maxAcOutputKw = Number.isFinite(dayInput.maxAcOutputKw) ? Math.max(0, dayInput.maxAcOutputKw) : Number.POSITIVE_INFINITY;
+      const haPlan = getHvacShiftPlan(dayInput, loadShape);
+      const whfPlan = getWholeHouseFanPlan(dayInput);
+      const evDayTarget = dayInput.evEnabled ? dayInput.evDayTargetKwh : 0;
+      const evNightTarget = dayInput.evEnabled ? dayInput.evNightTargetKwh : 0;
+      const evBeforeDayPerHour = evDayTarget / DAY_CHARGING_HOURS.length;
+      const evBeforeNightPerHour = evNightTarget / NIGHT_CHARGING_HOURS.length;
+
+      let soc = batteryCapacity * 0.3;
+      let measured = null;
+      const warmupDays = 3;
+
+      for (let day = 0; day <= warmupDays; day += 1) {
+        let remainingDischarge = maxDailyDischarge;
+        let evDayRemaining = evDayTarget;
+        let evShiftToNight = 0;
+        const stats = {
+          beforeImportPeakKwh: 0,
+          beforeImportOffKwh: 0,
+          importPeakKwh: 0,
+          importOffKwh: 0,
+          exportKwh: 0,
+          directSolarToLoad: 0,
+          solarToBatteryInputKwh: 0,
+          solarToBatteryStoredKwh: 0,
+          batteryToLoad: 0,
+          batteryToLoadPeakKwh: 0,
+          batteryToLoadPostPeakKwh: 0,
+          batteryReserveHits: 0,
+          minSocKwh: soc,
+          evDaySolarServedKwh: 0,
+          evDayShiftedToNightKwh: 0,
+          evNightLoadAfterKwh: 0,
+          hvacShiftCapacityKwh: haPlan.dailyShiftCapacityKwh,
+          hvacShiftScheduledKwh: haPlan.dailyShiftScheduledKwh,
+          hvacShiftExecutedKwh: haPlan.dailyShiftExecutedKwh,
+          hvacShiftToPreWindowKwh: haPlan.dailyShiftToPreWindowKwh,
+          hvacShiftToPostPeakKwh: haPlan.dailyShiftToPostPeakKwh,
+          hvacPeakImportAvoidedKwh: 0,
+          whfFanKwh: 0,
+          whfDisplacedAcKwh: 0,
+          whfNetReductionKwh: 0,
+          whfActiveHours: 0,
+          minHomeLoadKwh: Number.POSITIVE_INFINITY,
+          clippedSolarKwh: 0,
+          solarGenerationKwh: 0
+        };
+
+        for (let hour = 0; hour < 24; hour += 1) {
+          const peakHour = PEAK_HOURS.has(hour);
+          const dayChargeHour = DAY_CHARGING_HOUR_SET.has(hour);
+          const nightChargeHour = NIGHT_CHARGING_HOUR_SET.has(hour);
+          let hourlyHomeLoad = Math.max(0, (dayInput.dayHomeLoadKwh * loadShape[hour]) + haPlan.shiftByHour[hour]);
+          if (whfPlan.enabled && whfPlan.activeHourSet.has(hour)) {
+            stats.whfActiveHours += 1;
+            stats.whfFanKwh += whfPlan.fanKwhPerHour;
+            stats.whfDisplacedAcKwh += whfPlan.displacedKwhPerHour;
+            stats.whfNetReductionKwh += whfPlan.netReductionKwhPerHour;
+            hourlyHomeLoad = Math.max(0, hourlyHomeLoad - whfPlan.netReductionKwhPerHour);
+          }
+          stats.minHomeLoadKwh = Math.min(stats.minHomeLoadKwh, hourlyHomeLoad);
+          const hourlyEvBeforeLoad = (dayChargeHour ? evBeforeDayPerHour : 0) + (nightChargeHour ? evBeforeNightPerHour : 0);
+          const hourlySolarRaw = dayInput.daySolarKwh * solarShape[hour];
+          const hourlySolar = Math.min(hourlySolarRaw, maxAcOutputKw);
+          stats.clippedSolarKwh += Math.max(0, hourlySolarRaw - hourlySolar);
+          stats.solarGenerationKwh += hourlySolar;
+
+          if (hour === 16 && evDayRemaining > 0) {
+            evShiftToNight = evDayRemaining;
+            stats.evDayShiftedToNightKwh = evDayRemaining;
+            evDayRemaining = 0;
+          }
+
+          if (peakHour) stats.beforeImportPeakKwh += hourlyHomeLoad + hourlyEvBeforeLoad;
+          else stats.beforeImportOffKwh += hourlyHomeLoad + hourlyEvBeforeLoad;
+
+          let loadRemaining = hourlyHomeLoad;
+          let solarRemaining = hourlySolar;
+
+          const directSolarDelivered = Math.min(loadRemaining, solarRemaining * solarToHomeEfficiency);
+          if (directSolarDelivered > 0) {
+            const directSolarDc = directSolarDelivered / solarToHomeEfficiency;
+            loadRemaining -= directSolarDelivered;
+            solarRemaining -= directSolarDc;
+            stats.directSolarToLoad += directSolarDelivered;
+          }
+
+          if (batteryCapacity > 0 && solarRemaining > 0) {
+            const chargeRoom = Math.max(0, batteryCapacity - soc);
+            const chargeInput = Math.min(solarRemaining, chargeRoom / dayInput.roundTripEfficiency);
+            if (chargeInput > 0) {
+              const storedEnergy = chargeInput * dayInput.roundTripEfficiency;
+              soc += storedEnergy;
+              solarRemaining -= chargeInput;
+              stats.solarToBatteryInputKwh += chargeInput;
+              stats.solarToBatteryStoredKwh += storedEnergy;
+            }
+          }
+
+          if (dayChargeHour && evDayRemaining > 0 && solarRemaining > 0) {
+            const evDaySolarServed = Math.min(evDayRemaining, solarRemaining * solarToHomeEfficiency);
+            if (evDaySolarServed > 0) {
+              const evDaySolarDc = evDaySolarServed / solarToHomeEfficiency;
+              solarRemaining -= evDaySolarDc;
+              evDayRemaining -= evDaySolarServed;
+              stats.evDaySolarServedKwh += evDaySolarServed;
+            }
+          }
+
+          if (nightChargeHour) {
+            let nightDemand = evBeforeNightPerHour;
+            if (hour >= 21 && evShiftToNight > 0) {
+              nightDemand += evShiftToNight / 3;
+            }
+            loadRemaining += nightDemand;
+            stats.evNightLoadAfterKwh += nightDemand;
+          }
+
+          const inDispatchWindow = peakHour || (dayInput.dispatchMode === "cost_priority_peak_then_postpeak" && POST_PEAK_HOUR_SET.has(hour));
+          if (inDispatchWindow && batteryCapacity > 0 && remainingDischarge > 0 && loadRemaining > 0) {
+            const availableDischarge = Math.max(0, soc - minSocReserveKwh);
+            const discharge = Math.min(loadRemaining, availableDischarge, remainingDischarge);
+            if (discharge > 0) {
+              soc -= discharge;
+              remainingDischarge -= discharge;
+              loadRemaining -= discharge;
+              stats.batteryToLoad += discharge;
+              if (peakHour) stats.batteryToLoadPeakKwh += discharge;
+              else stats.batteryToLoadPostPeakKwh += discharge;
+            } else if (availableDischarge <= 1e-9) {
+              stats.batteryReserveHits += 1;
+            }
+          }
+
+          stats.minSocKwh = Math.min(stats.minSocKwh, soc);
+
+          if (peakHour) stats.importPeakKwh += loadRemaining;
+          else stats.importOffKwh += loadRemaining;
+
+          stats.exportKwh += Math.max(0, solarRemaining * solarToHomeEfficiency);
+        }
+
+        if (evDayRemaining > 0) {
+          stats.evDayShiftedToNightKwh += evDayRemaining;
+        }
+
+        const peakGridDependency = stats.beforeImportPeakKwh > 0 ? (stats.importPeakKwh / stats.beforeImportPeakKwh) : 0;
+        stats.hvacPeakImportAvoidedKwh = stats.hvacShiftExecutedKwh * peakGridDependency;
+
+        measured = stats;
+      }
+
+      return measured;
+    }
+
+    function computeMonthBills(monthInput) {
+      const safeDays = Math.max(1, monthInput.days);
+      const dayHomeLoadKwh = monthInput.homeLoadKwh / safeDays;
+      const daySolarKwh = monthInput.solarKwh / safeDays;
+      const dayEvKwh = (monthInput.evKwhMonth || 0) / safeDays;
+      const evDayTargetKwh = dayEvKwh * monthInput.evDayChargingShare;
+      const evNightTargetKwh = dayEvKwh * monthInput.evNightChargingShare;
+
+      const dayResult = simulateRepresentativeDay({
+        monthIndex: monthInput.monthIndex,
+        dayHomeLoadKwh,
+        daySolarKwh,
+        peakShare: monthInput.peakShare,
+        powerwallCount: monthInput.powerwallCount,
+        usableKwhPerBattery: monthInput.usableKwhPerBattery,
+        cyclesPerDay: monthInput.cyclesPerDay,
+        solarToHomeEfficiency: monthInput.solarToHomeEfficiency,
+        maxAcOutputKw: monthInput.maxAcOutputKw,
+        roundTripEfficiency: monthInput.roundTripEfficiency,
+        dispatchMode: monthInput.dispatchMode,
+        minSocReservePct: monthInput.minSocReservePct,
+        evEnabled: monthInput.evEnabled,
+        evDayTargetKwh,
+        evNightTargetKwh,
+        haEnabled: monthInput.haEnabled,
+        ha: monthInput.ha,
+        haSuccessRate: monthInput.haSuccessRate,
+        haPreCoolStartHour: monthInput.haPreCoolStartHour,
+        haPreCoolEndHour: monthInput.haPreCoolEndHour,
+        haMaxShiftHoursPerDay: monthInput.haMaxShiftHoursPerDay,
+        haSummerSetpointF: monthInput.haSummerSetpointF,
+        haWinterSetpointF: monthInput.haWinterSetpointF,
+        haMaxPrecoolOffsetF: monthInput.haMaxPrecoolOffsetF,
+        haMaxPreheatOffsetF: monthInput.haMaxPreheatOffsetF,
+        whfEnabled: monthInput.whfEnabled,
+        whfActiveMonth: monthInput.whfActiveMonth,
+        whfFanWatts: monthInput.whfFanWatts,
+        whfDisplacedAcWatts: monthInput.whfDisplacedAcWatts,
+        whfSuccessRate: monthInput.whfSuccessRate,
+        whfStartMinuteOfDay: monthInput.whfStartMinuteOfDay,
+        whfEndMinuteOfDay: monthInput.whfEndMinuteOfDay
+      });
+
+      const scale = safeDays;
+      const beforeImportPeakKwh = dayResult.beforeImportPeakKwh * scale;
+      const beforeImportOffKwh = dayResult.beforeImportOffKwh * scale;
+      const importPeakKwh = dayResult.importPeakKwh * scale;
+      const importOffKwh = dayResult.importOffKwh * scale;
+      const exportKwh = dayResult.exportKwh * scale;
+      const importKwh = importPeakKwh + importOffKwh;
+      const beforeImportKwh = beforeImportPeakKwh + beforeImportOffKwh;
+
+      const exportPeak = exportKwh * monthInput.exportPeakShare;
+      const exportOff = exportKwh - exportPeak;
+      const exportCreditValue = exportPeak * monthInput.exportPeak + exportOff * monthInput.exportOffPeak;
+
+      const billBeforeEnergy = beforeImportPeakKwh * monthInput.importPeak + beforeImportOffKwh * monthInput.importOffPeak;
+      const billBeforeNbc = beforeImportKwh * monthInput.nbcPerImportKwh;
+      const billBefore = billBeforeEnergy + billBeforeNbc + monthInput.fixedMonthlyCharge;
+
+      const billAfterEnergy = importPeakKwh * monthInput.importPeak + importOffKwh * monthInput.importOffPeak;
+      const billAfterNbc = importKwh * monthInput.nbcPerImportKwh;
+      const rawBillAfter = billAfterEnergy + billAfterNbc + monthInput.fixedMonthlyCharge - exportCreditValue;
+
+      return {
+        billBefore,
+        rawBillAfter,
+        billAfterEnergy,
+        billAfterNbc,
+        fixedCharge: monthInput.fixedMonthlyCharge,
+        exportCreditValue,
+        importKwh,
+        importPeakKwh,
+        importOffKwh,
+        exportKwh,
+        beforeImportPeakKwh,
+        beforeImportOffKwh,
+        beforeImportKwh,
+        directSolarToLoadKwh: dayResult.directSolarToLoad * scale,
+        solarToBatteryInputKwh: dayResult.solarToBatteryInputKwh * scale,
+        solarToBatteryStoredKwh: dayResult.solarToBatteryStoredKwh * scale,
+        batteryToLoadKwh: dayResult.batteryToLoad * scale,
+        batteryToLoadPeakKwh: dayResult.batteryToLoadPeakKwh * scale,
+        batteryToLoadPostPeakKwh: dayResult.batteryToLoadPostPeakKwh * scale,
+        batteryReserveHits: dayResult.batteryReserveHits * scale,
+        minSocKwh: dayResult.minSocKwh,
+        evDaySolarServedKwh: dayResult.evDaySolarServedKwh * scale,
+        evDayShiftedToNightKwh: dayResult.evDayShiftedToNightKwh * scale,
+        evNightLoadAfterKwh: dayResult.evNightLoadAfterKwh * scale,
+        hvacShiftCapacityKwh: dayResult.hvacShiftCapacityKwh * scale,
+        hvacShiftScheduledKwh: dayResult.hvacShiftScheduledKwh * scale,
+        hvacShiftExecutedKwh: dayResult.hvacShiftExecutedKwh * scale,
+        hvacShiftToPreWindowKwh: dayResult.hvacShiftToPreWindowKwh * scale,
+        hvacShiftToPostPeakKwh: dayResult.hvacShiftToPostPeakKwh * scale,
+        hvacPeakImportAvoidedKwh: dayResult.hvacPeakImportAvoidedKwh * scale,
+        whfFanKwh: dayResult.whfFanKwh * scale,
+        whfDisplacedAcKwh: dayResult.whfDisplacedAcKwh * scale,
+        whfNetReductionKwh: dayResult.whfNetReductionKwh * scale,
+        whfActiveHours: dayResult.whfActiveHours * scale,
+        clippedSolarKwh: dayResult.clippedSolarKwh * scale,
+        solarGenerationKwh: dayResult.solarGenerationKwh * scale
+      };
+    }
+
+    function calculateAnnualEnergyAndBills(inputs, solarKw, powerwallCountOverride = inputs.sizing.powerwallCount, scaleOptions = null) {
+      const solarScale = scaleOptions && Number.isFinite(scaleOptions.solarScale) ? Math.max(0, scaleOptions.solarScale) : 1;
+      const batteryScale = scaleOptions && Number.isFinite(scaleOptions.batteryScale) ? Math.max(0, scaleOptions.batteryScale) : 1;
+      const rateScale = scaleOptions && Number.isFinite(scaleOptions.rateScale) ? Math.max(0, scaleOptions.rateScale) : 1;
+      let annualBefore = 0;
+      let annualImportKwh = 0;
+      let annualImportPeakKwh = 0;
+      let annualImportOffKwh = 0;
+      let annualExportKwh = 0;
+      let annualImportEnergyCostAfter = 0;
+      let annualExportCreditValue = 0;
+      let annualNbcAfter = 0;
+      let annualFixedChargeTotal = 0;
+      let annualBeforeImportPeakKwh = 0;
+      let annualBeforeImportOffKwh = 0;
+      let annualDirectSolarToLoadKwh = 0;
+      let annualSolarToBatteryInputKwh = 0;
+      let annualSolarToBatteryStoredKwh = 0;
+      let annualBatteryToLoadKwh = 0;
+      let annualBatteryToLoadPeakKwh = 0;
+      let annualBatteryToLoadPostPeakKwh = 0;
+      let annualBatteryReserveHits = 0;
+      let annualEvDaySolarServedKwh = 0;
+      let annualEvDayShiftedToNightKwh = 0;
+      let annualEvNightLoadAfterKwh = 0;
+      let annualHvacShiftCapacityKwh = 0;
+      let annualHvacShiftScheduledKwh = 0;
+      let annualHvacShiftExecutedKwh = 0;
+      let annualHvacPeakImportAvoidedKwh = 0;
+      let annualHvacShiftToPreWindowKwh = 0;
+      let annualHvacShiftToPostPeakKwh = 0;
+      let annualSolarGenerationKwh = 0;
+      let annualHomeLoadAdjustedKwh = 0;
+      let annualMinSocKwh = Number.POSITIVE_INFINITY;
+      let annualWhfFanKwh = 0;
+      let annualWhfDisplacedAcKwh = 0;
+      let annualWhfNetReductionKwh = 0;
+      let annualWhfActiveHours = 0;
+      let annualClippedSolarKwh = 0;
+      const evKwhMonth = inputs.ev.enabled ? inputs.ev.kwhPerMonth : 0;
+      const exportOffPeakRateBase = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak;
+      const exportPeakRateBase = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak;
+      const maxAcOutputKw = powerwallCountOverride >= 1 ? powerwallCountOverride * POWERWALL3_AC_KW : Number.POSITIVE_INFINITY;
+
+      for (let month = 0; month < 12; month += 1) {
+        const baseHomeLoadKwh = inputs.load.annualKwh * inputs.load.monthProfile[month];
+        const homeLoadSeasonMultiplier = getSeasonLoadMultiplier(inputs.load, month);
+        const homeLoadKwh = baseHomeLoadKwh * homeLoadSeasonMultiplier;
+        const solarKwh = solarKw * inputs.production.annualYield * SOLAR_PROFILE[month] * solarScale;
+        const exportOffPeakRate = exportOffPeakRateBase * rateScale;
+        const exportPeakRate = exportPeakRateBase * rateScale;
+
+        const monthResult = computeMonthBills({
+          monthIndex: month,
+          homeLoadKwh,
+          solarKwh,
+          peakShare: inputs.load.peakShare,
+          exportPeakShare: inputs.rates.exportPeakShare,
+          importOffPeak: inputs.rates.importOffPeak * rateScale,
+          importPeak: inputs.rates.importPeak * rateScale,
+          fixedMonthlyCharge: inputs.rates.fixedMonthlyCharge * rateScale,
+          nbcPerImportKwh: inputs.rates.nbcPerImportKwh * rateScale,
+          exportOffPeak: exportOffPeakRate,
+          exportPeak: exportPeakRate,
+          powerwallCount: powerwallCountOverride,
+          usableKwhPerBattery: inputs.battery.usableKwhPerBattery * batteryScale,
+          cyclesPerDay: inputs.battery.cyclesPerDay,
+          solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+          maxAcOutputKw,
+          roundTripEfficiency: inputs.battery.roundTripEfficiency,
+          dispatchMode: inputs.battery.dispatchMode,
+          minSocReservePct: inputs.battery.minSocReservePct,
+          evEnabled: inputs.ev.enabled,
+          evKwhMonth,
+          evDayChargingShare: inputs.ev.dayChargingShare,
+          evNightChargingShare: inputs.ev.nightChargingShare,
+          haEnabled: inputs.ha.enabled,
+          ha: inputs.ha,
+          haSuccessRate: inputs.ha.successRate,
+          haPreCoolStartHour: inputs.ha.preCoolStartHour,
+          haPreCoolEndHour: inputs.ha.preCoolEndHour,
+          haMaxShiftHoursPerDay: inputs.ha.maxShiftHoursPerDay,
+          haSummerSetpointF: inputs.ha.summerSetpointF,
+          haWinterSetpointF: inputs.ha.winterSetpointF,
+          haMaxPrecoolOffsetF: inputs.ha.maxPrecoolOffsetF,
+          haMaxPreheatOffsetF: inputs.ha.maxPreheatOffsetF,
+          whfEnabled: inputs.whf.enabled,
+          whfActiveMonth: inputs.whf.activeMonths.includes(month),
+          whfFanWatts: inputs.whf.fanWatts,
+          whfDisplacedAcWatts: inputs.whf.displacedAcWatts,
+          whfSuccessRate: inputs.whf.successRate,
+          whfStartMinuteOfDay: inputs.whf.startMinuteOfDay,
+          whfEndMinuteOfDay: inputs.whf.endMinuteOfDay,
+          days: DAYS_IN_MONTH[month]
+        });
+
+        annualBefore += monthResult.billBefore;
+        annualImportEnergyCostAfter += monthResult.billAfterEnergy;
+        annualExportCreditValue += monthResult.exportCreditValue;
+        annualNbcAfter += monthResult.billAfterNbc;
+        annualFixedChargeTotal += monthResult.fixedCharge;
+        annualImportKwh += monthResult.importKwh;
+        annualImportPeakKwh += monthResult.importPeakKwh;
+        annualImportOffKwh += monthResult.importOffKwh;
+        annualExportKwh += monthResult.exportKwh;
+        annualBeforeImportPeakKwh += monthResult.beforeImportPeakKwh;
+        annualBeforeImportOffKwh += monthResult.beforeImportOffKwh;
+        annualDirectSolarToLoadKwh += monthResult.directSolarToLoadKwh;
+        annualSolarToBatteryInputKwh += monthResult.solarToBatteryInputKwh;
+        annualSolarToBatteryStoredKwh += monthResult.solarToBatteryStoredKwh;
+        annualBatteryToLoadKwh += monthResult.batteryToLoadKwh;
+        annualBatteryToLoadPeakKwh += monthResult.batteryToLoadPeakKwh;
+        annualBatteryToLoadPostPeakKwh += monthResult.batteryToLoadPostPeakKwh;
+        annualBatteryReserveHits += monthResult.batteryReserveHits;
+        annualEvDaySolarServedKwh += monthResult.evDaySolarServedKwh;
+        annualEvDayShiftedToNightKwh += monthResult.evDayShiftedToNightKwh;
+        annualEvNightLoadAfterKwh += monthResult.evNightLoadAfterKwh;
+        annualHvacShiftCapacityKwh += monthResult.hvacShiftCapacityKwh;
+        annualHvacShiftScheduledKwh += monthResult.hvacShiftScheduledKwh;
+        annualHvacShiftExecutedKwh += monthResult.hvacShiftExecutedKwh;
+        annualHvacPeakImportAvoidedKwh += monthResult.hvacPeakImportAvoidedKwh;
+        annualHvacShiftToPreWindowKwh += monthResult.hvacShiftToPreWindowKwh;
+        annualHvacShiftToPostPeakKwh += monthResult.hvacShiftToPostPeakKwh;
+        annualSolarGenerationKwh += monthResult.solarGenerationKwh;
+        annualHomeLoadAdjustedKwh += homeLoadKwh;
+        annualMinSocKwh = Math.min(annualMinSocKwh, monthResult.minSocKwh);
+        annualWhfFanKwh += monthResult.whfFanKwh;
+        annualWhfDisplacedAcKwh += monthResult.whfDisplacedAcKwh;
+        annualWhfNetReductionKwh += monthResult.whfNetReductionKwh;
+        annualWhfActiveHours += monthResult.whfActiveHours;
+        annualClippedSolarKwh += monthResult.clippedSolarKwh;
+      }
+
+      const annualEnergyNetAfterTrueUp = Math.max(0, annualImportEnergyCostAfter - annualExportCreditValue);
+      const annualVppCredit = inputs.vpp.enabled ? (powerwallCountOverride * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) : 0;
+      const annualAfterRaw = annualFixedChargeTotal + annualNbcAfter + annualEnergyNetAfterTrueUp - annualVppCredit;
+      const annualTotalLoadAfterEvKwh = annualHomeLoadAdjustedKwh + (inputs.ev.enabled ? evKwhMonth * 12 : 0);
+      const annualSolarPotentialKwh = annualSolarGenerationKwh + annualClippedSolarKwh;
+      const annualClippedSolarPct = annualSolarPotentialKwh > 0 ? (annualClippedSolarKwh / annualSolarPotentialKwh) : 0;
+
+      return {
+        annualBefore,
+        annualAfterRaw,
+        annualSavings: annualBefore - annualAfterRaw,
+        annualImportKwh,
+        annualImportPeakKwh,
+        annualImportOffKwh,
+        annualExportKwh,
+        annualBeforeImportPeakKwh,
+        annualBeforeImportOffKwh,
+        annualDirectSolarToLoadKwh,
+        annualSolarToBatteryInputKwh,
+        annualSolarToBatteryStoredKwh,
+        annualBatteryToLoadKwh,
+        annualBatteryToLoadPeakKwh,
+        annualBatteryToLoadPostPeakKwh,
+        annualBatteryReserveHits,
+        annualMinSocKwh: Number.isFinite(annualMinSocKwh) ? annualMinSocKwh : 0,
+        annualEvDaySolarServedKwh,
+        annualEvDayShiftedToNightKwh,
+        annualEvNightLoadAfterKwh,
+        annualHvacShiftCapacityKwh,
+        annualHvacShiftScheduledKwh,
+        annualHvacShiftExecutedKwh,
+        annualHvacPeakImportAvoidedKwh,
+        annualHvacShiftToPreWindowKwh,
+        annualHvacShiftToPostPeakKwh,
+        annualSolarGenerationKwh,
+        annualTotalLoadAfterEvKwh,
+        annualHomeLoadAdjustedKwh,
+        annualWhfFanKwh,
+        annualWhfDisplacedAcKwh,
+        annualWhfNetReductionKwh,
+        annualWhfActiveHours,
+        annualImportEnergyCostAfter,
+        annualExportCreditValue,
+        annualEnergyNetAfterTrueUp,
+        annualNbcAfter,
+        annualFixedChargeTotal,
+        annualVppCredit,
+        annualClippedSolarKwh,
+        annualClippedSolarPct
+      };
+    }
+
+    function calculateMortgagePayment(principal, apr, years) {
+      if (principal <= 0) return 0;
+      if (apr <= 0) return principal / (years * 12);
+      const r = apr / 12;
+      const n = years * 12;
+      return principal * (r / (1 - Math.pow(1 + r, -n)));
+    }
+
+    function getBatteryCost(powerwallCount, pricing) {
+      return pricing.batteryCosts[powerwallCount] ?? 0;
+    }
+
+    function buildNoControlsInputs(inputs) {
+      return {
+        ...inputs,
+        ha: { ...inputs.ha, enabled: false },
+        whf: { ...inputs.whf, enabled: false, activeMonths: [] }
+      };
+    }
+
+    function calculateNoControlsAnnualBefore(inputs) {
+      return calculateAnnualEnergyAndBills(buildNoControlsInputs(inputs), 0, 0).annualBefore;
+    }
+
+    function computeAnnualComparisonAtSize(inputs, solarKw, powerwallCountOverride, precomputedNoControlsAnnualBefore = null) {
+      const annualConfigured = calculateAnnualEnergyAndBills(inputs, solarKw, powerwallCountOverride);
+      const noControlsInputs = buildNoControlsInputs(inputs);
+      const annualOff = inputs.ha.enabled
+        ? calculateAnnualEnergyAndBills(noControlsInputs, solarKw, powerwallCountOverride)
+        : null;
+
+      let annualEffective = annualConfigured;
+      let haGuardApplied = false;
+      let haGuardPreventedAnnualCost = 0;
+      if (annualOff && annualConfigured.annualAfterRaw > annualOff.annualAfterRaw + 0.01) {
+        haGuardApplied = true;
+        haGuardPreventedAnnualCost = annualConfigured.annualAfterRaw - annualOff.annualAfterRaw;
+        annualEffective = annualOff;
+      }
+
+      const annualBeforeNoControls = annualOff
+        ? annualOff.annualBefore
+        : (Number.isFinite(precomputedNoControlsAnnualBefore) ? precomputedNoControlsAnnualBefore : calculateNoControlsAnnualBefore(inputs));
+
+      return {
+        annualConfigured,
+        annualOff,
+        annualEffective,
+        annualBeforeNoControls,
+        haGuardApplied,
+        haGuardPreventedAnnualCost
+      };
+    }
+
+    function evaluateScenario(inputs, solarKw, powerwallCountOverride = inputs.sizing.powerwallCount, options = null) {
+      const precomputedNoControlsAnnualBefore = options && Number.isFinite(options.noControlsAnnualBefore)
+        ? options.noControlsAnnualBefore
+        : null;
+      const comparison = computeAnnualComparisonAtSize(inputs, solarKw, powerwallCountOverride, precomputedNoControlsAnnualBefore);
+      const annualConfigured = comparison.annualConfigured;
+      const annualEffective = comparison.annualEffective;
+      const pgeBeforeMonthly = annualEffective.annualBefore / 12;
+      const pgeBaselineMonthlyNoControls = comparison.annualBeforeNoControls / 12;
+      const pgeAfterMonthlyTrueUp = annualEffective.annualAfterRaw / 12;
+      const utilityBillChangeMonthlySolarOnly = pgeAfterMonthlyTrueUp - pgeBeforeMonthly;
+      const utilityBillChangeMonthlyWholeHome = pgeAfterMonthlyTrueUp - pgeBaselineMonthlyNoControls;
+      const utilitySavingsMonthlyWholeHome = -utilityBillChangeMonthlyWholeHome;
+      const utilitySavingsMonthly = annualEffective.annualSavings / 12;
+
+      const systemCostGross = inputs.pricing.solarBaseCost + (inputs.pricing.solarCostPerKw * solarKw) + getBatteryCost(powerwallCountOverride, inputs.pricing);
+      const financedPrincipal = systemCostGross;
+      const mortgageMonthly = calculateMortgagePayment(financedPrincipal, inputs.financing.apr, inputs.financing.years);
+      const totalMonthlyOutflow = mortgageMonthly + pgeAfterMonthlyTrueUp;
+
+      return {
+        idealSolarKw: solarKw,
+        powerwallCount: powerwallCountOverride,
+        pgeBeforeMonthly,
+        pgeBaselineMonthlyNoControls,
+        pgeAfterMonthlyTrueUp,
+        utilityBillChangeMonthlySolarOnly,
+        utilityBillChangeMonthlyWholeHome,
+        utilitySavingsMonthlyWholeHome,
+        utilitySavingsMonthly,
+        financedPrincipal,
+        mortgageMonthly,
+        totalMonthlyOutflow,
+        annualBefore: annualEffective.annualBefore,
+        annualBeforeNoControls: comparison.annualBeforeNoControls,
+        annualAfterRaw: annualEffective.annualAfterRaw,
+        annualSavings: annualEffective.annualSavings,
+        annualImportKwh: annualEffective.annualImportKwh,
+        annualImportPeakKwh: annualEffective.annualImportPeakKwh,
+        annualImportOffKwh: annualEffective.annualImportOffKwh,
+        annualExportKwh: annualEffective.annualExportKwh,
+        annualBeforeImportPeakKwh: annualEffective.annualBeforeImportPeakKwh,
+        annualBeforeImportOffKwh: annualEffective.annualBeforeImportOffKwh,
+        annualDirectSolarToLoadKwh: annualEffective.annualDirectSolarToLoadKwh,
+        annualSolarToBatteryInputKwh: annualEffective.annualSolarToBatteryInputKwh,
+        annualSolarToBatteryStoredKwh: annualEffective.annualSolarToBatteryStoredKwh,
+        annualBatteryToLoadKwh: annualEffective.annualBatteryToLoadKwh,
+        annualBatteryToLoadPeakKwh: annualEffective.annualBatteryToLoadPeakKwh,
+        annualBatteryToLoadPostPeakKwh: annualEffective.annualBatteryToLoadPostPeakKwh,
+        annualBatteryReserveHits: annualEffective.annualBatteryReserveHits,
+        annualMinSocKwh: annualEffective.annualMinSocKwh,
+        annualEvDaySolarServedKwh: annualEffective.annualEvDaySolarServedKwh,
+        annualEvDayShiftedToNightKwh: annualEffective.annualEvDayShiftedToNightKwh,
+        annualEvNightLoadAfterKwh: annualEffective.annualEvNightLoadAfterKwh,
+        annualHvacShiftCapacityKwh: annualConfigured.annualHvacShiftCapacityKwh,
+        annualHvacShiftScheduledKwh: annualConfigured.annualHvacShiftScheduledKwh,
+        annualHvacShiftExecutedKwh: annualConfigured.annualHvacShiftExecutedKwh,
+        annualHvacPeakImportAvoidedKwh: annualConfigured.annualHvacPeakImportAvoidedKwh,
+        annualHvacShiftToPreWindowKwh: annualConfigured.annualHvacShiftToPreWindowKwh,
+        annualHvacShiftToPostPeakKwh: annualConfigured.annualHvacShiftToPostPeakKwh,
+        annualSolarGenerationKwh: annualEffective.annualSolarGenerationKwh,
+        annualTotalLoadAfterEvKwh: annualEffective.annualTotalLoadAfterEvKwh,
+        annualHomeLoadAdjustedKwh: annualEffective.annualHomeLoadAdjustedKwh,
+        annualWhfFanKwh: annualEffective.annualWhfFanKwh,
+        annualWhfDisplacedAcKwh: annualEffective.annualWhfDisplacedAcKwh,
+        annualWhfNetReductionKwh: annualEffective.annualWhfNetReductionKwh,
+        annualWhfActiveHours: annualEffective.annualWhfActiveHours,
+        annualImportEnergyCostAfter: annualEffective.annualImportEnergyCostAfter,
+        annualExportCreditValue: annualEffective.annualExportCreditValue,
+        annualEnergyNetAfterTrueUp: annualEffective.annualEnergyNetAfterTrueUp,
+        annualNbcAfter: annualEffective.annualNbcAfter,
+        annualFixedChargeTotal: annualEffective.annualFixedChargeTotal,
+        annualVppCredit: annualEffective.annualVppCredit,
+        annualClippedSolarKwh: annualEffective.annualClippedSolarKwh,
+        annualClippedSolarPct: annualEffective.annualClippedSolarPct,
+        annualAfterRawConfigured: annualConfigured.annualAfterRaw,
+        haGuardApplied: comparison.haGuardApplied,
+        haGuardPreventedAnnualCost: comparison.haGuardPreventedAnnualCost,
+        systemCostGross,
+        npv: 0,
+        paybackYears: Number.POSITIVE_INFINITY,
+        projectionCumulative15: Number.NaN,
+        selectionReason: "objective-min"
+      };
+    }
+
+    function compareObjective(a, b, objectiveMode = "return_npv") {
+      if (objectiveMode === "return_npv") {
+        if (Math.abs(a.npv - b.npv) > 1e-9) {
+          return b.npv - a.npv;
+        }
+        if (Math.abs(a.paybackYears - b.paybackYears) > 1e-9) {
+          return a.paybackYears - b.paybackYears;
+        }
+        if (Math.abs(a.totalMonthlyOutflow - b.totalMonthlyOutflow) > 1e-9) {
+          return a.totalMonthlyOutflow - b.totalMonthlyOutflow;
+        }
+      } else if (objectiveMode === "total_outflow") {
+        if (Math.abs(a.totalMonthlyOutflow - b.totalMonthlyOutflow) > 1e-9) {
+          return a.totalMonthlyOutflow - b.totalMonthlyOutflow;
+        }
+      } else {
+        if (Math.abs(a.pgeAfterMonthlyTrueUp - b.pgeAfterMonthlyTrueUp) > 1e-9) {
+          return a.pgeAfterMonthlyTrueUp - b.pgeAfterMonthlyTrueUp;
+        }
+        if (Math.abs(a.systemCostGross - b.systemCostGross) > 1e-9) {
+          return a.systemCostGross - b.systemCostGross;
+        }
+      }
+      if (Math.abs(a.financedPrincipal - b.financedPrincipal) > 1e-9) {
+        return a.financedPrincipal - b.financedPrincipal;
+      }
+      if (a.powerwallCount !== b.powerwallCount) {
+        return a.powerwallCount - b.powerwallCount;
+      }
+      return a.idealSolarKw - b.idealSolarKw;
+    }
+
+    function projectScenarioReturns(inputs, scenario) {
+      const years = inputs.analysis.years;
+      let npv = -scenario.systemCostGross;
+      let cumulative = -scenario.systemCostGross;
+      let paybackYears = Number.POSITIVE_INFINITY;
+      const batteryFactor = scenario.powerwallCount > 0 ? (1 - inputs.analysis.batteryDegradation) : 1;
+      const annualScale = (1 + inputs.analysis.utilityEscalation) * (1 - inputs.analysis.solarDegradation) * batteryFactor;
+      const utilitySavingsAnnualBase = scenario.annualSavings - scenario.annualVppCredit;
+      const vppSavingsAnnualBase = scenario.annualVppCredit;
+      for (let year = 1; year <= years; year += 1) {
+        const utilityScaled = utilitySavingsAnnualBase * Math.pow(annualScale, year - 1);
+        const annualSavings = utilityScaled + vppSavingsAnnualBase;
+        cumulative += annualSavings;
+        npv += annualSavings / Math.pow(1 + inputs.analysis.discountRate, year);
+        if (!Number.isFinite(paybackYears) && cumulative >= 0) {
+          paybackYears = year;
+        }
+      }
+      return {
+        npv,
+        paybackYears,
+        projectionCumulative15: cumulative
+      };
+    }
+
+    function buildParetoFrontier(results) {
+      const sorted = [...results].sort((a, b) => {
+        if (Math.abs(a.systemCostGross - b.systemCostGross) > 1e-9) {
+          return a.systemCostGross - b.systemCostGross;
+        }
+        if (Math.abs(a.pgeAfterMonthlyTrueUp - b.pgeAfterMonthlyTrueUp) > 1e-9) {
+          return a.pgeAfterMonthlyTrueUp - b.pgeAfterMonthlyTrueUp;
+        }
+        return compareObjective(a, b, "total_outflow");
+      });
+      const frontier = [];
+      let bestBill = Number.POSITIVE_INFINITY;
+      sorted.forEach((row) => {
+        if (row.pgeAfterMonthlyTrueUp <= bestBill + 1e-9) {
+          frontier.push(row);
+          bestBill = Math.min(bestBill, row.pgeAfterMonthlyTrueUp);
+        }
+      });
+      return frontier;
+    }
+
+    function pointLineDistance(px, py, ax, ay, bx, by) {
+      const vx = bx - ax;
+      const vy = by - ay;
+      const wx = px - ax;
+      const wy = py - ay;
+      const denom = Math.sqrt((vx * vx) + (vy * vy));
+      if (denom <= 1e-12) return 0;
+      return Math.abs((vx * wy) - (vy * wx)) / denom;
+    }
+
+    function selectParetoKnee(frontier) {
+      if (!frontier.length) return null;
+      if (frontier.length < 3) {
+        return [...frontier].sort((a, b) => compareObjective(a, b, "utility_bill_knee"))[0];
+      }
+      const minCost = Math.min(...frontier.map((row) => row.systemCostGross));
+      const maxCost = Math.max(...frontier.map((row) => row.systemCostGross));
+      const minBill = Math.min(...frontier.map((row) => row.pgeAfterMonthlyTrueUp));
+      const maxBill = Math.max(...frontier.map((row) => row.pgeAfterMonthlyTrueUp));
+      const costSpan = Math.max(1e-9, maxCost - minCost);
+      const billSpan = Math.max(1e-9, maxBill - minBill);
+      const normalizeX = (row) => (row.systemCostGross - minCost) / costSpan;
+      const normalizeY = (row) => (row.pgeAfterMonthlyTrueUp - minBill) / billSpan;
+      const first = frontier[0];
+      const last = frontier[frontier.length - 1];
+      const ax = normalizeX(first);
+      const ay = normalizeY(first);
+      const bx = normalizeX(last);
+      const by = normalizeY(last);
+      let best = first;
+      let bestDist = -1;
+      frontier.forEach((row) => {
+        const dist = pointLineDistance(normalizeX(row), normalizeY(row), ax, ay, bx, by);
+        if (dist > bestDist + 1e-9) {
+          bestDist = dist;
+          best = row;
+        } else if (Math.abs(dist - bestDist) <= 1e-9 && compareObjective(row, best, "utility_bill_knee") < 0) {
+          best = row;
+        }
+      });
+      return best;
+    }
+
+    function optimizeIdealScenario(inputs) {
+      const solarCandidates = buildSolarCandidates(
+        inputs.sizing.solarSearchMinKw,
+        inputs.sizing.solarSearchMaxKw,
+        inputs.sizing.solarSearchStepKw
+      );
+      const batteryCandidates = inputs.sizing.lockPowerwallCount
+        ? [inputs.sizing.powerwallCount]
+        : [0, 1, 2, 3, 4];
+      if (!solarCandidates.length) {
+        return { error: "No valid solar candidates generated from min/max/step.", best: null, solarCandidates: [], batteryCandidates, candidates: [], results: [], paretoFrontier: [] };
+      }
+
+      const noControlsAnnualBefore = calculateNoControlsAnnualBefore(inputs);
+      const rawResults = [];
+      batteryCandidates.forEach((powerwallCount) => {
+        solarCandidates.forEach((solarKw) => {
+          const scenario = evaluateScenario(inputs, solarKw, powerwallCount, { noControlsAnnualBefore });
+          const returns = projectScenarioReturns(inputs, scenario);
+          rawResults.push({
+            ...scenario,
+            npv: returns.npv,
+            paybackYears: returns.paybackYears,
+            projectionCumulative15: returns.projectionCumulative15,
+            selectionReason: "objective-min"
+          });
+        });
+      });
+
+      const objectiveMode = inputs.sizing.objectiveMode || "return_npv";
+      const paretoFrontier = buildParetoFrontier(rawResults);
+      const sorted = [...rawResults].sort((a, b) => compareObjective(a, b, objectiveMode));
+      let best = sorted[0];
+      if (objectiveMode === "utility_bill_knee") {
+        const knee = selectParetoKnee(paretoFrontier);
+        if (knee) {
+          best = { ...knee, selectionReason: "pareto-knee" };
+        }
+      }
+      if (best.selectionReason !== "pareto-knee") {
+        best = { ...best, selectionReason: "objective-min" };
+      }
+      return {
+        error: null,
+        best,
+        solarCandidates,
+        batteryCandidates,
+        candidates: solarCandidates,
+        results: sorted,
+        paretoFrontier
+      };
+    }
+
+    function annualMortgageForYear(year, mortgageMonthly, financeYears) {
+      return year <= financeYears ? mortgageMonthly * 12 : 0;
+    }
+
+    function runModelChecks(inputs, best, optimization) {
+      const checks = [];
+      const eps = 1e-6;
+      const objectiveMode = inputs.sizing.objectiveMode || "return_npv";
+      const expectedRows = optimization.solarCandidates.length * optimization.batteryCandidates.length;
+      checks.push({
+        name: "Grid sweep count matches solar candidates x battery candidates",
+        ok: optimization.results.length === expectedRows
+      });
+
+      checks.push({
+        name: "Loan mortgage flow is zero after loan term",
+        ok: Math.abs(annualMortgageForYear(inputs.financing.years + 1, best.mortgageMonthly, inputs.financing.years)) < eps
+      });
+      checks.push({
+        name: "Financed principal is non-negative",
+        ok: best.financedPrincipal >= -eps
+      });
+      checks.push({
+        name: "Mortgage monthly payment is non-negative",
+        ok: best.mortgageMonthly >= -eps
+      });
+      checks.push({
+        name: "Annual import equals peak + off-peak import",
+        ok: Math.abs(best.annualImportKwh - (best.annualImportPeakKwh + best.annualImportOffKwh)) < 0.01
+      });
+      checks.push({
+        name: "Same-load identity: PG&E before - after equals utility savings (monthly tolerance)",
+        ok: Math.abs((best.pgeBeforeMonthly - best.pgeAfterMonthlyTrueUp) - best.utilitySavingsMonthly) < 0.01
+      });
+      checks.push({
+        name: "Whole-home identity: baseline - after equals whole-home utility savings (monthly tolerance)",
+        ok: Math.abs((best.pgeBaselineMonthlyNoControls - best.pgeAfterMonthlyTrueUp) - best.utilitySavingsMonthlyWholeHome) < 0.01
+      });
+      checks.push({
+        name: "Annual energy true-up is floored at zero",
+        ok: Math.abs(best.annualEnergyNetAfterTrueUp - Math.max(0, best.annualImportEnergyCostAfter - best.annualExportCreditValue)) < 0.01
+      });
+      checks.push({
+        name: "Annual after-bill matches fixed + NBC + energy net - VPP (unclamped)",
+        ok: Math.abs(best.annualAfterRaw - (best.annualFixedChargeTotal + best.annualNbcAfter + best.annualEnergyNetAfterTrueUp - best.annualVppCredit)) < 0.01
+      });
+      checks.push({
+        name: "Savings identity holds even when annual bill is negative",
+        ok: Math.abs(best.annualSavings - (best.annualBefore - best.annualAfterRaw)) < 0.01
+      });
+
+      const recomputedBest = [...optimization.results].sort((a, b) => compareObjective(a, b, objectiveMode))[0];
+      if (objectiveMode === "utility_bill_knee") {
+        const frontierKeys = new Set(optimization.paretoFrontier.map((row) => scenarioKey(row.idealSolarKw, row.powerwallCount)));
+        checks.push({
+          name: "Utility-bill knee selection is on Pareto frontier",
+          ok: frontierKeys.has(scenarioKey(best.idealSolarKw, best.powerwallCount))
+        });
+      } else {
+        checks.push({
+          name: "Objective selector consistency (selected scenario matches configured objective)",
+          ok: scenarioKey(recomputedBest.idealSolarKw, recomputedBest.powerwallCount) === scenarioKey(best.idealSolarKw, best.powerwallCount)
+        });
+      }
+
+      checks.push({
+        name: "Return metrics shape: finite NPV and valid payback field",
+        ok: Number.isFinite(best.npv) && (Number.isFinite(best.paybackYears) || best.paybackYears === Number.POSITIVE_INFINITY)
+      });
+
+      checks.push({
+        name: "WHF net reduction is non-negative",
+        ok: best.annualWhfNetReductionKwh >= -eps
+      });
+      const vppOffInputs = {
+        ...inputs,
+        vpp: { enabled: false }
+      };
+      const vppOffScenario = evaluateScenario(vppOffInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore: calculateNoControlsAnnualBefore(vppOffInputs) });
+      checks.push({
+        name: "VPP ON/OFF annual bill delta equals modeled VPP credit",
+        ok: Math.abs((vppOffScenario.annualAfterRaw - best.annualAfterRaw) - best.annualVppCredit) < 0.01
+      });
+
+      const whfOnInputs = {
+        ...inputs,
+        whf: {
+          ...inputs.whf,
+          enabled: true,
+          activeMonths: inputs.whf.activeMonths.length ? inputs.whf.activeMonths : [4, 5, 6, 7, 8],
+          fanWatts: inputs.whf.fanWatts > 0 ? inputs.whf.fanWatts : 200,
+          displacedAcWatts: inputs.whf.displacedAcWatts > 0 ? inputs.whf.displacedAcWatts : 3500,
+          successRate: inputs.whf.successRate > 0 ? inputs.whf.successRate : 0.85,
+          startMinuteOfDay: inputs.whf.startMinuteOfDay || ((20 * 60) + 30),
+          endMinuteOfDay: inputs.whf.endMinuteOfDay || (6 * 60)
+        }
+      };
+      const whfOffInputs = {
+        ...inputs,
+        whf: { ...inputs.whf, enabled: false, activeMonths: [] }
+      };
+      const noControlsAnnualBefore = calculateNoControlsAnnualBefore(inputs);
+      const whfOnScenario = evaluateScenario(whfOnInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore });
+      const whfOffScenario = evaluateScenario(whfOffInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore });
+      checks.push({
+        name: "WHF ON reduces annual import at fixed solar and battery",
+        ok: whfOnScenario.annualImportKwh <= whfOffScenario.annualImportKwh + 0.01
+      });
+      checks.push({
+        name: "WHF ON does not increase PG&E after monthly bill at fixed solar and battery",
+        ok: whfOnScenario.pgeAfterMonthlyTrueUp <= whfOffScenario.pgeAfterMonthlyTrueUp + 0.01
+      });
+      checks.push({
+        name: "WHF ON does not reduce whole-home monthly savings at fixed solar and battery",
+        ok: whfOnScenario.utilitySavingsMonthlyWholeHome >= whfOffScenario.utilitySavingsMonthlyWholeHome - 0.01
+      });
+      const whfFloorProbe = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 18,
+        daySolarKwh: 0,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: 0,
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: 0,
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Number.POSITIVE_INFINITY,
+        roundTripEfficiency: 0.9,
+        dispatchMode: inputs.battery.dispatchMode,
+        minSocReservePct: inputs.battery.minSocReservePct,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: true,
+        whfActiveMonth: true,
+        whfFanWatts: 200,
+        whfDisplacedAcWatts: 3500,
+        whfSuccessRate: 0.85,
+        whfStartMinuteOfDay: (20 * 60) + 30,
+        whfEndMinuteOfDay: 6 * 60
+      });
+      checks.push({
+        name: "WHF never drives hourly home load negative",
+        ok: whfFloorProbe.minHomeLoadKwh >= -1e-9
+      });
+
+      const dispatchProbe = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 30,
+        daySolarKwh: 72,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: Math.max(1, best.powerwallCount),
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: Math.max(0.8, inputs.battery.cyclesPerDay),
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Math.max(1, best.powerwallCount) * POWERWALL3_AC_KW,
+        roundTripEfficiency: inputs.battery.roundTripEfficiency,
+        dispatchMode: inputs.battery.dispatchMode,
+        minSocReservePct: inputs.battery.minSocReservePct,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      const probeBatteryCapacity = Math.max(1, best.powerwallCount) * BATTERY_USABLE_KWH;
+      const probeMinSoc = probeBatteryCapacity * inputs.battery.minSocReservePct;
+      checks.push({
+        name: "Dispatch check: peak discharge occurs when economical",
+        ok: dispatchProbe.batteryToLoadPeakKwh > 0.01
+      });
+      checks.push({
+        name: "Dispatch check: reserve floor respected (SOC >= 20%)",
+        ok: dispatchProbe.minSocKwh >= probeMinSoc - 0.001
+      });
+      const clipProbeNoPw = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 15,
+        daySolarKwh: 200,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: 0,
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: 0,
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Number.POSITIVE_INFINITY,
+        roundTripEfficiency: 0.9,
+        dispatchMode: inputs.battery.dispatchMode,
+        minSocReservePct: inputs.battery.minSocReservePct,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      const clipProbePw1 = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 15,
+        daySolarKwh: 200,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: 1,
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: 0.8,
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: POWERWALL3_AC_KW,
+        roundTripEfficiency: 0.9,
+        dispatchMode: inputs.battery.dispatchMode,
+        minSocReservePct: inputs.battery.minSocReservePct,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      checks.push({
+        name: "Clipping disabled when Powerwalls = 0",
+        ok: clipProbeNoPw.clippedSolarKwh <= 1e-6
+      });
+      checks.push({
+        name: "Clipping appears when Powerwalls >= 1 under oversized solar",
+        ok: clipProbePw1.clippedSolarKwh > 0.01
+      });
+
+      const passCount = checks.filter((c) => c.ok).length;
+      const rows = [];
+      rows.push("<div class='check-row'>Passing: <strong>" + passCount + "/" + checks.length + "</strong></div>");
+      checks.forEach((check) => {
+        rows.push(
+          "<div class='check-row'><span class='" + (check.ok ? "check-ok" : "check-warn") + "'>" +
+          (check.ok ? "OK" : "WARN") + "</span> " + check.name + "</div>"
+        );
+      });
+      el.checksOutput.innerHTML = rows.join("");
+    }
+
+    function runRegressionProbe(inputs, bestV2) {
+      const objectiveMode = inputs.sizing.objectiveMode || "return_npv";
+      if (objectiveMode === "return_npv") {
+        el.regressionOutput.textContent = "Regression probe skipped in NPV mode to keep interactivity fast. Switch objective to outflow or utility knee-point for v1/v2 comparison.";
+        return;
+      }
+      const moduleGridCandidates = buildSolarCandidates(inputs.sizing.solarSearchMinKw, inputs.sizing.solarSearchMaxKw, MODULE_KW);
+      if (!moduleGridCandidates.length) {
+        el.regressionOutput.textContent = "Regression probe unavailable: no v1-like module-grid candidates in this search range.";
+        return;
+      }
+
+      const moduleGridScenarios = [];
+      const probeBatteryCandidates = inputs.sizing.lockPowerwallCount
+        ? [inputs.sizing.powerwallCount]
+        : [0, 1, 2, 3, 4];
+      probeBatteryCandidates.forEach((pw) => {
+        moduleGridCandidates.forEach((kw) => {
+          moduleGridScenarios.push(evaluateScenario(inputs, kw, pw));
+        });
+      });
+      const bestModuleGridByV2 = [...moduleGridScenarios].sort((a, b) => compareObjective(a, b, objectiveMode))[0];
+      const bestV1Like = [...moduleGridScenarios].sort((a, b) => {
+        const v1LikeA = (a.mortgageMonthly - a.utilitySavingsMonthly) + (a.financedPrincipal * V1_LIKE_OPPORTUNITY_RATE / 12);
+        const v1LikeB = (b.mortgageMonthly - b.utilitySavingsMonthly) + (b.financedPrincipal * V1_LIKE_OPPORTUNITY_RATE / 12);
+        if (Math.abs(v1LikeA - v1LikeB) > 1e-9) return v1LikeA - v1LikeB;
+        if (Math.abs(a.financedPrincipal - b.financedPrincipal) > 1e-9) return a.financedPrincipal - b.financedPrincipal;
+        return a.idealSolarKw - b.idealSolarKw;
+      })[0];
+
+      const gridDeltaKw = bestV2.idealSolarKw - bestModuleGridByV2.idealSolarKw;
+      const objectiveDeltaKw = bestV2.idealSolarKw - bestV1Like.idealSolarKw;
+      const gridDeltaPw = bestV2.powerwallCount - bestModuleGridByV2.powerwallCount;
+      const objectiveDeltaPw = bestV2.powerwallCount - bestV1Like.powerwallCount;
+
+      const lines = [];
+      lines.push("Shared baseline probe:");
+      lines.push("Objective mode: " + objectiveLabel(objectiveMode) + ".");
+      lines.push("Dispatch mode: " + inputs.battery.dispatchMode + " with reserve " + fmt(inputs.battery.minSocReservePct * 100, 0) + "%.");
+      lines.push("v2 continuous-step best: " + fmt(bestV2.idealSolarKw, 3) + " kW / " + bestV2.powerwallCount + " PW.");
+      lines.push("Module-grid (0.395 kW step) best: " + fmt(bestModuleGridByV2.idealSolarKw, 3) + " kW / " + bestModuleGridByV2.powerwallCount + " PW.");
+      lines.push("v1-like objective best (includes 5% opportunity term): " + fmt(bestV1Like.idealSolarKw, 3) + " kW / " + bestV1Like.powerwallCount + " PW.");
+      lines.push("Expected differences: kW grid representation delta " + fmt(gridDeltaKw, 3) + " kW and " + gridDeltaPw + " PW; objective delta " + fmt(objectiveDeltaKw, 3) + " kW and " + objectiveDeltaPw + " PW.");
+      el.regressionOutput.textContent = lines.join(" ");
+    }
+
+    function renderResultCards(result, inputs) {
+      const objectiveMode = inputs.sizing.objectiveMode || "return_npv";
+      const utilityBillChangeMonthly = result.utilityBillChangeMonthlyWholeHome;
+      const utilityBillChangeMonthlySolarOnly = result.utilityBillChangeMonthlySolarOnly;
+      const mortgageChangeMonthly = result.mortgageMonthly;
+      const netPaymentChangeMonthly = utilityBillChangeMonthly + mortgageChangeMonthly;
+
+      el.cardIdealSolarKw.textContent = fmt(result.idealSolarKw, 3) + " kW";
+      el.cardPowerwallChoice.textContent = "Powerwalls: " + result.powerwallCount;
+      el.cardPgeBefore.textContent = usdPrecise(result.pgeBaselineMonthlyNoControls);
+      el.cardPgeAfter.textContent = usdPrecise(result.pgeAfterMonthlyTrueUp);
+      el.cardTrueUpNote.textContent = "Annual true-up bill: " + usdPrecise(result.annualAfterRaw) + " | Energy net: " + usdPrecise(result.annualEnergyNetAfterTrueUp) + " | VPP: " + usdPrecise(result.annualVppCredit);
+      el.cardClippedSolar.textContent = fmt(result.annualClippedSolarKwh, 0) + " kWh/yr";
+      el.cardClippedSolarNote.textContent = "Clipped share: " + fmt(result.annualClippedSolarPct * 100, 1) + "% (PW3 cap " + fmt(POWERWALL3_AC_KW, 1) + " kW/PW)";
+      renderDelta(el.cardSavings, utilityBillChangeMonthly);
+      el.cardUtilityChangeFormula.textContent = "(PG&E After) - (PG&E Baseline No WHF/HA) = " + usdSigned(utilityBillChangeMonthly);
+      el.cardSolarOnlyDelta.textContent = "Solar-only delta (same-load baseline): " + usdSigned(utilityBillChangeMonthlySolarOnly);
+      el.cardFinanced.textContent = usd(result.financedPrincipal);
+      el.cardFinancedNote.textContent = "Gross system cost: " + usd(result.systemCostGross) + " | NPV: " + usdPrecise(result.npv) + " | Payback: " + formatPaybackYears(result.paybackYears, inputs.analysis.years);
+      renderDelta(el.cardMortgage, mortgageChangeMonthly);
+      el.cardOutflow.textContent = "Total outflow/mo: " + usdPrecise(result.totalMonthlyOutflow);
+      renderDelta(el.cardNetPaymentChange, netPaymentChangeMonthly);
+      el.cardNetPaymentFormula.textContent = "(Primary Utility Bill Change / Month) + (Mortgage / Month) = " + usdSigned(netPaymentChangeMonthly);
+      if (result.haGuardApplied) {
+        el.cardTrueUpNote.textContent += " | HVAC guard applied (prevented " + usdPrecise(result.haGuardPreventedAnnualCost) + "/yr).";
+      }
+      const reasonText = result.selectionReason === "pareto-knee"
+        ? "Selection reason: Pareto knee point."
+        : (result.selectionReason === "user-selected"
+          ? "Selection reason: user override."
+          : (result.selectionReason === "preferred-powerwall"
+            ? "Selection reason: best scenario within selected Powerwall count."
+            : "Selection reason: objective minimum."));
+      el.objectiveSummary.innerHTML = "Ideal size is selected by <strong>" + objectiveFormula(objectiveMode) + "</strong>. " + reasonText;
+    }
+
+    function renderScenarioMatrix(optimization, selectedScenario, inputs) {
+      const table = el.scenarioMatrixTable;
+      const objectiveMode = inputs.sizing.objectiveMode || "return_npv";
+      table.innerHTML = "";
+      const byKey = new Map();
+      optimization.results.forEach((row) => {
+        byKey.set(scenarioKey(row.idealSolarKw, row.powerwallCount), row);
+      });
+
+      const thead = document.createElement("thead");
+      const headerRow = document.createElement("tr");
+      headerRow.innerHTML = "<th>Solar kW</th>" + optimization.batteryCandidates.map((pw) => "<th>" + pw + " PW</th>").join("");
+      thead.appendChild(headerRow);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      optimization.solarCandidates.forEach((solarKw) => {
+        const tr = document.createElement("tr");
+        const label = document.createElement("td");
+        label.textContent = fmt(solarKw, 3);
+        tr.appendChild(label);
+        optimization.batteryCandidates.forEach((pw) => {
+          const td = document.createElement("td");
+          td.className = "matrix-cell";
+          const row = byKey.get(scenarioKey(solarKw, pw));
+          if (!row) {
+            td.textContent = "--";
+          } else {
+            td.innerHTML = "<div>" + usdPrecise(row.npv) + "</div><div class='sub'>" + formatPaybackYears(row.paybackYears, inputs.analysis.years) + "</div>";
+            if (scenarioKey(row.idealSolarKw, row.powerwallCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount)) {
+              td.classList.add("matrix-cell-selected");
+            }
+            td.addEventListener("click", () => {
+              selectedScenarioKey = scenarioKey(row.idealSolarKw, row.powerwallCount);
+              render();
+            });
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      el.scenarioMatrixNote.textContent = "Matrix values show NPV with payback subtext. Objective: " + objectiveLabel(objectiveMode) + ".";
+    }
+
+    function renderTopScenarios(optimization, selectedScenario, inputs) {
+      const rows = optimization.results.slice(0, 10);
+      el.topScenariosBody.innerHTML = "";
+      rows.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        if (scenarioKey(row.idealSolarKw, row.powerwallCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount)) {
+          tr.className = "row-selected";
+        }
+        tr.innerHTML = [
+          "<td>" + (idx + 1) + "</td>",
+          "<td>" + fmt(row.idealSolarKw, 3) + "</td>",
+          "<td>" + row.powerwallCount + "</td>",
+          "<td>" + usdPrecise(row.npv) + "</td>",
+          "<td>" + formatPaybackYears(row.paybackYears, inputs.analysis.years) + "</td>",
+          "<td>" + usdPrecise(row.pgeAfterMonthlyTrueUp) + "</td>",
+          "<td>" + usdPrecise(row.totalMonthlyOutflow) + "</td>",
+          "<td>" + fmt(row.annualImportKwh, 0) + "</td>",
+          "<td>" + fmt(row.annualExportKwh, 0) + "</td>"
+        ].join("");
+        tr.addEventListener("click", () => {
+          selectedScenarioKey = scenarioKey(row.idealSolarKw, row.powerwallCount);
+          render();
+        });
+        el.topScenariosBody.appendChild(tr);
+      });
+    }
+
+    function renderHvacImpact(inputs, best, baseOptimization) {
+      const haOnInputs = { ...inputs, ha: { ...inputs.ha, enabled: true } };
+      const haOffInputs = { ...inputs, ha: { ...inputs.ha, enabled: false } };
+
+      const fixedOn = evaluateScenario(haOnInputs, best.idealSolarKw, best.powerwallCount);
+      const fixedOff = evaluateScenario(haOffInputs, best.idealSolarKw, best.powerwallCount);
+      const fixedUtilityDelta = fixedOn.pgeAfterMonthlyTrueUp - fixedOff.pgeAfterMonthlyTrueUp;
+      const fixedOutflowDelta = fixedOn.totalMonthlyOutflow - fixedOff.totalMonthlyOutflow;
+
+      if (!inputs.ha.enabled) {
+        el.hvacImpactOutput.textContent = "HVAC shift is OFF. Enable HVAC shift to compare ON vs OFF optimized outcomes.";
+        return;
+      }
+      const optOn = baseOptimization || getOptimizationCached(haOnInputs);
+      const optOff = getOptimizationCached(haOffInputs);
+      if (optOn.error || optOff.error) {
+        el.hvacImpactOutput.textContent = "HVAC impact analysis unavailable: " + (optOn.error || optOff.error);
+        return;
+      }
+      const bestOn = optOn.best;
+      const bestOff = optOff.best;
+      const optUtilityDelta = bestOn.pgeAfterMonthlyTrueUp - bestOff.pgeAfterMonthlyTrueUp;
+      const optOutflowDelta = bestOn.totalMonthlyOutflow - bestOff.totalMonthlyOutflow;
+      const optKwDelta = bestOn.idealSolarKw - bestOff.idealSolarKw;
+      const optPwDelta = bestOn.powerwallCount - bestOff.powerwallCount;
+
+      const lines = [];
+      lines.push("Fixed-size (same " + fmt(best.idealSolarKw, 3) + " kW / " + best.powerwallCount + " PW): PG&E delta (HA ON - HA OFF) = " + usdSigned(fixedUtilityDelta) + ", outflow delta = " + usdSigned(fixedOutflowDelta) + ".");
+      lines.push("Re-optimized: PG&E delta (HA ON - HA OFF) = " + usdSigned(optUtilityDelta) + ", outflow delta = " + usdSigned(optOutflowDelta) + ", selected kW delta = " + fmt(optKwDelta, 3) + " kW, PW delta = " + optPwDelta + ".");
+      if (fixedOn.haGuardApplied) {
+        lines.push("Guard applied to prevent utility increase at fixed size.");
+      }
+      el.hvacImpactOutput.textContent = lines.join(" ");
+    }
+
+    function renderCalculationBreakdown(inputs, result, optimization) {
+      const objectiveMode = inputs.sizing.objectiveMode || "return_npv";
+      const utilityBillChangeMonthlyWholeHome = result.utilityBillChangeMonthlyWholeHome;
+      const utilityBillChangeMonthlySolarOnly = result.utilityBillChangeMonthlySolarOnly;
+      const netPaymentChangeMonthly = utilityBillChangeMonthlyWholeHome + result.mortgageMonthly;
+      const evMonthlyKwh = inputs.ev.enabled ? inputs.ev.kwhPerMonth : 0;
+      const evAnnualKwh = evMonthlyKwh * 12;
+      const dayPct = inputs.ev.dayChargingShare * 100;
+      const nightPct = inputs.ev.nightChargingShare * 100;
+      const summerLoadMult = clamp(1 + ((BASE_SUMMER_SETPOINT_F - inputs.load.summerSetpointF) * SUMMER_SETPOINT_LOAD_SENSITIVITY_PER_DEG), 0.7, 1.4);
+      const winterLoadMult = clamp(1 + ((inputs.load.winterSetpointF - BASE_WINTER_SETPOINT_F) * WINTER_SETPOINT_LOAD_SENSITIVITY_PER_DEG), 0.7, 1.4);
+      const shoulderLoadMult = clamp(0.5 * summerLoadMult + 0.5 * winterLoadMult, 0.7, 1.4);
+      const candidates = optimization ? optimization.solarCandidates : [];
+      const topRows = optimization ? optimization.results.slice(0, 5) : [];
+
+      const lines = [];
+      lines.push("<p class='calc-line'><strong>1) Total load assumption</strong></p>");
+      lines.push("<p class='calc-line'>Home load base (non-EV) = " + fmt(inputs.load.annualKwh, 0) + " kWh/year.</p>");
+      lines.push("<p class='calc-line'>Setpoint-driven seasonal multipliers: summer x" + fmt(summerLoadMult, 2) + " (setpoint " + fmt(inputs.load.summerSetpointF, 0) + "F), winter x" + fmt(winterLoadMult, 2) + " (setpoint " + fmt(inputs.load.winterSetpointF, 0) + "F), shoulder x" + fmt(shoulderLoadMult, 2) + ".</p>");
+      lines.push("<p class='calc-line'>Adjusted home load after seasonal setpoint multipliers = " + fmt(result.annualHomeLoadAdjustedKwh, 0) + " kWh/year.</p>");
+      if (inputs.ev.enabled) {
+        lines.push("<p class='calc-line'>EV load = " + fmt(inputs.ev.milesPerMonth, 0) + " miles/month x " + fmt(inputs.ev.kwhPerMile, 2) + " kWh/mile = " + fmt(evMonthlyKwh, 1) + " kWh/month (" + fmt(evAnnualKwh, 0) + " kWh/year).</p>");
+        lines.push("<p class='calc-line'>EV charging split target: Day " + fmt(dayPct, 0) + "% / Night " + fmt(nightPct, 0) + "%.</p>");
+        lines.push("<p class='calc-line'>Rule: daytime EV charging uses surplus solar after battery charging; unmet daytime EV energy shifts to night.</p>");
+      } else {
+        lines.push("<p class='calc-line'>EV load is OFF, so no EV kWh is added.</p>");
+      }
+      if (inputs.whf.enabled) {
+        const whfMonths = inputs.whf.activeMonths.map((idx) => ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][idx]).join(", ");
+        lines.push("<p class='calc-line'>WHF load replacement: fan " + fmt(inputs.whf.fanWatts, 0) + "W, displaced AC " + fmt(inputs.whf.displacedAcWatts, 0) + "W, success " + fmt(inputs.whf.successRate * 100, 0) + "%, active months: " + whfMonths + ".</p>");
+        lines.push("<p class='calc-line'>WHF annual effect at selected scenario: fan " + fmt(result.annualWhfFanKwh, 0) + " kWh/yr, displaced AC " + fmt(result.annualWhfDisplacedAcKwh, 0) + " kWh/yr, net reduction " + fmt(result.annualWhfNetReductionKwh, 0) + " kWh/yr, active hours " + fmt(result.annualWhfActiveHours, 0) + ".</p>");
+      } else {
+        lines.push("<p class='calc-line'>WHF load replacement is OFF.</p>");
+      }
+
+      lines.push("<p class='calc-line'><strong>2) Utility bill calculations</strong></p>");
+      lines.push("<p class='calc-line'>PG&amp;E Baseline / Month (No WHF/HA) = Annual Baseline Before / 12 = " + usdPrecise(result.annualBeforeNoControls) + " / 12 = " + usdPrecise(result.pgeBaselineMonthlyNoControls) + ".</p>");
+      lines.push("<p class='calc-line'>PG&amp;E Before / Month (same-load baseline) = Annual Before / 12 = " + usdPrecise(result.annualBefore) + " / 12 = " + usdPrecise(result.pgeBeforeMonthly) + ".</p>");
+      lines.push("<p class='calc-line'>PG&amp;E After / Month (True-Up) = Annual After / 12 = " + usdPrecise(result.annualAfterRaw) + " / 12 = " + usdPrecise(result.pgeAfterMonthlyTrueUp) + ".</p>");
+      lines.push("<p class='calc-line'>Primary Utility Bill Change / Month (whole-home) = (After - Baseline No WHF/HA) = " + usdPrecise(result.pgeAfterMonthlyTrueUp) + " - " + usdPrecise(result.pgeBaselineMonthlyNoControls) + " = " + usdSigned(utilityBillChangeMonthlyWholeHome) + ".</p>");
+      lines.push("<p class='calc-line'>Solar-only delta / Month (same-load baseline) = (After - Before) = " + usdPrecise(result.pgeAfterMonthlyTrueUp) + " - " + usdPrecise(result.pgeBeforeMonthly) + " = " + usdSigned(utilityBillChangeMonthlySolarOnly) + ".</p>");
+      lines.push("<p class='calc-line'>Note: solar-only delta can shrink when WHF/HA reduce load, because both \"Before\" and \"After\" move downward.</p>");
+      if (result.haGuardApplied) {
+        lines.push("<p class='calc-line'>HVAC guardrail active: configured annual after-bill exceeded the no-controls annual after-bill by " + usdPrecise(result.haGuardPreventedAnnualCost) + "/yr at this size, so effective financial outputs are constrained to non-worsening no-controls values.</p>");
+      }
+
+      lines.push("<p class='calc-line'><strong>3) System cost and financing</strong></p>");
+      lines.push("<p class='calc-line'>Gross system cost = Solar base + (Solar kW x solar $/kW) + Battery tier cost.</p>");
+      lines.push("<p class='calc-line'>= " + usdPrecise(inputs.pricing.solarBaseCost) + " + (" + fmt(result.idealSolarKw, 3) + " x " + usdPrecise(inputs.pricing.solarCostPerKw) + ") + " + usdPrecise(getBatteryCost(result.powerwallCount, inputs.pricing)) + " = " + usdPrecise(result.systemCostGross) + ".</p>");
+      lines.push("<p class='calc-line'>Financed Principal = Gross system cost = " + usdPrecise(result.financedPrincipal) + ".</p>");
+      lines.push("<p class='calc-line'>Mortgage / Month (loan payment) = " + usdSigned(result.mortgageMonthly) + ".</p>");
+      lines.push("<p class='calc-line'>Return metrics: NPV = " + usdPrecise(result.npv) + ", payback = " + formatPaybackYears(result.paybackYears, inputs.analysis.years) + ", cumulative net savings at " + inputs.analysis.years + "y = " + usdPrecise(result.projectionCumulative15) + ".</p>");
+
+      lines.push("<p class='calc-line'><strong>4) Net monthly payment impact</strong></p>");
+      lines.push("<p class='calc-line'>Net Change In Payment / Month = Primary Utility Bill Change + Mortgage.</p>");
+      lines.push("<p class='calc-line'>= " + usdSigned(utilityBillChangeMonthlyWholeHome) + " + " + usdSigned(result.mortgageMonthly) + " = " + usdSigned(netPaymentChangeMonthly) + ".</p>");
+      lines.push("<p class='calc-line'>Interpretation: negative is a monthly decrease (green), positive is a monthly increase (red).</p>");
+
+      lines.push("<p class='calc-line'><strong>5) Ideal solar size selection logic</strong></p>");
+      if (candidates.length) {
+        lines.push("<p class='calc-line'>Solar candidates are generated from min/max/step: " + fmt(inputs.sizing.solarSearchMinKw, 3) + " to " + fmt(inputs.sizing.solarSearchMaxKw, 3) + " kW at " + fmt(inputs.sizing.solarSearchStepKw, 3) + " kW increments (" + candidates.length + " candidates).</p>");
+        lines.push("<p class='calc-line'>Battery sweep: 0-4 Powerwalls. Total scenarios = " + (candidates.length * 5) + ".</p>");
+      }
+      lines.push("<p class='calc-line'>Configured objective = " + objectiveLabel(objectiveMode) + ".</p>");
+      lines.push("<p class='calc-line'>For each candidate, objective value = " + objectiveFormula(objectiveMode) + ".</p>");
+      lines.push("<p class='calc-line'>Tie-breakers if objective ties: lower financed principal, then lower solar kW.</p>");
+      lines.push("<p class='calc-line'>Selected ideal solar size = " + fmt(result.idealSolarKw, 3) + " kW (Powerwalls: " + result.powerwallCount + "). Selection reason = " + result.selectionReason + ".</p>");
+
+      if (topRows.length) {
+        const objectiveColLabel = objectiveMode === "return_npv"
+          ? "Objective (NPV)"
+          : (objectiveMode === "utility_bill_knee" ? "Objective (Pareto knee context)" : "Objective (After + Mortgage)");
+        lines.push("<table class='calc-table'><thead><tr><th>Rank</th><th>Solar kW</th><th>PW</th><th>PG&E After/mo</th><th>Mortgage/mo</th><th>" + objectiveColLabel + "</th><th>Net Change/mo</th></tr></thead><tbody>");
+        topRows.forEach((row, idx) => {
+          const rowUtilityChange = row.utilityBillChangeMonthlyWholeHome;
+          const rowNetChange = rowUtilityChange + row.mortgageMonthly;
+          const objectiveValue = objectiveMode === "return_npv"
+            ? usdPrecise(row.npv)
+            : (objectiveMode === "utility_bill_knee" ? (usdPrecise(row.pgeAfterMonthlyTrueUp) + " @ " + usd(row.systemCostGross)) : usdPrecise(row.totalMonthlyOutflow));
+          lines.push(
+            "<tr>" +
+            "<td>" + (idx + 1) + (idx === 0 ? " (Selected)" : "") + "</td>" +
+            "<td>" + fmt(row.idealSolarKw, 3) + "</td>" +
+            "<td>" + row.powerwallCount + "</td>" +
+            "<td>" + usdPrecise(row.pgeAfterMonthlyTrueUp) + "</td>" +
+            "<td>" + usdPrecise(row.mortgageMonthly) + "</td>" +
+            "<td>" + objectiveValue + "</td>" +
+            "<td>" + usdSigned(rowNetChange) + "</td>" +
+            "</tr>"
+          );
+        });
+        lines.push("</tbody></table>");
+      }
+
+      const avgDaySolarGen = result.annualSolarGenerationKwh / DAYS_PER_YEAR;
+      const avgDayLoad = result.annualTotalLoadAfterEvKwh / DAYS_PER_YEAR;
+      const avgDaySolarToLoad = result.annualDirectSolarToLoadKwh / DAYS_PER_YEAR;
+      const avgDaySolarToBatteryStored = result.annualSolarToBatteryStoredKwh / DAYS_PER_YEAR;
+      const avgDaySolarToEvDay = result.annualEvDaySolarServedKwh / DAYS_PER_YEAR;
+      const avgDaySolarExport = result.annualExportKwh / DAYS_PER_YEAR;
+      const avgDayBatteryToLoad = result.annualBatteryToLoadKwh / DAYS_PER_YEAR;
+      const avgDayBatteryToLoadPeak = result.annualBatteryToLoadPeakKwh / DAYS_PER_YEAR;
+      const avgDayBatteryToLoadPostPeak = result.annualBatteryToLoadPostPeakKwh / DAYS_PER_YEAR;
+      const avgDayImportPeak = result.annualImportPeakKwh / DAYS_PER_YEAR;
+      const avgDayImportOff = result.annualImportOffKwh / DAYS_PER_YEAR;
+      const avgDayEvShift = result.annualEvDayShiftedToNightKwh / DAYS_PER_YEAR;
+      const avgDayImportTotal = result.annualImportKwh / DAYS_PER_YEAR;
+      const avgDayHvacShiftCapacity = result.annualHvacShiftCapacityKwh / DAYS_PER_YEAR;
+      const avgDayHvacShiftScheduled = result.annualHvacShiftScheduledKwh / DAYS_PER_YEAR;
+      const avgDayHvacShiftExecuted = result.annualHvacShiftExecutedKwh / DAYS_PER_YEAR;
+      const avgDayHvacShiftToPreWindow = result.annualHvacShiftToPreWindowKwh / DAYS_PER_YEAR;
+      const avgDayHvacPeakImportAvoided = result.annualHvacPeakImportAvoidedKwh / DAYS_PER_YEAR;
+      const avgDayClippedSolar = result.annualClippedSolarKwh / DAYS_PER_YEAR;
+
+      const genPct = (v) => (avgDaySolarGen > 0 ? (100 * v) / avgDaySolarGen : 0);
+      const loadPct = (v) => (avgDayLoad > 0 ? (100 * v) / avgDayLoad : 0);
+      const pctText = (value, base) => fmt(value, 1) + "% " + base;
+
+      lines.push("<p class='calc-line'><strong>6) Daily Model Flow (NEM3/TOU/EV)</strong></p>");
+      lines.push("<p class='calc-line'>Legend: <strong>Gen%</strong> = percent of solar generation. <strong>Load%</strong> = percent of total load.</p>");
+      lines.push("<p class='calc-line'>Representative day shown here is annualized model output divided by 365 days (same synthetic day engine used in calculations).</p>");
+      lines.push("<p class='calc-line'>Flow order: HVAC shift (if enabled) -> WHF replacement (if enabled) -> solar generation -> inverter clipping cap -> direct solar to home/EV/export at solar-to-home efficiency -> battery charging (round-trip efficiency model) -> peak battery discharge -> post-peak battery discharge (if SOC above reserve) -> grid imports.</p>");
+      lines.push("<p class='calc-line'>Efficiency assumptions: solar-to-home " + fmt(inputs.production.solarToHomeEfficiency * 100, 1) + "%, battery round-trip " + fmt(inputs.battery.roundTripEfficiency * 100, 1) + "%.</p>");
+
+      lines.push("<table class='calc-table'><thead><tr><th>Metric</th><th>kWh/day</th><th>% (Gen or Load)</th><th>How computed</th></tr></thead><tbody>");
+      lines.push("<tr><td>Solar generation</td><td>" + fmt(avgDaySolarGen, 2) + "</td><td>" + pctText(100, "Gen") + "</td><td>Annual solar generation / 365</td></tr>");
+      lines.push("<tr><td>Solar clipped</td><td>" + fmt(avgDayClippedSolar, 2) + "</td><td>" + pctText(result.annualClippedSolarPct * 100, "Gen") + "</td><td>Generation discarded by PW3 inverter cap</td></tr>");
+      lines.push("<tr><td>Solar -> home load</td><td>" + fmt(avgDaySolarToLoad, 2) + "</td><td>" + pctText(genPct(avgDaySolarToLoad), "Gen") + "</td><td>Direct solar consumed by home load</td></tr>");
+      lines.push("<tr><td>Solar -> battery (stored)</td><td>" + fmt(avgDaySolarToBatteryStored, 2) + "</td><td>" + pctText(genPct(avgDaySolarToBatteryStored), "Gen") + "</td><td>Charge input x round-trip efficiency</td></tr>");
+      lines.push("<tr><td>Solar -> daytime EV</td><td>" + fmt(avgDaySolarToEvDay, 2) + "</td><td>" + pctText(genPct(avgDaySolarToEvDay), "Gen") + "</td><td>Surplus solar to EV in 09:00-16:00</td></tr>");
+      lines.push("<tr><td>Solar export</td><td>" + fmt(avgDaySolarExport, 2) + "</td><td>" + pctText(genPct(avgDaySolarExport), "Gen") + "</td><td>Remaining solar sent to grid</td></tr>");
+      lines.push("<tr><td>Battery -> load (peak)</td><td>" + fmt(avgDayBatteryToLoadPeak, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoadPeak), "Load") + "</td><td>Cost-priority discharge in 16:00-21:00</td></tr>");
+      lines.push("<tr><td>Battery -> load (post-peak)</td><td>" + fmt(avgDayBatteryToLoadPostPeak, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoadPostPeak), "Load") + "</td><td>21:00-23:00 discharge only if SOC remains above reserve</td></tr>");
+      lines.push("<tr><td>Battery -> load (total)</td><td>" + fmt(avgDayBatteryToLoad, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoad), "Load") + "</td><td>Peak + post-peak discharge</td></tr>");
+      lines.push("<tr><td>Grid import peak</td><td>" + fmt(avgDayImportPeak, 2) + "</td><td>" + pctText(loadPct(avgDayImportPeak), "Load") + "</td><td>Post-solar/battery unmet load in peak hours</td></tr>");
+      lines.push("<tr><td>Grid import off-peak</td><td>" + fmt(avgDayImportOff, 2) + "</td><td>" + pctText(loadPct(avgDayImportOff), "Load") + "</td><td>Post-solar unmet load outside peak hours</td></tr>");
+      lines.push("<tr><td>EV day shifted to night</td><td>" + fmt(avgDayEvShift, 2) + "</td><td>" + pctText(loadPct(avgDayEvShift), "Load") + "</td><td>Unserved daytime EV moved to night window</td></tr>");
+      lines.push("<tr><td>Total grid import</td><td>" + fmt(avgDayImportTotal, 2) + "</td><td>" + pctText(loadPct(avgDayImportTotal), "Load") + "</td><td>Grid import peak + off-peak</td></tr>");
+      lines.push("</tbody></table>");
+
+      lines.push("<p class='calc-line'><strong>7) HVAC temperature-driven shift controls</strong></p>");
+      if (!inputs.ha.enabled) {
+        lines.push("<p class='calc-line'>HomeAssistant HVAC shift is OFF. Setpoints still affect seasonal load multipliers; only shifting behavior is disabled.</p>");
+      } else {
+        const preWindowHours = buildHourRange(inputs.ha.preCoolStartHour, inputs.ha.preCoolEndHour, 24).slice(0, inputs.ha.maxShiftHoursPerDay).length;
+        const seasonSummer = getSeasonDailyHvacShiftCapacity(inputs.ha, 6, preWindowHours);
+        const seasonWinter = getSeasonDailyHvacShiftCapacity(inputs.ha, 0, preWindowHours);
+        const seasonShoulder = getSeasonDailyHvacShiftCapacity(inputs.ha, 3, preWindowHours);
+        lines.push("<p class='calc-line'>Season map: Summer May-Sep, Winter Nov-Feb, Shoulder Mar-Apr-Oct. Temperature units are Fahrenheit.</p>");
+        lines.push("<p class='calc-line'>Summer setpoint " + fmt(inputs.ha.summerSetpointF, 0) + "F with max pre-cool offset " + fmt(inputs.ha.maxPrecoolOffsetF, 1) + "F. Winter setpoint " + fmt(inputs.ha.winterSetpointF, 0) + "F with max pre-heat offset " + fmt(inputs.ha.maxPreheatOffsetF, 1) + "F.</p>");
+        lines.push("<p class='calc-line'>Peak-hours drift allowance from setpoint (4-9pm): " + fmt(inputs.ha.maxPeakRelaxOffsetF, 1) + "F.</p>");
+        lines.push("<p class='calc-line'>Pre-window hours/day = min(maxShiftHoursPerDay, hours between start/end) = min(" + fmt(inputs.ha.maxShiftHoursPerDay, 0) + ", " + preWindowHours + ") = " + preWindowHours + ".</p>");
+        lines.push("<p class='calc-line'>dailyShiftCapacity = (preOffsetF * sensitivity * preWindowHours) + (peakDriftF * sensitivity * peakHours), then capped by maxShiftKwhPerDay.</p>");
+        lines.push("<p class='calc-line'>Summer daily cap: min(" + fmt(inputs.ha.maxShiftKwhPerDay, 2) + ", (" + fmt(inputs.ha.maxPrecoolOffsetF, 2) + "*" + fmt(inputs.ha.hvacSensitivityKwhPerDegHour, 2) + "*" + preWindowHours + ") + (" + fmt(inputs.ha.maxPeakRelaxOffsetF, 2) + "*" + fmt(inputs.ha.hvacSensitivityKwhPerDegHour, 2) + "*5)) = " + fmt(seasonSummer.seasonCap, 2) + " kWh/day.</p>");
+        lines.push("<p class='calc-line'>Winter daily cap: min(" + fmt(inputs.ha.maxShiftKwhPerDay, 2) + ", (" + fmt(inputs.ha.maxPreheatOffsetF, 2) + "*" + fmt(inputs.ha.hvacSensitivityKwhPerDegHour, 2) + "*" + preWindowHours + ") + (" + fmt(inputs.ha.maxPeakRelaxOffsetF, 2) + "*" + fmt(inputs.ha.hvacSensitivityKwhPerDegHour, 2) + "*5)) = " + fmt(seasonWinter.seasonCap, 2) + " kWh/day.</p>");
+        lines.push("<p class='calc-line'>Shoulder daily cap (50/50 blend): " + fmt(seasonShoulder.seasonCap, 2) + " kWh/day.</p>");
+        lines.push("<p class='calc-line'>dailyShiftExecuted = dailyShiftCapacity * successRate. Success rate = " + fmt(inputs.ha.successRate * 100, 0) + "%.</p>");
+        lines.push("<p class='calc-line'>Representative day results: capacity " + fmt(avgDayHvacShiftCapacity, 2) + " kWh/day, scheduled " + fmt(avgDayHvacShiftScheduled, 2) + " kWh/day, executed " + fmt(avgDayHvacShiftExecuted, 2) + " kWh/day, shifted to pre-window " + fmt(avgDayHvacShiftToPreWindow, 2) + " kWh/day, shifted to post-peak recovery " + fmt(result.annualHvacShiftToPostPeakKwh / DAYS_PER_YEAR, 2) + " kWh/day, peak-import avoided estimate " + fmt(avgDayHvacPeakImportAvoided, 2) + " kWh/day.</p>");
+        lines.push("<p class='calc-line'>Annual HVAC shift totals: capacity " + fmt(result.annualHvacShiftCapacityKwh, 0) + " kWh/yr, scheduled " + fmt(result.annualHvacShiftScheduledKwh, 0) + " kWh/yr, executed " + fmt(result.annualHvacShiftExecutedKwh, 0) + " kWh/yr, shifted to pre-window " + fmt(result.annualHvacShiftToPreWindowKwh, 0) + " kWh/yr, shifted to post-peak " + fmt(result.annualHvacShiftToPostPeakKwh, 0) + " kWh/yr.</p>");
+      }
+
+      const exportPeakAnnual = result.annualExportKwh * inputs.rates.exportPeakShare;
+      const exportOffAnnual = result.annualExportKwh - exportPeakAnnual;
+      const exportPeakRate = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak;
+      const exportOffRate = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak;
+      const annualAfterFromFlow = result.annualFixedChargeTotal + result.annualNbcAfter + result.annualEnergyNetAfterTrueUp - result.annualVppCredit;
+
+      lines.push("<p class='calc-line'><strong>Annual rollup and TOU/NEM3 bill linkage</strong></p>");
+      if (inputs.rates.exportRateMode === "nem3_override") {
+        lines.push("<p class='calc-line'>Export mode: NEM3 override. All exported kWh credited at " + usdPrecise(inputs.rates.nem3ExportRate) + "/kWh.</p>");
+      } else {
+        lines.push("<p class='calc-line'>Export mode: TOU export. Export split uses peak share " + fmt(inputs.rates.exportPeakShare * 100, 0) + "% (peak rate " + usdPrecise(inputs.rates.exportPeak) + "/kWh, off-peak " + usdPrecise(inputs.rates.exportOffPeak) + "/kWh).</p>");
+      }
+      lines.push("<p class='calc-line'>Annual_Import_Cost_After = " + usdPrecise(result.annualImportEnergyCostAfter) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_Export_Value = exportPeakKwh*exportPeakRate + exportOffPeakKwh*exportOffPeakRate = (" + fmt(exportPeakAnnual, 0) + "*" + usdPrecise(exportPeakRate) + ") + (" + fmt(exportOffAnnual, 0) + "*" + usdPrecise(exportOffRate) + ") = " + usdPrecise(result.annualExportCreditValue) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_Energy_Net = max(0, Annual_Import_Cost_After - Annual_Export_Value) = max(0, " + usdPrecise(result.annualImportEnergyCostAfter) + " - " + usdPrecise(result.annualExportCreditValue) + ") = " + usdPrecise(result.annualEnergyNetAfterTrueUp) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_Fixed_Total = " + usdPrecise(result.annualFixedChargeTotal) + ", Annual_NBC_After = " + usdPrecise(result.annualNbcAfter) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_VPP_Credit = " + fmt(result.powerwallCount, 0) + "*" + fmt(POWERWALL3_AC_KW, 1) + "*" + usdPrecise(VPP_CREDIT_PER_KW_YEAR) + " = " + usdPrecise(result.annualVppCredit) + ".</p>");
+      lines.push("<p class='calc-line'>annualAfterRaw = Annual_Fixed_Total + Annual_NBC_After + Annual_Energy_Net - Annual_VPP_Credit = " + usdPrecise(result.annualFixedChargeTotal) + " + " + usdPrecise(result.annualNbcAfter) + " + " + usdPrecise(result.annualEnergyNetAfterTrueUp) + " - " + usdPrecise(result.annualVppCredit) + " = " + usdPrecise(annualAfterFromFlow) + ".</p>");
+      if (annualAfterFromFlow < 0) {
+        lines.push("<p class='calc-line'>Result is negative: modeled annual utility position is net-positive cashflow (VPP payout exceeds annual liability).</p>");
+      }
+      lines.push("<p class='calc-line'>Bridge checks: PG&amp;E After / Month = " + usdPrecise(result.pgeAfterMonthlyTrueUp) + ", Primary Utility Bill Change / Month = " + usdSigned(utilityBillChangeMonthlyWholeHome) + ", Solar-only delta / Month = " + usdSigned(utilityBillChangeMonthlySolarOnly) + ", Net Change / Month = " + usdSigned(netPaymentChangeMonthly) + ".</p>");
+
+      el.calcBreakdown.innerHTML = lines.join("");
+    }
+
+    function renderInvalidState() {
+      el.cardIdealSolarKw.textContent = "--";
+      el.cardPowerwallChoice.textContent = "Powerwalls: --";
+      el.cardPgeBefore.textContent = "--";
+      el.cardPgeAfter.textContent = "--";
+      el.cardTrueUpNote.textContent = "Annual true-up bill: --";
+      el.cardClippedSolar.textContent = "--";
+      el.cardClippedSolarNote.textContent = "Annual clipped solar: --";
+      el.cardSavings.textContent = "--";
+      el.cardUtilityChangeFormula.textContent = "(PG&E After) - (PG&E Baseline No WHF/HA)";
+      el.cardSolarOnlyDelta.textContent = "Solar-only delta (same-load baseline): --";
+      el.cardNetPaymentChange.textContent = "--";
+      el.cardFinanced.textContent = "--";
+      el.cardMortgage.textContent = "--";
+      el.cardOutflow.textContent = "Total outflow/mo: --";
+      el.cardNetPaymentFormula.textContent = "(Primary Utility Bill Change / Month) + (Mortgage / Month)";
+      el.cardFinancedNote.textContent = "Based on gross system cost.";
+      el.checksOutput.textContent = "Checks are unavailable until all input errors are resolved.";
+      el.regressionOutput.textContent = "Regression probe unavailable until calculation is valid.";
+      el.candidateNote.textContent = "Candidate set: --";
+      el.hvacImpactOutput.textContent = "HVAC impact analysis is unavailable until all input errors are resolved.";
+      el.calcBreakdown.textContent = "Enter valid inputs to see step-by-step calculations.";
+      el.scenarioMatrixTable.innerHTML = "";
+      el.scenarioMatrixNote.textContent = "Matrix is unavailable until all input errors are resolved.";
+      el.topScenariosBody.innerHTML = "";
+    }
+
+    function syncControlStates() {
+      applyRescueDefaults();
+      const objectiveMode = el.sizingObjective.value === "total_outflow"
+        ? "total_outflow"
+        : (el.sizingObjective.value === "utility_bill_knee" ? "utility_bill_knee" : "return_npv");
+      el.sizingObjectiveHint.textContent = objectiveMode === "return_npv"
+        ? "Objective: maximize NPV. Tie-breakers: faster payback, then lower outflow."
+        : (objectiveMode === "utility_bill_knee"
+          ? "Objective: choose Pareto knee point on PG&E bill vs system cost."
+          : "Objective: minimize mortgage + post-solar PG&E true-up.");
+      el.sweepModeHint.textContent = el.lockPowerwallCount.checked
+        ? ("Sweep mode: LOCKED to " + el.powerwallCount.value + " Powerwalls.")
+        : "Sweep mode: all Powerwall counts (0-4).";
+      el.objectiveSummary.innerHTML = "Ideal size is selected by <strong>" + objectiveFormula(objectiveMode) + "</strong>.";
+      const nemMode = el.exportRateMode.value === "nem3_override";
+      el.nem3ExportRate.disabled = !nemMode;
+      el.exportOffPeak.disabled = nemMode;
+      el.exportPeak.disabled = nemMode;
+      el.exportModeNote.textContent = nemMode
+        ? "NEM 3.0 override active: export credits use one rate and annual energy true-up rollover."
+        : "TOU export mode active: peak/off-peak export rates are used with annual energy true-up rollover.";
+
+      const whfEnabled = el.enableWhf.checked;
+      el.whfFields.classList.toggle("hidden", !whfEnabled);
+      el.whfFanWatts.disabled = !whfEnabled;
+      el.whfDisplacedAcWatts.disabled = !whfEnabled;
+      el.whfStartHour.disabled = !whfEnabled;
+      el.whfStartMinute.disabled = !whfEnabled;
+      el.whfEndHour.disabled = !whfEnabled;
+      el.whfEndMinute.disabled = !whfEnabled;
+      el.whfSuccessRatePct.disabled = !whfEnabled;
+      el.whfMonthNodes.forEach((node) => {
+        node.disabled = !whfEnabled;
+      });
+      if (!whfEnabled) {
+        el.whfNote.textContent = "WHF: OFF.";
+      } else {
+        const startHour = clamp(Number(el.whfStartHour.value) || 0, 0, 23);
+        const startMinute = clamp(Number(el.whfStartMinute.value) || 0, 0, 59);
+        const endHour = clamp(Number(el.whfEndHour.value) || 0, 0, 23);
+        const endMinute = clamp(Number(el.whfEndMinute.value) || 0, 0, 59);
+        const fanW = Math.max(0, Number(el.whfFanWatts.value) || 0);
+        const displacedW = Math.max(0, Number(el.whfDisplacedAcWatts.value) || 0);
+        const successPct = clamp(Number(el.whfSuccessRatePct.value) || 0, 0, 100);
+        const monthCount = el.whfMonthNodes.filter((node) => node.checked).length;
+        el.whfNote.textContent = "WHF: ON | Window " + fmt(startHour, 0) + ":" + String(startMinute).padStart(2, "0") + " to " + fmt(endHour, 0) + ":" + String(endMinute).padStart(2, "0") + " | Fan " + fmt(fanW, 0) + "W | Displaced AC " + fmt(displacedW, 0) + "W | Months " + monthCount + " | Success " + fmt(successPct, 0) + "%.";
+      }
+
+      const evEnabled = el.hasEvCharging.checked;
+      el.evFields.classList.toggle("hidden", !evEnabled);
+      el.evMilesPerMonth.disabled = !evEnabled;
+      el.evKwhPerMile.disabled = !evEnabled;
+      el.evDayChargingPct.disabled = !evEnabled;
+
+      if (!evEnabled) {
+        el.evLoadNote.textContent = "EV load: OFF.";
+      } else {
+        const miles = Number(el.evMilesPerMonth.value);
+        const kwhPerMile = Number(el.evKwhPerMile.value);
+        const dayPct = clamp(Number(el.evDayChargingPct.value), 0, 100);
+        const monthlyKwh = (Number.isFinite(miles) ? Math.max(0, miles) : 0) * (Number.isFinite(kwhPerMile) ? Math.max(0, kwhPerMile) : 0);
+        const annualKwh = monthlyKwh * 12;
+        const nightPct = 100 - dayPct;
+        el.evLoadNote.textContent = "EV load: " + fmt(monthlyKwh, 0) + " kWh/month, " + fmt(annualKwh, 0) + " kWh/year. Day " + fmt(dayPct, 0) + "% / Night " + fmt(nightPct, 0) + "%.";
+      }
+
+      const haEnabled = el.enableHaShift.checked;
+      el.haFields.classList.toggle("hidden", !haEnabled);
+      el.tempUnitsDisplay.disabled = false;
+      el.summerSetpointF.disabled = false;
+      el.winterSetpointF.disabled = false;
+      el.maxPrecoolOffsetF.disabled = !haEnabled;
+      el.maxPreheatOffsetF.disabled = !haEnabled;
+      el.maxPeakRelaxOffsetF.disabled = !haEnabled;
+      el.hvacSensitivityKwhPerDegHour.disabled = !haEnabled;
+      el.hvacShiftSuccessRatePct.disabled = !haEnabled;
+      el.preCoolStartHour.disabled = !haEnabled;
+      el.preCoolEndHour.disabled = !haEnabled;
+      el.maxShiftHoursPerDay.disabled = !haEnabled;
+      el.maxShiftKwhPerDay.disabled = !haEnabled;
+
+      const summerSetpoint = Number(el.summerSetpointF.value);
+      const winterSetpoint = Number(el.winterSetpointF.value);
+      const setpointSummerMult = clamp(1 + ((BASE_SUMMER_SETPOINT_F - (Number.isFinite(summerSetpoint) ? summerSetpoint : BASE_SUMMER_SETPOINT_F)) * SUMMER_SETPOINT_LOAD_SENSITIVITY_PER_DEG), 0.7, 1.4);
+      const setpointWinterMult = clamp(1 + (((Number.isFinite(winterSetpoint) ? winterSetpoint : BASE_WINTER_SETPOINT_F) - BASE_WINTER_SETPOINT_F) * WINTER_SETPOINT_LOAD_SENSITIVITY_PER_DEG), 0.7, 1.4);
+
+      if (!haEnabled) {
+        el.haLoadShiftNote.textContent = "HVAC shift: OFF. Setpoint load multipliers active: summer x" + fmt(setpointSummerMult, 2) + ", winter x" + fmt(setpointWinterMult, 2) + ".";
+      } else {
+        const preStart = Number(el.preCoolStartHour.value);
+        const preEnd = Number(el.preCoolEndHour.value);
+        const maxHours = Number(el.maxShiftHoursPerDay.value);
+        const preWindowHours = buildHourRange(preStart, preEnd, 24).slice(0, Math.max(0, Math.floor(maxHours))).length;
+        const sensitivity = Math.max(0, Number(el.hvacSensitivityKwhPerDegHour.value) || 0);
+        const summerOffset = Math.max(0, Number(el.maxPrecoolOffsetF.value) || 0);
+        const winterOffset = Math.max(0, Number(el.maxPreheatOffsetF.value) || 0);
+        const peakRelaxOffset = Math.max(0, Number(el.maxPeakRelaxOffsetF.value) || 0);
+        const maxShift = Math.max(0, Number(el.maxShiftKwhPerDay.value) || 0);
+        const summerCap = Math.min(maxShift, (summerOffset * sensitivity * preWindowHours) + (peakRelaxOffset * sensitivity * PEAK_WINDOW_HOURS.length));
+        const winterCap = Math.min(maxShift, (winterOffset * sensitivity * preWindowHours) + (peakRelaxOffset * sensitivity * PEAK_WINDOW_HOURS.length));
+        const shoulderCap = Math.min(maxShift, 0.5 * summerCap + 0.5 * winterCap);
+        const successPct = clamp(Number(el.hvacShiftSuccessRatePct.value) || 0, 0, 100);
+        el.haLoadShiftNote.textContent = "Setpoint multipliers: summer x" + fmt(setpointSummerMult, 2) + ", winter x" + fmt(setpointWinterMult, 2) + ". Daily shift cap: Summer " + fmt(summerCap, 2) + " kWh, Winter " + fmt(winterCap, 2) + " kWh, Shoulder " + fmt(shoulderCap, 2) + " kWh. Success " + fmt(successPct, 0) + "%.";
+      }
+
+    }
+
+    function showErrors(errors) {
+      if (!errors.length) {
+        el.errorBox.style.display = "none";
+        el.errorBox.textContent = "";
+        return;
+      }
+      el.errorBox.style.display = "block";
+      el.errorBox.innerHTML = "<strong>Fix input issues:</strong><br>" + errors.join("<br>");
+    }
+
+    function render() {
+      syncControlStates();
+      const { errors, inputs, zipInfo } = collectInputs();
+
+      el.zipYieldNote.textContent = zipInfo.ok
+        ? "Yield profile: " + zipInfo.annualYield + " kWh/kW-yr (" + zipInfo.label + ")."
+        : "Yield profile: invalid ZIP.";
+      el.yieldAssumptionPill.textContent = zipInfo.ok
+        ? "Yield profile: " + zipInfo.label
+        : "Yield profile: invalid ZIP";
+      el.tariffAssumptionPill.textContent = "Tariff floor: annual export offsets energy only; fixed + NBC are non-offsettable.";
+      if (inputs) {
+        const clipCap = inputs.sizing.powerwallCount >= 1 ? (inputs.sizing.powerwallCount * POWERWALL3_AC_KW) : 0;
+        el.vppAssumptionPill.textContent = inputs.vpp.enabled
+          ? ("VPP: ON | " + usdPrecise(inputs.sizing.powerwallCount * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) + "/yr proxy at selected PW.")
+          : "VPP: OFF";
+        el.clipAssumptionPill.textContent = inputs.sizing.powerwallCount >= 1
+          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW).")
+          : "Clipping: OFF for 0 Powerwalls.";
+      } else {
+        const pw = Math.max(0, Number(el.powerwallCount.value) || 0);
+        const clipCap = pw >= 1 ? pw * POWERWALL3_AC_KW : 0;
+        el.vppAssumptionPill.textContent = el.vppEnabled.checked
+          ? ("VPP: ON | " + usdPrecise(pw * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) + "/yr proxy at selected PW.")
+          : "VPP: OFF";
+        el.clipAssumptionPill.textContent = pw >= 1
+          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW).")
+          : "Clipping: OFF for 0 Powerwalls.";
+      }
+      if (inputs && inputs.ev.enabled) {
+        el.evAssumptionPill.textContent = "EV: ON | " + fmt(inputs.ev.milesPerMonth, 0) + " mi/mo | Day " + fmt(inputs.ev.dayChargingShare * 100, 0) + "% / Night " + fmt(inputs.ev.nightChargingShare * 100, 0) + "% | Solar-first day shift.";
+      } else if (el.hasEvCharging.checked) {
+        el.evAssumptionPill.textContent = "EV: ON (input invalid).";
+      } else {
+        el.evAssumptionPill.textContent = "EV: OFF";
+      }
+      if (inputs && inputs.ha.enabled) {
+        const preHours = buildHourRange(inputs.ha.preCoolStartHour, inputs.ha.preCoolEndHour, 24).slice(0, inputs.ha.maxShiftHoursPerDay).length;
+        el.haAssumptionPill.textContent = "HA HVAC shift: ON | Setpoints S " + fmt(inputs.ha.summerSetpointF, 0) + "F / W " + fmt(inputs.ha.winterSetpointF, 0) + "F | Peak drift " + fmt(inputs.ha.maxPeakRelaxOffsetF, 1) + "F | Pre-window " + preHours + "h | Success " + fmt(inputs.ha.successRate * 100, 0) + "%.";
+      } else if (el.enableHaShift.checked) {
+        el.haAssumptionPill.textContent = "HA HVAC shift: ON (input invalid).";
+      } else {
+        const summerSet = Number(el.summerSetpointF.value);
+        const winterSet = Number(el.winterSetpointF.value);
+        el.haAssumptionPill.textContent = "HA HVAC shift: OFF | Setpoints S " + fmt(Number.isFinite(summerSet) ? summerSet : BASE_SUMMER_SETPOINT_F, 0) + "F / W " + fmt(Number.isFinite(winterSet) ? winterSet : BASE_WINTER_SETPOINT_F, 0) + "F";
+      }
+      if (inputs && inputs.whf.enabled) {
+        const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+        const activeMonths = inputs.whf.activeMonths.map((idx) => monthLabels[idx]).join(",");
+        el.whfAssumptionPill.textContent = "WHF: ON | " + fmt(inputs.whf.fanWatts, 0) + "W fan | " + fmt(inputs.whf.displacedAcWatts, 0) + "W displaced AC | Success " + fmt(inputs.whf.successRate * 100, 0) + "% | Months " + activeMonths;
+      } else if (el.enableWhf.checked) {
+        el.whfAssumptionPill.textContent = "WHF: ON (input invalid).";
+      } else {
+        el.whfAssumptionPill.textContent = "WHF: OFF";
+      }
+
+      if (errors.length) {
+        showErrors(errors);
+        renderInvalidState();
+        el.recalculateBtn.disabled = true;
+        return;
+      }
+
+      const optimization = getOptimizationCached(inputs);
+      if (optimization.error) {
+        showErrors([optimization.error]);
+        renderInvalidState();
+        el.recalculateBtn.disabled = true;
+        return;
+      }
+
+      showErrors([]);
+      el.recalculateBtn.disabled = false;
+      const best = optimization.best;
+      const preferredPowerwallBest = optimization.results
+        .filter((row) => row.powerwallCount === inputs.sizing.powerwallCount)
+        .sort((a, b) => compareObjective(a, b, inputs.sizing.objectiveMode || "return_npv"))[0];
+      const displayDefault = preferredPowerwallBest || best;
+      const clickedSelection = optimization.results.find((row) => scenarioKey(row.idealSolarKw, row.powerwallCount) === selectedScenarioKey);
+      const selected = clickedSelection || displayDefault;
+      const selectedScenario = clickedSelection
+        ? { ...selected, selectionReason: "user-selected" }
+        : ((preferredPowerwallBest && scenarioKey(selected.idealSolarKw, selected.powerwallCount) !== scenarioKey(best.idealSolarKw, best.powerwallCount))
+          ? { ...selected, selectionReason: "preferred-powerwall" }
+          : selected);
+      renderResultCards(selectedScenario, inputs);
+      renderScenarioMatrix(optimization, selectedScenario, inputs);
+      renderTopScenarios(optimization, selectedScenario, inputs);
+      renderHvacImpact(inputs, selectedScenario, optimization);
+      renderCalculationBreakdown(inputs, selectedScenario, optimization);
+      el.candidateNote.textContent = "Candidate set: " + optimization.solarCandidates.length + " solar sizes x " +
+        optimization.batteryCandidates.length + " battery options = " + optimization.results.length + " scenarios (" +
+        fmt(optimization.solarCandidates[0], 3) + " to " + fmt(optimization.solarCandidates[optimization.solarCandidates.length - 1], 3) + " kW). Display preference: " + inputs.sizing.powerwallCount + " PW.";
+
+      runModelChecks(inputs, best, optimization);
+      runRegressionProbe(inputs, best);
+    }
+
+    function bindEvents() {
+      let renderTimer = null;
+      const scheduleRender = () => {
+        if (renderTimer) clearTimeout(renderTimer);
+        renderTimer = setTimeout(() => {
+          renderTimer = null;
+          render();
+        }, 220);
+      };
+      document.querySelectorAll("input, select").forEach((node) => {
+        node.addEventListener("input", scheduleRender);
+      });
+      el.hvacSensitivityKwhPerDegHour.addEventListener("input", () => {
+        hvacSensitivityTouched = true;
+      });
+      el.powerwallCount.addEventListener("input", () => {
+        selectedScenarioKey = null;
+      });
+      el.recalculateBtn.addEventListener("click", () => {
+        if (renderTimer) {
+          clearTimeout(renderTimer);
+          renderTimer = null;
+        }
+        render();
+      });
+    }
+
+    bindEvents();
+    render();
+  </script>
+</body>
+</html>
