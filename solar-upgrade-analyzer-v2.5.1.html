@@ -419,6 +419,9 @@
     details.collapsible > summary {
       cursor: pointer;
       list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
       padding: 10px;
       font-weight: 600;
       color: #2c4035;
@@ -428,6 +431,18 @@
 
     details.collapsible > summary::-webkit-details-marker {
       display: none;
+    }
+
+    details.collapsible > summary::after {
+      content: "▸";
+      font-size: 0.85rem;
+      color: #4e6a58;
+      transform-origin: center;
+      transition: transform 0.15s ease;
+    }
+
+    details.collapsible[open] > summary::after {
+      transform: rotate(90deg);
     }
 
     details.collapsible > .section {
@@ -1099,7 +1114,7 @@
           </div>
         </div>
 
-        <details class="collapsible" open>
+        <details class="collapsible">
           <summary>Assumptions</summary>
           <div class="section">
             <h3>Assumptions</h3>
@@ -1125,7 +1140,7 @@
           </div>
         </details>
 
-        <details class="collapsible" open>
+        <details class="collapsible">
           <summary>Scenario Matrix (Solar kW x Powerwalls)</summary>
           <div class="section">
             <h3>Scenario Matrix (Solar kW x Powerwalls)</h3>
@@ -1136,7 +1151,7 @@
           </div>
         </details>
 
-        <details class="collapsible" open>
+        <details class="collapsible">
           <summary>Model Checks</summary>
           <div class="section">
             <h3>Model Checks</h3>
