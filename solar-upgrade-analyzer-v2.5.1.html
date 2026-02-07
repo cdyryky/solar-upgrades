@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solar Upgrade Analyzer v2</title>
+  <title>Solar Upgrade Analyzer v2.5</title>
   <style>
     :root {
       --bg: #f4f6ef;
@@ -168,11 +168,76 @@
       border: 1px solid #dde8d8;
     }
 
+    .month-grid.monthly-reserve .checkline {
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .month-grid.monthly-reserve input[type="number"] {
+      width: 70px;
+      margin-left: auto;
+      padding: 5px 6px;
+      font-size: 0.78rem;
+    }
+
     .hint {
       margin-top: 5px;
       color: var(--muted);
       font-size: 0.8rem;
       line-height: 1.3;
+    }
+
+    .climate-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 5px;
+      padding: 4px 9px;
+      border-radius: 999px;
+      border: 1px solid #cfdccd;
+      background: #f4f8f1;
+      color: #3c5044;
+      font-size: 0.78rem;
+      line-height: 1.2;
+      font-weight: 600;
+    }
+
+    .climate-badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #6a7d70;
+      flex: 0 0 auto;
+    }
+
+    .climate-badge-live {
+      border-color: #86c6a5;
+      background: #eaf8f0;
+      color: #1d5b3a;
+    }
+
+    .climate-badge-live .climate-badge-dot {
+      background: #1f8b4c;
+    }
+
+    .climate-badge-cached {
+      border-color: #d8be84;
+      background: #fff6e3;
+      color: #70510d;
+    }
+
+    .climate-badge-cached .climate-badge-dot {
+      background: #b98316;
+    }
+
+    .climate-badge-fallback {
+      border-color: #d89a8e;
+      background: #fff0ed;
+      color: #853224;
+    }
+
+    .climate-badge-fallback .climate-badge-dot {
+      background: #ad3f2e;
     }
 
     .field-error {
@@ -415,6 +480,53 @@
       line-height: 1.35;
     }
 
+    .climate-banner {
+      display: none;
+      margin-bottom: 10px;
+      border: 1px solid #d78273;
+      border-radius: 10px;
+      background: #fff2ef;
+      color: #6f2519;
+      padding: 9px 10px;
+    }
+
+    .climate-banner.visible {
+      display: block;
+    }
+
+    .climate-banner-title {
+      font-size: 0.87rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      margin-bottom: 4px;
+    }
+
+    .climate-banner-body {
+      font-size: 0.82rem;
+      line-height: 1.35;
+    }
+
+    .climate-banner-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .climate-banner-actions button {
+      width: auto;
+      padding: 7px 10px;
+      font-size: 0.8rem;
+      line-height: 1.2;
+    }
+
+    .secondary-btn {
+      background: #fff;
+      color: #4b5f53;
+      border-color: #bdcbc3;
+      box-shadow: none;
+    }
+
     .checks {
       color: #32463a;
       font-size: 0.84rem;
@@ -472,9 +584,9 @@
 </head>
 <body>
   <div class="shell">
-    <h1 class="title">Solar Upgrade Analyzer v2</h1>
+    <h1 class="title">Solar Upgrade Analyzer v2.5</h1>
     <p class="subtitle">
-      Solar + storage sizing with hourly dispatch, WHF-aware load shaping, and return-based ranking.
+      Solar + storage sizing with hourly dispatch, annual true-up rollover, clipping-aware PV limits, and VPP-aware returns.
       <strong>Objective is configurable (NPV, total outflow, or utility-bill knee point).</strong>
     </p>
 
@@ -483,7 +595,7 @@
         <h2>Inputs</h2>
 
         <div class="group">
-          <h3>Sizing Objective</h3>
+          <h3>Sizing</h3>
           <div class="field">
             <label for="powerwallCount">Preferred Powerwalls for primary view</label>
             <select id="powerwallCount">
@@ -522,9 +634,16 @@
         </div>
 
         <div class="group">
-          <h3>Whole House Fan</h3>
+          <h3>Load Shaping: Whole House Fan</h3>
           <div class="field">
             <label class="checkline"><input id="enableWhf" type="checkbox" /> Enable WHF load replacement</label>
+          </div>
+          <div class="field">
+            <label for="whfMode">WHF mode</label>
+            <select id="whfMode">
+              <option value="auto" selected>Auto (temperature-guided)</option>
+              <option value="manual">Manual window + success</option>
+            </select>
           </div>
           <div id="whfFields">
             <div class="field">
@@ -535,50 +654,53 @@
               <label for="whfDisplacedAcWatts">Displaced AC load (W)</label>
               <input id="whfDisplacedAcWatts" type="number" min="0" step="50" value="3500" />
             </div>
-            <div class="field">
-              <label for="whfStartHour">Start hour</label>
-              <input id="whfStartHour" type="number" min="0" max="23" step="1" value="20" />
-            </div>
-            <div class="field">
-              <label for="whfStartMinute">Start minute</label>
-              <input id="whfStartMinute" type="number" min="0" max="59" step="1" value="30" />
-            </div>
-            <div class="field">
-              <label for="whfEndHour">End hour</label>
-              <input id="whfEndHour" type="number" min="0" max="23" step="1" value="6" />
-            </div>
-            <div class="field">
-              <label for="whfEndMinute">End minute</label>
-              <input id="whfEndMinute" type="number" min="0" max="59" step="1" value="0" />
-            </div>
-            <div class="field">
-              <label>Active months</label>
-              <div class="month-grid" id="whfMonths">
-                <label class="checkline"><input data-whf-month="0" type="checkbox" /> Jan</label>
-                <label class="checkline"><input data-whf-month="1" type="checkbox" /> Feb</label>
-                <label class="checkline"><input data-whf-month="2" type="checkbox" /> Mar</label>
-                <label class="checkline"><input data-whf-month="3" type="checkbox" /> Apr</label>
-                <label class="checkline"><input data-whf-month="4" type="checkbox" checked /> May</label>
-                <label class="checkline"><input data-whf-month="5" type="checkbox" checked /> Jun</label>
-                <label class="checkline"><input data-whf-month="6" type="checkbox" checked /> Jul</label>
-                <label class="checkline"><input data-whf-month="7" type="checkbox" checked /> Aug</label>
-                <label class="checkline"><input data-whf-month="8" type="checkbox" checked /> Sep</label>
-                <label class="checkline"><input data-whf-month="9" type="checkbox" /> Oct</label>
-                <label class="checkline"><input data-whf-month="10" type="checkbox" /> Nov</label>
-                <label class="checkline"><input data-whf-month="11" type="checkbox" /> Dec</label>
+            <div id="whfManualFields">
+              <div class="field">
+                <label for="whfStartHour">Start hour</label>
+                <input id="whfStartHour" type="number" min="0" max="23" step="1" value="20" />
               </div>
-            </div>
-            <div class="field">
-              <label for="whfSuccessRatePct">WHF success rate (%)</label>
-              <input id="whfSuccessRatePct" type="number" min="0" max="100" step="1" value="85" />
+              <div class="field">
+                <label for="whfStartMinute">Start minute</label>
+                <input id="whfStartMinute" type="number" min="0" max="59" step="1" value="30" />
+              </div>
+              <div class="field">
+                <label for="whfEndHour">End hour</label>
+                <input id="whfEndHour" type="number" min="0" max="23" step="1" value="6" />
+              </div>
+              <div class="field">
+                <label for="whfEndMinute">End minute</label>
+                <input id="whfEndMinute" type="number" min="0" max="59" step="1" value="0" />
+              </div>
+              <div class="field">
+                <label>Active months</label>
+                <div class="month-grid" id="whfMonths">
+                  <label class="checkline"><input data-whf-month="0" type="checkbox" /> Jan</label>
+                  <label class="checkline"><input data-whf-month="1" type="checkbox" /> Feb</label>
+                  <label class="checkline"><input data-whf-month="2" type="checkbox" /> Mar</label>
+                  <label class="checkline"><input data-whf-month="3" type="checkbox" /> Apr</label>
+                  <label class="checkline"><input data-whf-month="4" type="checkbox" checked /> May</label>
+                  <label class="checkline"><input data-whf-month="5" type="checkbox" checked /> Jun</label>
+                  <label class="checkline"><input data-whf-month="6" type="checkbox" checked /> Jul</label>
+                  <label class="checkline"><input data-whf-month="7" type="checkbox" checked /> Aug</label>
+                  <label class="checkline"><input data-whf-month="8" type="checkbox" checked /> Sep</label>
+                  <label class="checkline"><input data-whf-month="9" type="checkbox" /> Oct</label>
+                  <label class="checkline"><input data-whf-month="10" type="checkbox" /> Nov</label>
+                  <label class="checkline"><input data-whf-month="11" type="checkbox" /> Dec</label>
+                </div>
+              </div>
+              <div class="field">
+                <label for="whfSuccessRatePct">WHF success rate (%)</label>
+                <input id="whfSuccessRatePct" type="number" min="0" max="100" step="1" value="85" />
+              </div>
             </div>
           </div>
           <div class="hint" id="whfNote">WHF: OFF.</div>
-          <div class="hint">Rescue preset: May-Sep, 20:30-06:00, 3500W displaced AC, 200W fan, 85% success.</div>
+          <div class="hint">Auto mode derives month windows and success from hourly temperatures (55F-82F eligibility + cooling stress).</div>
+          <div class="hint">Rescue manual preset: May-Sep, 20:30-06:00, 3500W displaced AC, 200W fan, 85% success.</div>
         </div>
 
         <div class="group">
-          <h3>Home + Yield (ZIP only)</h3>
+          <h3>Physical Constraints: Home + Yield</h3>
           <div class="field">
             <label for="annualLoadKwh">Annual home load (non-EV kWh)</label>
             <input id="annualLoadKwh" type="number" min="0" step="100" value="24000" />
@@ -587,11 +709,19 @@
             <label for="zipCode">ZIP code (5-digit)</label>
             <input id="zipCode" type="text" value="95672" />
           </div>
+          <div class="field">
+            <label for="nrelApiKey">NREL API key (optional)</label>
+            <input id="nrelApiKey" type="text" value="" placeholder="DEMO_KEY is used when empty" autocomplete="off" />
+          </div>
           <div class="hint" id="zipYieldNote">Yield profile: --</div>
+          <div class="climate-badge" id="climateDataBadge">
+            <span class="climate-badge-dot"></span>
+            <span>Climate Data: --</span>
+          </div>
         </div>
 
         <div class="group">
-          <h3>EV Charging</h3>
+          <h3>Load Shaping: EV Charging</h3>
           <div class="field">
             <label class="checkline"><input id="hasEvCharging" type="checkbox" /> Include EV charging load</label>
           </div>
@@ -614,7 +744,7 @@
         </div>
 
         <div class="group">
-          <h3>HomeAssistant HVAC Shift</h3>
+          <h3>Load Shaping: HomeAssistant HVAC Shift</h3>
           <div class="field">
             <label for="tempUnitsDisplay">Temperature units</label>
             <input id="tempUnitsDisplay" type="text" value="F (fixed)" readonly />
@@ -630,6 +760,13 @@
           <div class="hint">Setpoints always affect utility/load estimates, even if HVAC shifting is OFF.</div>
           <div class="field">
             <label class="checkline"><input id="enableHaShift" type="checkbox" /> Enable HVAC pre-cool/pre-heat load shift</label>
+          </div>
+          <div class="field">
+            <label for="haMode">HVAC shift mode</label>
+            <select id="haMode">
+              <option value="auto" selected>Auto (temperature-guided)</option>
+              <option value="manual">Manual success + pre-window</option>
+            </select>
           </div>
           <div id="haFields">
             <div class="field">
@@ -648,17 +785,19 @@
               <label for="hvacSensitivityKwhPerDegHour">HVAC sensitivity (kWh / deg-hour)</label>
               <input id="hvacSensitivityKwhPerDegHour" type="number" min="0.01" step="0.01" value="0.60" />
             </div>
-            <div class="field">
-              <label for="hvacShiftSuccessRatePct">Shift success rate (%)</label>
-              <input id="hvacShiftSuccessRatePct" type="number" min="0" max="100" step="1" value="70" />
-            </div>
-            <div class="field">
-              <label for="preCoolStartHour">Pre-window start hour (0-23)</label>
-              <input id="preCoolStartHour" type="number" min="0" max="23" step="1" value="12" />
-            </div>
-            <div class="field">
-              <label for="preCoolEndHour">Pre-window end hour (0-23)</label>
-              <input id="preCoolEndHour" type="number" min="0" max="23" step="1" value="16" />
+            <div id="haManualFields">
+              <div class="field">
+                <label for="hvacShiftSuccessRatePct">Shift success rate (%)</label>
+                <input id="hvacShiftSuccessRatePct" type="number" min="0" max="100" step="1" value="70" />
+              </div>
+              <div class="field">
+                <label for="preCoolStartHour">Pre-window start hour (0-23)</label>
+                <input id="preCoolStartHour" type="number" min="0" max="23" step="1" value="12" />
+              </div>
+              <div class="field">
+                <label for="preCoolEndHour">Pre-window end hour (0-23)</label>
+                <input id="preCoolEndHour" type="number" min="0" max="23" step="1" value="16" />
+              </div>
             </div>
             <div class="field">
               <label for="maxShiftHoursPerDay">Max shift hours/day</label>
@@ -674,7 +813,14 @@
         </div>
 
         <div class="group">
-          <h3>PG&amp;E Rates</h3>
+          <h3>Tariff &amp; Programs</h3>
+          <div class="field">
+            <label for="tariffPreset">Tariff preset</label>
+            <select id="tariffPreset">
+              <option value="custom" selected>Custom</option>
+              <option value="pge_e_elec">PG&amp;E E-ELEC (reference)</option>
+            </select>
+          </div>
           <div class="field">
             <label for="importOffPeak">Import off-peak ($/kWh)</label>
             <input id="importOffPeak" type="number" min="0" step="0.01" value="0.36" />
@@ -685,7 +831,7 @@
           </div>
           <div class="field">
             <label for="fixedMonthlyCharge">Fixed monthly charge ($)</label>
-            <input id="fixedMonthlyCharge" type="number" min="0" step="0.5" value="15" />
+            <input id="fixedMonthlyCharge" type="number" min="0" step="0.01" value="24.15" />
           </div>
           <div class="field">
             <label for="nbcPerImportKwh">NBC on imports ($/kWh)</label>
@@ -711,14 +857,15 @@
             <input id="exportPeak" type="number" min="0" step="0.01" value="0.12" />
           </div>
           <div class="field">
-            <label for="exportPeakShare">Export in peak window (%)</label>
-            <input id="exportPeakShare" type="number" min="0" max="100" step="1" value="25" />
+            <label class="checkline"><input id="vppEnabled" type="checkbox" checked /> Include VPP revenue (DSGS/ELRP proxy)</label>
           </div>
           <div class="hint" id="exportModeNote">Export note: --</div>
+          <div class="hint">Annual true-up logic: export value offsets annual energy import charges only. Fixed charge and NBC remain non-offsettable.</div>
+          <div class="hint">VPP credit model: Powerwalls * 11.5 kW * $35/kW-year. This can make annual utility results negative (net profit).</div>
         </div>
 
         <div class="group">
-          <h3>System Pricing</h3>
+          <h3>Physical Constraints: System Pricing</h3>
           <div class="field">
             <label for="solarBaseCost">Solar base cost ($)</label>
             <input id="solarBaseCost" type="number" min="0" step="50" value="2710" />
@@ -746,16 +893,57 @@
         </div>
 
         <div class="group">
-          <h3>Battery Behavior</h3>
+          <h3>Physical Constraints: Battery + Inverter</h3>
+          <div class="field">
+            <label for="dispatchMode">Battery dispatch mode</label>
+            <select id="dispatchMode">
+              <option value="self_consumption_peak_then_postpeak" selected>Self-Consumption (peak then post-peak)</option>
+              <option value="arbitrage_price_event">VPP Arbitrage (export when export &gt; import)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="reservePolicy">Reserve policy</label>
+            <select id="reservePolicy">
+              <option value="auto_seasonal" selected>Auto Seasonal (50/30/20)</option>
+              <option value="fixed">Fixed reserve</option>
+              <option value="custom_monthly">Custom monthly table</option>
+            </select>
+          </div>
+          <div class="field" id="fixedReserveField">
+            <label for="minSocReservePct">Fixed minimum SOC reserve (%)</label>
+            <input id="minSocReservePct" type="number" min="0" max="95" step="1" value="20" />
+          </div>
+          <div class="field hidden" id="reserveMonthlyFields">
+            <label>Monthly reserve table (%)</label>
+            <div class="month-grid monthly-reserve">
+              <label class="checkline">Jan<input id="monthlyReservePct0" type="number" min="0" max="95" step="1" value="50" /></label>
+              <label class="checkline">Feb<input id="monthlyReservePct1" type="number" min="0" max="95" step="1" value="50" /></label>
+              <label class="checkline">Mar<input id="monthlyReservePct2" type="number" min="0" max="95" step="1" value="30" /></label>
+              <label class="checkline">Apr<input id="monthlyReservePct3" type="number" min="0" max="95" step="1" value="30" /></label>
+              <label class="checkline">May<input id="monthlyReservePct4" type="number" min="0" max="95" step="1" value="20" /></label>
+              <label class="checkline">Jun<input id="monthlyReservePct5" type="number" min="0" max="95" step="1" value="20" /></label>
+              <label class="checkline">Jul<input id="monthlyReservePct6" type="number" min="0" max="95" step="1" value="20" /></label>
+              <label class="checkline">Aug<input id="monthlyReservePct7" type="number" min="0" max="95" step="1" value="20" /></label>
+              <label class="checkline">Sep<input id="monthlyReservePct8" type="number" min="0" max="95" step="1" value="20" /></label>
+              <label class="checkline">Oct<input id="monthlyReservePct9" type="number" min="0" max="95" step="1" value="30" /></label>
+              <label class="checkline">Nov<input id="monthlyReservePct10" type="number" min="0" max="95" step="1" value="50" /></label>
+              <label class="checkline">Dec<input id="monthlyReservePct11" type="number" min="0" max="95" step="1" value="50" /></label>
+            </div>
+          </div>
           <div class="field">
             <label for="cyclesPerDay">Cycles/day</label>
             <input id="cyclesPerDay" type="number" min="0" max="2" step="0.01" value="0.85" />
           </div>
           <div class="field">
+            <label for="solarToHomeEfficiencyPct">Solar-to-home efficiency (%)</label>
+            <input id="solarToHomeEfficiencyPct" type="number" min="80" max="100" step="0.1" value="97.5" />
+          </div>
+          <div class="field">
             <label for="roundTripEfficiency">Round-trip efficiency (%)</label>
             <input id="roundTripEfficiency" type="number" min="50" max="100" step="1" value="90" />
           </div>
-          <div class="hint">Dispatch policy: cost-priority with peak-first discharge, then post-peak (21:00-23:00) if SOC remains above reserve.</div>
+          <div class="hint">Powerwall 3 clipping: solar AC output is capped at 11.5 kW per Powerwall when Powerwalls &gt;= 1. For 0 Powerwalls, clipping cap is disabled.</div>
+          <div class="hint">Self-consumption mode discharges to reduce load in peak/post-peak. Arbitrage mode can export battery energy when export price exceeds import price.</div>
         </div>
 
         <div class="group">
@@ -780,6 +968,14 @@
         <h2>Results</h2>
 
         <div class="error-box" id="errorBox"></div>
+        <div class="climate-banner" id="climateFallbackBanner">
+          <div class="climate-banner-title">Climate data fallback active</div>
+          <div class="climate-banner-body" id="climateFallbackMessage">Synthetic fallback in use.</div>
+          <div class="climate-banner-actions">
+            <button id="fallbackProceedBtn" type="button">Use Synthetic Fallback For Now</button>
+            <button id="climateRetryBtn" class="secondary-btn" type="button">Retry NREL Fetch</button>
+          </div>
+        </div>
 
         <div class="cards">
           <div class="cards-group" style="grid-column: 1 / -1;">
@@ -813,7 +1009,12 @@
               <div class="card">
                 <div class="k">PG&amp;E After / Month (True-Up)</div>
                 <div class="v" id="cardPgeAfter">$0</div>
-                <div class="sub" id="cardTrueUpNote">Annual true-up subtotal: --</div>
+                <div class="sub" id="cardTrueUpNote">Annual true-up bill: --</div>
+              </div>
+              <div class="card">
+                <div class="k">Clipping Impact</div>
+                <div class="v" id="cardClippedSolar">--</div>
+                <div class="sub" id="cardClippedSolarNote">Annual clipped solar: --</div>
               </div>
               <div class="card">
                 <div class="k">Utility Bill Change / Month</div>
@@ -850,8 +1051,15 @@
           <h3>Assumptions</h3>
           <div class="inline-pills">
             <div class="pill">Hourly dispatch retained</div>
-            <div class="pill">Battery dispatch: peak-first + post-peak (reserve enforced)</div>
-            <div class="pill">ZIP-only yield source</div>
+            <div class="pill">Battery dispatch/reserve are fully modeled by hour</div>
+            <div class="pill">Climate profile: NREL preferred, synthetic fallback guarded</div>
+            <div class="pill" id="climateAssumptionPill">Climate source: --</div>
+            <div class="pill" id="tempAssumptionPill">Temperature source: --</div>
+            <div class="pill" id="tariffAssumptionPill">Tariff floor: --</div>
+            <div class="pill" id="vppAssumptionPill">VPP: --</div>
+            <div class="pill" id="dispatchAssumptionPill">Dispatch mode: --</div>
+            <div class="pill" id="reserveAssumptionPill">Reserve policy: --</div>
+            <div class="pill" id="clipAssumptionPill">Clipping: --</div>
             <div class="pill" id="yieldAssumptionPill">Yield profile: --</div>
             <div class="pill" id="evAssumptionPill">EV: --</div>
             <div class="pill" id="haAssumptionPill">HA HVAC shift: --</div>
@@ -920,7 +1128,10 @@
     const BATTERY_USABLE_KWH = 13.5 * 0.9;
     const DAYS_PER_YEAR = 365;
     const DAYS_IN_MONTH = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    const MONTH_LABELS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const MONTHLY_DAYLIGHT_HOURS = [9.8, 10.7, 11.9, 13.1, 14.1, 14.6, 14.4, 13.5, 12.3, 11.1, 10.0, 9.5];
+    const SYNTHETIC_TEMP_MONTHLY_AVG_F = [47, 50, 55, 60, 67, 75, 81, 80, 75, 66, 55, 48];
+    const DEFAULT_MONTHLY_RESERVE_PCT = [50, 50, 30, 30, 20, 20, 20, 20, 20, 30, 50, 50];
     const PEAK_HOURS = new Set([16, 17, 18, 19, 20]);
     const DAY_CHARGING_HOURS = [9, 10, 11, 12, 13, 14, 15];
     const NIGHT_CHARGING_HOURS = [21, 22, 23, 0, 1, 2, 3, 4, 5];
@@ -939,6 +1150,21 @@
     const MODULE_KW = 0.395;
     const V1_LIKE_OPPORTUNITY_RATE = 0.05;
     const ZIP_DEFAULT_YIELD = 1700;
+    const POWERWALL3_AC_KW = 11.5;
+    const VPP_CREDIT_PER_KW_YEAR = 35;
+    const RESCUE_ZIP = "95672";
+    const RESCUE_HVAC_SENSITIVITY = 0.45;
+    const DEFAULT_HVAC_SENSITIVITY = 0.60;
+    const NREL_DEMO_KEY = "DEMO_KEY";
+    const NREL_PVWATTS_URL = "https://developer.nrel.gov/api/pvwatts/v8.json";
+    const NREL_CACHE_STORAGE_KEY = "solarAnalyzer.nrelCache.v1";
+    const NREL_META_STORAGE_KEY = "solarAnalyzer.climateMeta.v1";
+    const ZIP_COORD_CACHE_STORAGE_KEY = "solarAnalyzer.zipCoordCache.v1";
+    const NREL_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+    const ZIP_COORD_CACHE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
+    const NREL_RATE_LIMIT_COOLDOWN_MS = 15 * 60 * 1000;
+    const NREL_GENERIC_RETRY_BACKOFF_MS = 60 * 1000;
+    const SYNTHETIC_ACK_SESSION_KEY = "solarAnalyzer.syntheticFallbackAck.v1";
 
     const DEFAULT_LOAD_PROFILE_RAW = [1.02, 0.95, 0.91, 0.82, 0.79, 0.83, 0.96, 1.07, 0.96, 0.89, 0.91, 0.99];
     const DEFAULT_SOLAR_PROFILE_RAW = [0.58, 0.66, 0.86, 1.02, 1.12, 1.18, 1.16, 1.08, 0.98, 0.83, 0.64, 0.53];
@@ -971,7 +1197,9 @@
       sizingObjectiveHint: document.getElementById("sizingObjectiveHint"),
       sweepModeHint: document.getElementById("sweepModeHint"),
       enableWhf: document.getElementById("enableWhf"),
+      whfMode: document.getElementById("whfMode"),
       whfFields: document.getElementById("whfFields"),
+      whfManualFields: document.getElementById("whfManualFields"),
       whfFanWatts: document.getElementById("whfFanWatts"),
       whfDisplacedAcWatts: document.getElementById("whfDisplacedAcWatts"),
       whfStartHour: document.getElementById("whfStartHour"),
@@ -989,7 +1217,9 @@
       evDayChargingPct: document.getElementById("evDayChargingPct"),
       evLoadNote: document.getElementById("evLoadNote"),
       enableHaShift: document.getElementById("enableHaShift"),
+      haMode: document.getElementById("haMode"),
       haFields: document.getElementById("haFields"),
+      haManualFields: document.getElementById("haManualFields"),
       tempUnitsDisplay: document.getElementById("tempUnitsDisplay"),
       summerSetpointF: document.getElementById("summerSetpointF"),
       winterSetpointF: document.getElementById("winterSetpointF"),
@@ -1004,7 +1234,10 @@
       maxShiftKwhPerDay: document.getElementById("maxShiftKwhPerDay"),
       haLoadShiftNote: document.getElementById("haLoadShiftNote"),
       zipCode: document.getElementById("zipCode"),
+      nrelApiKey: document.getElementById("nrelApiKey"),
       zipYieldNote: document.getElementById("zipYieldNote"),
+      climateDataBadge: document.getElementById("climateDataBadge"),
+      tariffPreset: document.getElementById("tariffPreset"),
       exportRateMode: document.getElementById("exportRateMode"),
       importOffPeak: document.getElementById("importOffPeak"),
       importPeak: document.getElementById("importPeak"),
@@ -1013,7 +1246,7 @@
       nem3ExportRate: document.getElementById("nem3ExportRate"),
       exportOffPeak: document.getElementById("exportOffPeak"),
       exportPeak: document.getElementById("exportPeak"),
-      exportPeakShare: document.getElementById("exportPeakShare"),
+      vppEnabled: document.getElementById("vppEnabled"),
       exportModeNote: document.getElementById("exportModeNote"),
       solarBaseCost: document.getElementById("solarBaseCost"),
       solarCostPerKw: document.getElementById("solarCostPerKw"),
@@ -1021,7 +1254,14 @@
       batteryCost2: document.getElementById("batteryCost2"),
       batteryCost3: document.getElementById("batteryCost3"),
       batteryCost4: document.getElementById("batteryCost4"),
+      dispatchMode: document.getElementById("dispatchMode"),
+      reservePolicy: document.getElementById("reservePolicy"),
+      fixedReserveField: document.getElementById("fixedReserveField"),
+      minSocReservePct: document.getElementById("minSocReservePct"),
+      reserveMonthlyFields: document.getElementById("reserveMonthlyFields"),
+      monthlyReservePctNodes: new Array(12).fill(0).map((_, month) => document.getElementById("monthlyReservePct" + month)),
       cyclesPerDay: document.getElementById("cyclesPerDay"),
+      solarToHomeEfficiencyPct: document.getElementById("solarToHomeEfficiencyPct"),
       roundTripEfficiency: document.getElementById("roundTripEfficiency"),
       apr: document.getElementById("apr"),
       financeYears: document.getElementById("financeYears"),
@@ -1033,6 +1273,8 @@
       cardPgeBefore: document.getElementById("cardPgeBefore"),
       cardPgeAfter: document.getElementById("cardPgeAfter"),
       cardTrueUpNote: document.getElementById("cardTrueUpNote"),
+      cardClippedSolar: document.getElementById("cardClippedSolar"),
+      cardClippedSolarNote: document.getElementById("cardClippedSolarNote"),
       cardSavings: document.getElementById("cardSavings"),
       cardUtilityChangeFormula: document.getElementById("cardUtilityChangeFormula"),
       cardSolarOnlyDelta: document.getElementById("cardSolarOnlyDelta"),
@@ -1043,6 +1285,13 @@
       cardMortgage: document.getElementById("cardMortgage"),
       cardOutflow: document.getElementById("cardOutflow"),
       yieldAssumptionPill: document.getElementById("yieldAssumptionPill"),
+      climateAssumptionPill: document.getElementById("climateAssumptionPill"),
+      tempAssumptionPill: document.getElementById("tempAssumptionPill"),
+      tariffAssumptionPill: document.getElementById("tariffAssumptionPill"),
+      vppAssumptionPill: document.getElementById("vppAssumptionPill"),
+      dispatchAssumptionPill: document.getElementById("dispatchAssumptionPill"),
+      reserveAssumptionPill: document.getElementById("reserveAssumptionPill"),
+      clipAssumptionPill: document.getElementById("clipAssumptionPill"),
       evAssumptionPill: document.getElementById("evAssumptionPill"),
       haAssumptionPill: document.getElementById("haAssumptionPill"),
       whfAssumptionPill: document.getElementById("whfAssumptionPill"),
@@ -1053,12 +1302,89 @@
       regressionOutput: document.getElementById("regressionOutput"),
       objectiveSummary: document.getElementById("objectiveSummary"),
       hvacImpactOutput: document.getElementById("hvacImpactOutput"),
+      climateFallbackBanner: document.getElementById("climateFallbackBanner"),
+      climateFallbackMessage: document.getElementById("climateFallbackMessage"),
+      fallbackProceedBtn: document.getElementById("fallbackProceedBtn"),
+      climateRetryBtn: document.getElementById("climateRetryBtn"),
       calcDetails: document.getElementById("calcDetails"),
       calcBreakdown: document.getElementById("calcBreakdown")
     };
     let selectedScenarioKey = null;
+    let hvacSensitivityTouched = false;
+    let climateFetchToken = 0;
     const optimizationCache = new Map();
     const OPTIMIZATION_CACHE_LIMIT = 12;
+    const NREL_PROFILE_PARAMS = {
+      system_capacity: 1,
+      module_type: 1,
+      array_type: 1,
+      tilt: 20,
+      azimuth: 180,
+      losses: 14,
+      timeframe: "hourly"
+    };
+    let climateState = loadInitialClimateState();
+
+    function loadJsonStorage(storage, key, fallbackValue) {
+      try {
+        const raw = storage.getItem(key);
+        if (!raw) return fallbackValue;
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed === "object" ? parsed : fallbackValue;
+      } catch (_err) {
+        return fallbackValue;
+      }
+    }
+
+    function saveJsonStorage(storage, key, value) {
+      try {
+        storage.setItem(key, JSON.stringify(value));
+      } catch (_err) {
+        // Ignore storage write failures and continue with in-memory state.
+      }
+    }
+
+    function loadInitialClimateState() {
+      const fallback = {
+        status: "fallback_synthetic",
+        locationLabel: "ZIP pending",
+        lastVerifiedAt: null,
+        fallbackReason: "missing_data",
+        keyMode: "demo_key",
+        requestSignature: "",
+        profile: null,
+        pending: false,
+        nextRetryAt: 0,
+        lastFetchAttemptAt: 0,
+        blockedByFallbackAck: false
+      };
+      const stored = loadJsonStorage(localStorage, NREL_META_STORAGE_KEY, null);
+      if (!stored) return fallback;
+      return {
+        ...fallback,
+        status: typeof stored.status === "string" ? stored.status : fallback.status,
+        locationLabel: typeof stored.locationLabel === "string" ? stored.locationLabel : fallback.locationLabel,
+        lastVerifiedAt: typeof stored.lastVerifiedAt === "string" ? stored.lastVerifiedAt : null,
+        fallbackReason: typeof stored.fallbackReason === "string" ? stored.fallbackReason : fallback.fallbackReason,
+        keyMode: stored.keyMode === "user_key" ? "user_key" : "demo_key",
+        requestSignature: typeof stored.requestSignature === "string" ? stored.requestSignature : "",
+        nextRetryAt: Number.isFinite(stored.nextRetryAt) ? stored.nextRetryAt : 0,
+        lastFetchAttemptAt: Number.isFinite(stored.lastFetchAttemptAt) ? stored.lastFetchAttemptAt : 0
+      };
+    }
+
+    function persistClimateState() {
+      saveJsonStorage(localStorage, NREL_META_STORAGE_KEY, {
+        status: climateState.status,
+        locationLabel: climateState.locationLabel,
+        lastVerifiedAt: climateState.lastVerifiedAt,
+        fallbackReason: climateState.fallbackReason,
+        keyMode: climateState.keyMode,
+        requestSignature: climateState.requestSignature,
+        nextRetryAt: Number.isFinite(climateState.nextRetryAt) ? climateState.nextRetryAt : 0,
+        lastFetchAttemptAt: Number.isFinite(climateState.lastFetchAttemptAt) ? climateState.lastFetchAttemptAt : 0
+      });
+    }
 
     function normalizeProfile(values) {
       const total = values.reduce((acc, v) => acc + v, 0);
@@ -1146,6 +1472,591 @@
       return /^\d{5}$/.test(trimmed) ? Number(trimmed) : null;
     }
 
+    function shortHash(text) {
+      const asText = String(text || "");
+      let hash = 2166136261;
+      for (let i = 0; i < asText.length; i += 1) {
+        hash ^= asText.charCodeAt(i);
+        hash += (hash << 1) + (hash << 4) + (hash << 7) + (hash << 8) + (hash << 24);
+      }
+      return (hash >>> 0).toString(16).padStart(8, "0");
+    }
+
+    function buildClimateContext(zipRaw = el.zipCode.value, apiKeyRaw = el.nrelApiKey.value) {
+      const parsedZip = parseZip(zipRaw);
+      if (parsedZip === null) return { ok: false };
+      const zip = String(parsedZip).padStart(5, "0");
+      const userKey = String(apiKeyRaw || "").trim();
+      const apiKey = userKey || NREL_DEMO_KEY;
+      const keyMode = userKey ? "user_key" : "demo_key";
+      const apiKeyHash = shortHash(apiKey);
+      const signature = zip + "|" + apiKeyHash;
+      const cacheKey = [
+        zip,
+        "sc" + NREL_PROFILE_PARAMS.system_capacity,
+        "mt" + NREL_PROFILE_PARAMS.module_type,
+        "at" + NREL_PROFILE_PARAMS.array_type,
+        "tilt" + NREL_PROFILE_PARAMS.tilt,
+        "az" + NREL_PROFILE_PARAMS.azimuth,
+        "loss" + NREL_PROFILE_PARAMS.losses,
+        NREL_PROFILE_PARAMS.timeframe,
+        apiKeyHash
+      ].join("|");
+      return {
+        ok: true,
+        zip,
+        apiKey,
+        keyMode,
+        signature,
+        cacheKey
+      };
+    }
+
+    function isValidMonthlyProfile(monthlyProfile) {
+      return Array.isArray(monthlyProfile)
+        && monthlyProfile.length === 12
+        && monthlyProfile.every((v) => Number.isFinite(v) && v >= 0);
+    }
+
+    function isValidHourlyByMonth(hourlyByMonth) {
+      return Array.isArray(hourlyByMonth)
+        && hourlyByMonth.length === 12
+        && hourlyByMonth.every((row) => Array.isArray(row)
+          && row.length === 24
+          && row.every((v) => Number.isFinite(v) && v >= 0));
+    }
+
+    function isValidTempHourlyByMonth(hourlyByMonth) {
+      return Array.isArray(hourlyByMonth)
+        && hourlyByMonth.length === 12
+        && hourlyByMonth.every((row) => Array.isArray(row)
+          && row.length === 24
+          && row.every((v) => Number.isFinite(v)));
+    }
+
+    function isValidClimateProfile(profile) {
+      return !!profile
+        && isValidMonthlyProfile(profile.monthlyProfile)
+        && isValidHourlyByMonth(profile.hourlyByMonth)
+        && isValidTempHourlyByMonth(profile.tempHourlyFByMonth)
+        && (profile.tempSource === "nrel_tamb" || profile.tempSource === "synthetic_temp_fallback");
+    }
+
+    function readClimateCacheStore() {
+      return loadJsonStorage(localStorage, NREL_CACHE_STORAGE_KEY, {});
+    }
+
+    function writeClimateCacheStore(store) {
+      saveJsonStorage(localStorage, NREL_CACHE_STORAGE_KEY, store);
+    }
+
+    function readZipCoordCacheStore() {
+      return loadJsonStorage(localStorage, ZIP_COORD_CACHE_STORAGE_KEY, {});
+    }
+
+    function writeZipCoordCacheStore(store) {
+      saveJsonStorage(localStorage, ZIP_COORD_CACHE_STORAGE_KEY, store);
+    }
+
+    function getCachedZipCoordEntry(zip) {
+      const store = readZipCoordCacheStore();
+      const now = Date.now();
+      let changed = false;
+      Object.keys(store).forEach((key) => {
+        const entry = store[key];
+        if (!entry || !Number.isFinite(entry.cachedAt) || (now - entry.cachedAt) > ZIP_COORD_CACHE_TTL_MS) {
+          delete store[key];
+          changed = true;
+        }
+      });
+      if (changed) writeZipCoordCacheStore(store);
+      const entry = store[String(zip)];
+      if (!entry) return null;
+      if (!Number.isFinite(entry.lat) || !Number.isFinite(entry.lon)) return null;
+      return entry;
+    }
+
+    function putCachedZipCoordEntry(zip, entry) {
+      if (!entry || !Number.isFinite(entry.lat) || !Number.isFinite(entry.lon)) return;
+      const store = readZipCoordCacheStore();
+      store[String(zip)] = {
+        lat: entry.lat,
+        lon: entry.lon,
+        label: entry.label || String(zip),
+        cachedAt: Date.now()
+      };
+      writeZipCoordCacheStore(store);
+    }
+
+    function parseZipCoordEntry(rawEntry, fallbackLabel) {
+      if (!rawEntry || typeof rawEntry !== "object") return null;
+      const lat = Number(rawEntry.lat);
+      const lon = Number(rawEntry.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+      return {
+        lat,
+        lon,
+        label: typeof rawEntry.label === "string" && rawEntry.label.trim() ? rawEntry.label.trim() : fallbackLabel
+      };
+    }
+
+    function fetchZipCoordinatesFromZippopotam(zip) {
+      const url = "https://api.zippopotam.us/us/" + encodeURIComponent(zip);
+      return fetch(url, { method: "GET" })
+        .then((response) => {
+          if (!response.ok) throw { type: "network_error" };
+          return response.json().catch(() => {
+            throw { type: "parse_error" };
+          });
+        })
+        .then((json) => {
+          const place = json && Array.isArray(json.places) ? json.places[0] : null;
+          const parsed = parseZipCoordEntry({
+            lat: place && place.latitude,
+            lon: place && place.longitude,
+            label: place
+              ? (((place["place name"] || "").trim()) + ", " + (((place["state abbreviation"] || place.state || "").trim())) + " (" + zip + ")")
+              : zip
+          }, zip);
+          if (!parsed) throw { type: "missing_data" };
+          return parsed;
+        });
+    }
+
+    function fetchZipCoordinatesFromCensus(zip) {
+      const params = new URLSearchParams({
+        address: zip,
+        benchmark: "Public_AR_Current",
+        format: "json"
+      });
+      const url = "https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?" + params.toString();
+      return fetch(url, { method: "GET" })
+        .then((response) => {
+          if (!response.ok) throw { type: "network_error" };
+          return response.json().catch(() => {
+            throw { type: "parse_error" };
+          });
+        })
+        .then((json) => {
+          const matches = json && json.result && Array.isArray(json.result.addressMatches) ? json.result.addressMatches : [];
+          const top = matches[0];
+          const parsed = parseZipCoordEntry({
+            lat: top && top.coordinates && top.coordinates.y,
+            lon: top && top.coordinates && top.coordinates.x,
+            label: top && typeof top.matchedAddress === "string" ? (top.matchedAddress + " (" + zip + ")") : zip
+          }, zip);
+          if (!parsed) throw { type: "missing_data" };
+          return parsed;
+        });
+    }
+
+    function resolveZipCoordinates(zip) {
+      const cached = getCachedZipCoordEntry(zip);
+      if (cached) {
+        return Promise.resolve({
+          lat: cached.lat,
+          lon: cached.lon,
+          label: cached.label || zip
+        });
+      }
+      return fetchZipCoordinatesFromZippopotam(zip)
+        .catch(() => fetchZipCoordinatesFromCensus(zip))
+        .then((entry) => {
+          putCachedZipCoordEntry(zip, entry);
+          return entry;
+        })
+        .catch(() => {
+          throw { type: "location_lookup_failed" };
+        });
+    }
+
+    function getCachedClimateEntry(cacheKey) {
+      const store = readClimateCacheStore();
+      const now = Date.now();
+      let changed = false;
+      Object.keys(store).forEach((key) => {
+        const entry = store[key];
+        if (!entry || !Number.isFinite(entry.cachedAt) || (now - entry.cachedAt) > NREL_CACHE_TTL_MS) {
+          delete store[key];
+          changed = true;
+        }
+      });
+      if (changed) writeClimateCacheStore(store);
+      const entry = store[cacheKey];
+      if (!entry || !isValidClimateProfile(entry.profile)) return null;
+      return entry;
+    }
+
+    function putCachedClimateEntry(cacheKey, entry) {
+      const store = readClimateCacheStore();
+      store[cacheKey] = entry;
+      writeClimateCacheStore(store);
+    }
+
+    function getSyntheticHourlyByMonthProfiles() {
+      return new Array(12).fill(0).map((_, month) => buildSyntheticSolarHourlyShape(month));
+    }
+
+    function buildSyntheticTempHourlyShape(monthIndex) {
+      const monthAverage = Number.isFinite(SYNTHETIC_TEMP_MONTHLY_AVG_F[monthIndex]) ? SYNTHETIC_TEMP_MONTHLY_AVG_F[monthIndex] : 65;
+      const season = monthSeason(monthIndex);
+      const amplitude = season === "summer" ? 14 : (season === "winter" ? 9 : 11);
+      return new Array(24).fill(0).map((_, hour) => {
+        const radians = ((hour - 15) / 24) * Math.PI * 2;
+        return monthAverage + (amplitude * Math.cos(radians));
+      });
+    }
+
+    function getSyntheticTempHourlyByMonthProfiles() {
+      return new Array(12).fill(0).map((_, month) => buildSyntheticTempHourlyShape(month));
+    }
+
+    function getSyntheticClimateProfile() {
+      return {
+        monthlyProfile: [...SOLAR_PROFILE],
+        hourlyByMonth: getSyntheticHourlyByMonthProfiles(),
+        tempHourlyFByMonth: getSyntheticTempHourlyByMonthProfiles(),
+        tempSource: "synthetic_temp_fallback"
+      };
+    }
+
+    function deriveClimateProfileFromHourly(acValues, tambValues) {
+      if (!Array.isArray(acValues) || acValues.length < 24 * 365) return null;
+      const monthlyTotals = new Array(12).fill(0);
+      const hourlyTotalsByMonth = new Array(12).fill(0).map(() => new Array(24).fill(0));
+      const syntheticTemp = getSyntheticTempHourlyByMonthProfiles();
+      const tempTotalsByMonth = new Array(12).fill(0).map(() => new Array(24).fill(0));
+      const tempCountsByMonth = new Array(12).fill(0).map(() => new Array(24).fill(0));
+      const hasTamb = Array.isArray(tambValues) && tambValues.length >= (24 * 365);
+      let tempFullyValid = hasTamb;
+      let cursor = 0;
+      for (let month = 0; month < 12; month += 1) {
+        const monthHours = DAYS_IN_MONTH[month] * 24;
+        for (let offset = 0; offset < monthHours; offset += 1) {
+          const raw = Number(acValues[cursor]);
+          const hourlyKwh = Number.isFinite(raw) ? Math.max(0, raw / 1000) : 0;
+          const hour = offset % 24;
+          monthlyTotals[month] += hourlyKwh;
+          hourlyTotalsByMonth[month][hour] += hourlyKwh;
+          if (hasTamb) {
+            const tempC = Number(tambValues[cursor]);
+            if (Number.isFinite(tempC)) {
+              const tempF = (tempC * 9 / 5) + 32;
+              tempTotalsByMonth[month][hour] += tempF;
+              tempCountsByMonth[month][hour] += 1;
+            } else {
+              tempFullyValid = false;
+            }
+          }
+          cursor += 1;
+        }
+      }
+      const annualKwh = monthlyTotals.reduce((acc, v) => acc + v, 0);
+      if (!Number.isFinite(annualKwh) || annualKwh <= 0) return null;
+      const tempHourlyFByMonth = tempFullyValid
+        ? tempTotalsByMonth.map((row, month) => row.map((total, hour) => {
+          const count = tempCountsByMonth[month][hour];
+          return count > 0 ? (total / count) : syntheticTemp[month][hour];
+        }))
+        : syntheticTemp;
+      return {
+        annualKwhPerKw: annualKwh,
+        monthlyProfile: normalizeProfile(monthlyTotals),
+        hourlyByMonth: hourlyTotalsByMonth.map((row, idx) => {
+          const total = row.reduce((acc, v) => acc + v, 0);
+          return total > 0 ? normalizeProfile(row) : buildSyntheticSolarHourlyShape(idx);
+        }),
+        tempHourlyFByMonth,
+        tempSource: tempFullyValid ? "nrel_tamb" : "synthetic_temp_fallback"
+      };
+    }
+
+    function resolveClimateLocationLabel(json, fallbackLabel) {
+      const stationInfo = json && typeof json.station_info === "object" ? json.station_info : null;
+      const city = stationInfo && typeof stationInfo.city === "string" ? stationInfo.city.trim() : "";
+      const state = stationInfo && typeof stationInfo.state === "string" ? stationInfo.state.trim() : "";
+      if (city && state) return city + ", " + state;
+      if (city) return city;
+      return fallbackLabel;
+    }
+
+    function resolveClimateFailureReason(errorObj) {
+      if (errorObj && errorObj.type === "rate_limit_429") return "rate_limit_429";
+      if (errorObj && errorObj.type === "location_lookup_failed") return "location_lookup_failed";
+      if (errorObj && errorObj.type === "missing_data") return "missing_data";
+      if (errorObj && errorObj.type === "parse_error") return "parse_error";
+      return "network_error";
+    }
+
+    function fetchNrelClimateProfile(context, coordinates) {
+      const params = new URLSearchParams({
+        api_key: context.apiKey,
+        lat: String(coordinates.lat),
+        lon: String(coordinates.lon),
+        system_capacity: String(NREL_PROFILE_PARAMS.system_capacity),
+        module_type: String(NREL_PROFILE_PARAMS.module_type),
+        array_type: String(NREL_PROFILE_PARAMS.array_type),
+        tilt: String(NREL_PROFILE_PARAMS.tilt),
+        azimuth: String(NREL_PROFILE_PARAMS.azimuth),
+        losses: String(NREL_PROFILE_PARAMS.losses),
+        timeframe: NREL_PROFILE_PARAMS.timeframe
+      });
+      return fetch(NREL_PVWATTS_URL + "?" + params.toString(), { method: "GET" })
+        .then((response) => {
+          if (!response.ok) {
+            if (response.status === 429) {
+              throw { type: "rate_limit_429" };
+            }
+            throw { type: "network_error" };
+          }
+          return response.json().catch(() => {
+            throw { type: "parse_error" };
+          });
+        })
+        .then((json) => {
+          const acValues = json && json.outputs && Array.isArray(json.outputs.ac) ? json.outputs.ac : null;
+          const tambValues = json && json.outputs && Array.isArray(json.outputs.tamb) ? json.outputs.tamb : null;
+          const profile = deriveClimateProfileFromHourly(acValues, tambValues);
+          if (!profile) {
+            throw { type: "missing_data" };
+          }
+          return {
+            profile,
+            locationLabel: resolveClimateLocationLabel(json, coordinates.label || context.zip)
+          };
+        });
+    }
+
+    function getSyntheticAckSignature() {
+      try {
+        return String(sessionStorage.getItem(SYNTHETIC_ACK_SESSION_KEY) || "");
+      } catch (_err) {
+        return "";
+      }
+    }
+
+    function isSyntheticFallbackAcknowledged(signature) {
+      return !!signature && getSyntheticAckSignature() === signature;
+    }
+
+    function acknowledgeSyntheticFallback(signature) {
+      try {
+        sessionStorage.setItem(SYNTHETIC_ACK_SESSION_KEY, String(signature || ""));
+      } catch (_err) {
+        // Ignore session storage failures.
+      }
+    }
+
+    function ensureClimateProfile(context, options = {}) {
+      if (!context.ok) return;
+      const forceRefresh = !!options.forceRefresh;
+      const nowMs = Date.now();
+      const signatureChanged = climateState.requestSignature !== context.signature;
+      const cachedEntry = getCachedClimateEntry(context.cacheKey);
+      if (signatureChanged) {
+        climateState = {
+          ...climateState,
+          status: "fallback_synthetic",
+          requestSignature: context.signature,
+          keyMode: context.keyMode,
+          locationLabel: context.zip,
+          lastVerifiedAt: null,
+          fallbackReason: "missing_data",
+          profile: null,
+          pending: false,
+          nextRetryAt: 0,
+          blockedByFallbackAck: !isSyntheticFallbackAcknowledged(context.signature)
+        };
+      }
+
+      if (cachedEntry && (!isValidClimateProfile(climateState.profile) || signatureChanged || climateState.status === "fallback_synthetic" || climateState.status === "fetch_error")) {
+        climateState = {
+          ...climateState,
+          status: "verified_cached",
+          locationLabel: cachedEntry.locationLabel || context.zip,
+          lastVerifiedAt: cachedEntry.lastVerifiedAt || climateState.lastVerifiedAt,
+          fallbackReason: cachedEntry.fallbackReason || "",
+          keyMode: context.keyMode,
+          requestSignature: context.signature,
+          profile: cachedEntry.profile,
+          pending: false,
+          blockedByFallbackAck: false
+        };
+        persistClimateState();
+      }
+
+      if (!forceRefresh && climateState.pending && climateState.requestSignature === context.signature) return;
+      if (!forceRefresh && climateState.nextRetryAt > nowMs && climateState.requestSignature === context.signature) {
+        const cooldownReason = climateState.fallbackReason || "network_error";
+        const cooldownStatus = cooldownReason === "rate_limit_429" ? "fallback_synthetic" : "fetch_error";
+        if (cachedEntry) {
+          climateState = {
+            ...climateState,
+            status: "verified_cached",
+            profile: cachedEntry.profile,
+            locationLabel: cachedEntry.locationLabel || context.zip,
+            lastVerifiedAt: cachedEntry.lastVerifiedAt || climateState.lastVerifiedAt,
+            fallbackReason: cooldownReason,
+            keyMode: context.keyMode,
+            blockedByFallbackAck: false
+          };
+        } else {
+          climateState = {
+            ...climateState,
+            status: cooldownStatus,
+            fallbackReason: cooldownReason,
+            keyMode: context.keyMode,
+            locationLabel: context.zip,
+            profile: null,
+            blockedByFallbackAck: !isSyntheticFallbackAcknowledged(context.signature)
+          };
+        }
+        persistClimateState();
+        return;
+      }
+
+      const shouldRetryAfterRateLimit = !forceRefresh
+        && climateState.fallbackReason === "rate_limit_429"
+        && climateState.nextRetryAt <= nowMs;
+      const shouldFetch = forceRefresh
+        || shouldRetryAfterRateLimit
+        || (!cachedEntry && !isValidClimateProfile(climateState.profile));
+      if (!shouldFetch) return;
+
+      const currentFetchToken = ++climateFetchToken;
+      climateState.pending = true;
+      climateState.lastFetchAttemptAt = nowMs;
+      resolveZipCoordinates(context.zip)
+        .then((coordinates) => fetchNrelClimateProfile(context, coordinates))
+        .then((live) => {
+          if (currentFetchToken !== climateFetchToken) return;
+          const nowIso = new Date().toISOString();
+          putCachedClimateEntry(context.cacheKey, {
+            profile: live.profile,
+            locationLabel: live.locationLabel || context.zip,
+            lastVerifiedAt: nowIso,
+            cachedAt: Date.now()
+          });
+          climateState = {
+            ...climateState,
+            status: "verified_live",
+            locationLabel: live.locationLabel || context.zip,
+            lastVerifiedAt: nowIso,
+            fallbackReason: "",
+            keyMode: context.keyMode,
+            requestSignature: context.signature,
+            profile: live.profile,
+            pending: false,
+            nextRetryAt: 0,
+            blockedByFallbackAck: false
+          };
+          persistClimateState();
+          render();
+        })
+        .catch((errorObj) => {
+          if (currentFetchToken !== climateFetchToken) return;
+          const fallbackReason = resolveClimateFailureReason(errorObj);
+          const cachedAfterError = getCachedClimateEntry(context.cacheKey);
+          if (fallbackReason === "rate_limit_429") {
+            climateState.nextRetryAt = Date.now() + NREL_RATE_LIMIT_COOLDOWN_MS;
+          } else {
+            climateState.nextRetryAt = Date.now() + NREL_GENERIC_RETRY_BACKOFF_MS;
+          }
+          if (cachedAfterError) {
+            climateState = {
+              ...climateState,
+              status: "verified_cached",
+              profile: cachedAfterError.profile,
+              locationLabel: cachedAfterError.locationLabel || context.zip,
+              lastVerifiedAt: cachedAfterError.lastVerifiedAt || climateState.lastVerifiedAt,
+              fallbackReason,
+              keyMode: context.keyMode,
+              requestSignature: context.signature,
+              pending: false,
+              blockedByFallbackAck: false
+            };
+          } else {
+            const fallbackStatus = fallbackReason === "rate_limit_429" ? "fallback_synthetic" : "fetch_error";
+            climateState = {
+              ...climateState,
+              status: fallbackStatus,
+              profile: null,
+              locationLabel: context.zip,
+              fallbackReason,
+              keyMode: context.keyMode,
+              requestSignature: context.signature,
+              pending: false,
+              blockedByFallbackAck: !isSyntheticFallbackAcknowledged(context.signature)
+            };
+          }
+          persistClimateState();
+          render();
+        });
+    }
+
+    function getClimateSnapshot(context) {
+      const fallbackProfile = getSyntheticClimateProfile();
+      const sameSignature = context.ok && climateState.requestSignature === context.signature;
+      const activeProfile = sameSignature && isValidClimateProfile(climateState.profile) ? climateState.profile : null;
+      const status = sameSignature ? climateState.status : "fallback_synthetic";
+      const fallbackReason = sameSignature ? (climateState.fallbackReason || "") : "missing_data";
+      const keyMode = context.ok ? context.keyMode : "demo_key";
+      const pending = sameSignature ? !!climateState.pending : false;
+      const blockedByFallbackAck = !!(context.ok
+        && !pending
+        && (status === "fallback_synthetic" || status === "fetch_error")
+        && !isSyntheticFallbackAcknowledged(context.signature));
+      return {
+        status,
+        locationLabel: sameSignature ? (climateState.locationLabel || context.zip) : (context.ok ? context.zip : "invalid ZIP"),
+        lastVerifiedAt: sameSignature ? climateState.lastVerifiedAt : null,
+        fallbackReason,
+        keyMode,
+        monthlyProfile: activeProfile ? activeProfile.monthlyProfile : fallbackProfile.monthlyProfile,
+        hourlyByMonth: activeProfile ? activeProfile.hourlyByMonth : fallbackProfile.hourlyByMonth,
+        tempHourlyFByMonth: activeProfile ? activeProfile.tempHourlyFByMonth : fallbackProfile.tempHourlyFByMonth,
+        tempSource: activeProfile ? activeProfile.tempSource : fallbackProfile.tempSource,
+        blockedByFallbackAck,
+        pending,
+        nextRetryAt: sameSignature ? climateState.nextRetryAt : 0
+      };
+    }
+
+    function climateFallbackReasonText(code) {
+      if (code === "rate_limit_429") return "NREL rate limit reached (HTTP 429).";
+      if (code === "location_lookup_failed") return "ZIP geocoding failed (lat/lon lookup unavailable).";
+      if (code === "network_error") return "NREL network request failed.";
+      if (code === "parse_error") return "NREL response could not be parsed.";
+      if (code === "missing_data") return "NREL response was missing hourly climate output.";
+      return "NREL climate data unavailable.";
+    }
+
+    function formatTimestampForUi(isoText) {
+      if (!isoText) return "never";
+      const asDate = new Date(isoText);
+      if (!Number.isFinite(asDate.getTime())) return "unknown";
+      return asDate.toLocaleString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" });
+    }
+
+    function getClimateSourceText(climate) {
+      if (!climate) return "Climate Source: synthetic fallback";
+      if (climate.status === "verified_live") {
+        return "Climate Source: NREL verified (Live) | " + climate.locationLabel;
+      }
+      if (climate.status === "verified_cached") {
+        return "Climate Source: NREL verified (Cached) | " + climate.locationLabel;
+      }
+      return "Climate Source: synthetic fallback | reason: " + climateFallbackReasonText(climate.fallbackReason);
+    }
+
+    function getTemperatureSourceText(productionConfig) {
+      if (!productionConfig) return "Temperature Source: synthetic fallback";
+      if (productionConfig.tempSource === "nrel_tamb") {
+        return "Temperature Source: NREL tamb (ambient C converted to F)";
+      }
+      return "Temperature Source: synthetic fallback";
+    }
+
     function monthSeason(monthIndex) {
       if (SUMMER_MONTHS.has(monthIndex)) return "summer";
       if (WINTER_MONTHS.has(monthIndex)) return "winter";
@@ -1204,6 +2115,13 @@
       fields.forEach((node) => clearFieldError(node));
     }
 
+    function applyRescueDefaults() {
+      if (hvacSensitivityTouched) return;
+      const zip = String(el.zipCode.value || "").trim();
+      const defaultSensitivity = zip === RESCUE_ZIP ? RESCUE_HVAC_SENSITIVITY : DEFAULT_HVAC_SENSITIVITY;
+      el.hvacSensitivityKwhPerDegHour.value = fmt(defaultSensitivity, 2);
+    }
+
     function readNumber(node, label, errors, opts = {}) {
       const value = Number(node.value);
       if (!Number.isFinite(value)) {
@@ -1233,177 +2151,304 @@
       return value;
     }
 
-    function collectInputs() {
-      clearAllFieldErrors();
-      const errors = [];
+    const FIELD_SCHEMA = (() => {
+      const fields = [
+        { key: "powerwallCount", kind: "number", label: "Powerwalls", required: true, integer: true, min: 0, max: 4, default: 2 },
+        { key: "lockPowerwallCount", kind: "checkbox", default: false },
+        { key: "solarSearchMinKw", kind: "number", label: "Solar search min", required: true, min: 0, default: 2 },
+        { key: "solarSearchMaxKw", kind: "number", label: "Solar search max", required: true, min: 0, default: 20 },
+        { key: "solarSearchStepKw", kind: "number", label: "Solar search step", required: true, min: 0.000001, default: 0.1 },
+        { key: "sizingObjective", kind: "select", options: ["return_npv", "utility_bill_knee", "total_outflow"], default: "return_npv" },
+        { key: "enableWhf", kind: "checkbox", default: false },
+        { key: "whfMode", kind: "select", options: ["manual", "auto"], default: "auto", enabledWhen: (values) => !!values.enableWhf },
+        { key: "whfFanWatts", kind: "number", label: "WHF fan watts", required: true, min: 0, default: 200, enabledWhen: (values) => !!values.enableWhf },
+        { key: "whfDisplacedAcWatts", kind: "number", label: "WHF displaced AC watts", required: true, min: 0, default: 3500, enabledWhen: (values) => !!values.enableWhf },
+        { key: "whfStartHour", kind: "number", label: "WHF start hour", required: true, integer: true, min: 0, max: 23, default: 20, enabledWhen: (values) => !!values.enableWhf && values.whfMode === "manual" },
+        { key: "whfStartMinute", kind: "number", label: "WHF start minute", required: true, integer: true, min: 0, max: 59, default: 30, enabledWhen: (values) => !!values.enableWhf && values.whfMode === "manual" },
+        { key: "whfEndHour", kind: "number", label: "WHF end hour", required: true, integer: true, min: 0, max: 23, default: 6, enabledWhen: (values) => !!values.enableWhf && values.whfMode === "manual" },
+        { key: "whfEndMinute", kind: "number", label: "WHF end minute", required: true, integer: true, min: 0, max: 59, default: 0, enabledWhen: (values) => !!values.enableWhf && values.whfMode === "manual" },
+        { key: "whfSuccessRatePct", kind: "number", label: "WHF success rate", required: true, min: 0, max: 100, default: 85, enabledWhen: (values) => !!values.enableWhf && values.whfMode === "manual" },
+        { key: "annualLoadKwh", kind: "number", label: "Annual load", required: true, min: 0, default: 24000 },
+        { key: "hasEvCharging", kind: "checkbox", default: false },
+        { key: "evMilesPerMonth", kind: "number", label: "EV miles per month", required: true, min: 0, default: 800, enabledWhen: (values) => !!values.hasEvCharging },
+        { key: "evKwhPerMile", kind: "number", label: "EV kWh per mile", required: true, min: 0.000001, default: 0.30, enabledWhen: (values) => !!values.hasEvCharging },
+        { key: "evDayChargingPct", kind: "number", label: "EV daytime charging share", required: true, min: 0, max: 100, default: 60, enabledWhen: (values) => !!values.hasEvCharging },
+        { key: "enableHaShift", kind: "checkbox", default: false },
+        { key: "haMode", kind: "select", options: ["manual", "auto"], default: "auto", enabledWhen: (values) => !!values.enableHaShift },
+        { key: "summerSetpointF", kind: "number", label: "Summer setpoint", required: true, min: 55, max: 90, default: 74 },
+        { key: "winterSetpointF", kind: "number", label: "Winter setpoint", required: true, min: 55, max: 90, default: 68 },
+        { key: "maxPrecoolOffsetF", kind: "number", label: "Max pre-cool offset", required: true, min: 0, max: 10, default: 3, enabledWhen: (values) => !!values.enableHaShift },
+        { key: "maxPreheatOffsetF", kind: "number", label: "Max pre-heat offset", required: true, min: 0, max: 10, default: 2, enabledWhen: (values) => !!values.enableHaShift },
+        { key: "maxPeakRelaxOffsetF", kind: "number", label: "Max peak-hour setpoint drift", required: true, min: 0, max: 10, default: 2, enabledWhen: (values) => !!values.enableHaShift },
+        { key: "hvacSensitivityKwhPerDegHour", kind: "number", label: "HVAC sensitivity", required: true, min: 0.000001, default: DEFAULT_HVAC_SENSITIVITY, enabledWhen: (values) => !!values.enableHaShift },
+        { key: "hvacShiftSuccessRatePct", kind: "number", label: "HVAC shift success rate", required: true, min: 0, max: 100, default: 70, enabledWhen: (values) => !!values.enableHaShift && values.haMode === "manual" },
+        { key: "preCoolStartHour", kind: "number", label: "Pre-window start hour", required: true, integer: true, min: 0, max: 23, default: 12, enabledWhen: (values) => !!values.enableHaShift && values.haMode === "manual" },
+        { key: "preCoolEndHour", kind: "number", label: "Pre-window end hour", required: true, integer: true, min: 0, max: 23, default: 16, enabledWhen: (values) => !!values.enableHaShift && values.haMode === "manual" },
+        { key: "maxShiftHoursPerDay", kind: "number", label: "Max shift hours/day", required: true, integer: true, min: 1, max: 12, default: 4, enabledWhen: (values) => !!values.enableHaShift },
+        { key: "maxShiftKwhPerDay", kind: "number", label: "Max shift kWh/day", required: true, min: 0, default: 6, enabledWhen: (values) => !!values.enableHaShift },
+        { key: "zipCode", kind: "text", required: true, default: RESCUE_ZIP },
+        { key: "nrelApiKey", kind: "text", required: false, default: "" },
+        { key: "tariffPreset", kind: "select", options: ["custom", "pge_e_elec"], default: "custom" },
+        { key: "exportRateMode", kind: "select", options: ["nem3_override", "tou_export"], default: "nem3_override" },
+        { key: "importOffPeak", kind: "number", label: "Import off-peak rate", required: true, min: 0, default: 0.36 },
+        { key: "importPeak", kind: "number", label: "Import peak rate", required: true, min: 0, default: 0.58 },
+        { key: "fixedMonthlyCharge", kind: "number", label: "Fixed monthly charge", required: true, min: 0, default: 24.15 },
+        { key: "nbcPerImportKwh", kind: "number", label: "NBC rate", required: true, min: 0, default: 0.03 },
+        { key: "nem3ExportRate", kind: "number", label: "NEM 3.0 export rate", required: true, min: 0, default: 0.04 },
+        { key: "exportOffPeak", kind: "number", label: "Export off-peak rate", required: true, min: 0, default: 0.05 },
+        { key: "exportPeak", kind: "number", label: "Export peak rate", required: true, min: 0, default: 0.12 },
+        { key: "vppEnabled", kind: "checkbox", default: true },
+        { key: "solarBaseCost", kind: "number", label: "Solar base cost", required: true, min: 0, default: 2710 },
+        { key: "solarCostPerKw", kind: "number", label: "Solar cost per kW", required: true, min: 0, default: 2785 },
+        { key: "batteryCost1", kind: "number", label: "1 Powerwall cost", required: true, min: 0, default: 16875 },
+        { key: "batteryCost2", kind: "number", label: "2 Powerwalls cost", required: true, min: 0, default: 31250 },
+        { key: "batteryCost3", kind: "number", label: "3 Powerwalls cost", required: true, min: 0, default: 45625 },
+        { key: "batteryCost4", kind: "number", label: "4 Powerwalls cost", required: true, min: 0, default: 60000 },
+        { key: "dispatchMode", kind: "select", options: ["self_consumption_peak_then_postpeak", "arbitrage_price_event"], default: "self_consumption_peak_then_postpeak" },
+        { key: "reservePolicy", kind: "select", options: ["fixed", "auto_seasonal", "custom_monthly"], default: "auto_seasonal" },
+        { key: "minSocReservePct", kind: "number", label: "Fixed minimum SOC reserve", required: true, min: 0, max: 95, default: 20, enabledWhen: (values) => values.reservePolicy === "fixed" },
+        { key: "cyclesPerDay", kind: "number", label: "Cycles/day", required: true, min: 0, max: 2, default: 0.85 },
+        { key: "solarToHomeEfficiencyPct", kind: "number", label: "Solar-to-home efficiency", required: true, min: 80, max: 100, default: 97.5 },
+        { key: "roundTripEfficiency", kind: "number", label: "Round-trip efficiency", required: true, min: 50, max: 100, default: 90 },
+        { key: "apr", kind: "number", label: "APR", required: true, min: 0, default: 6 },
+        { key: "financeYears", kind: "number", label: "Loan term", required: true, integer: true, min: 1, default: 15 }
+      ];
+      DEFAULT_MONTHLY_RESERVE_PCT.forEach((defaultValue, month) => {
+        fields.push({
+          key: "monthlyReservePct" + month,
+          kind: "number",
+          label: MONTH_LABELS[month] + " reserve",
+          required: true,
+          min: 0,
+          max: 95,
+          default: defaultValue,
+          enabledWhen: (values) => values.reservePolicy === "custom_monthly"
+        });
+      });
+      return fields;
+    })();
 
-      const powerwallCount = readNumber(el.powerwallCount, "Powerwalls", errors, { integer: true, min: 0, max: 4 });
-      const lockPowerwallCount = el.lockPowerwallCount.checked;
-      const solarSearchMinKw = readNumber(el.solarSearchMinKw, "Solar search min", errors, { min: 0 });
-      const solarSearchMaxKw = readNumber(el.solarSearchMaxKw, "Solar search max", errors, { min: 0 });
-      const solarSearchStepKw = readNumber(el.solarSearchStepKw, "Solar search step", errors, { min: 0.000001 });
-      const rawObjective = el.sizingObjective.value;
-      const sizingObjective = (rawObjective === "return_npv" || rawObjective === "utility_bill_knee" || rawObjective === "total_outflow")
-        ? rawObjective
-        : "return_npv";
-      const enableWhf = el.enableWhf.checked;
-      let whfFanWatts = Math.max(0, Number(el.whfFanWatts.value) || 0);
-      let whfDisplacedAcWatts = Math.max(0, Number(el.whfDisplacedAcWatts.value) || 0);
-      let whfStartHour = clamp(Math.floor(Number(el.whfStartHour.value) || 0), 0, 23);
-      let whfStartMinute = clamp(Math.floor(Number(el.whfStartMinute.value) || 0), 0, 59);
-      let whfEndHour = clamp(Math.floor(Number(el.whfEndHour.value) || 0), 0, 23);
-      let whfEndMinute = clamp(Math.floor(Number(el.whfEndMinute.value) || 0), 0, 59);
-      let whfSuccessRatePct = clamp(Number(el.whfSuccessRatePct.value) || 0, 0, 100);
-      const whfActiveMonths = el.whfMonthNodes
+    function schemaFieldEnabled(field, parsedValues) {
+      if (typeof field.enabledWhen === "function") {
+        return !!field.enabledWhen(parsedValues);
+      }
+      return true;
+    }
+
+    function parseFieldsBySchema(errors) {
+      const values = {};
+      let hasInvalidRequired = false;
+      FIELD_SCHEMA.forEach((field) => {
+        const node = el[field.key];
+        if (!node) return;
+        const enabled = schemaFieldEnabled(field, values);
+        if (!enabled) {
+          clearFieldError(node);
+          if (field.kind === "checkbox") {
+            values[field.key] = !!field.default;
+          } else if (field.default !== undefined) {
+            values[field.key] = field.default;
+          } else if (field.kind === "number") {
+            values[field.key] = 0;
+          } else {
+            values[field.key] = "";
+          }
+          return;
+        }
+
+        if (field.kind === "checkbox") {
+          values[field.key] = !!node.checked;
+          return;
+        }
+
+        if (field.kind === "select") {
+          const value = String(node.value || "");
+          if (Array.isArray(field.options) && field.options.includes(value)) {
+            values[field.key] = value;
+          } else {
+            const fallback = field.default !== undefined ? field.default : (field.options && field.options[0]);
+            values[field.key] = fallback;
+            errors.push(field.key + " must be one of " + field.options.join(", ") + ".");
+            setFieldError(node, "Select a valid option.");
+            hasInvalidRequired = hasInvalidRequired || !!field.required;
+          }
+          return;
+        }
+
+        if (field.kind === "text") {
+          const value = String(node.value || "").trim();
+          if (field.required && value.length === 0) {
+            errors.push(field.key + " is required.");
+            setFieldError(node, "Enter a value.");
+            values[field.key] = field.default !== undefined ? field.default : "";
+            hasInvalidRequired = true;
+            return;
+          }
+          values[field.key] = value;
+          return;
+        }
+
+        const parsed = readNumber(node, field.label || field.key, errors, {
+          integer: !!field.integer,
+          min: field.min,
+          max: field.max
+        });
+        if (parsed === null) {
+          values[field.key] = field.default !== undefined ? field.default : null;
+          hasInvalidRequired = hasInvalidRequired || !!field.required;
+          return;
+        }
+        values[field.key] = parsed;
+      });
+      return { values, hasInvalidRequired };
+    }
+
+    function collectWhfActiveMonths() {
+      return el.whfMonthNodes
         .filter((node) => node.checked)
         .map((node) => Number(node.dataset.whfMonth))
         .filter((month) => Number.isInteger(month) && month >= 0 && month <= 11);
-      const annualLoadKwh = readNumber(el.annualLoadKwh, "Annual load", errors, { min: 0 });
-      const hasEvCharging = el.hasEvCharging.checked;
-      let evMilesPerMonth = 0;
-      let evKwhPerMile = 0.30;
-      let evDayChargingPct = 0;
-      const enableHaShift = el.enableHaShift.checked;
-      const summerSetpointF = readNumber(el.summerSetpointF, "Summer setpoint", errors, { min: 55, max: 90 });
-      const winterSetpointF = readNumber(el.winterSetpointF, "Winter setpoint", errors, { min: 55, max: 90 });
-      const rawMaxPrecoolOffsetF = Number(el.maxPrecoolOffsetF.value);
-      const rawMaxPreheatOffsetF = Number(el.maxPreheatOffsetF.value);
-      const rawMaxPeakRelaxOffsetF = Number(el.maxPeakRelaxOffsetF.value);
-      const rawHvacSensitivityKwhPerDegHour = Number(el.hvacSensitivityKwhPerDegHour.value);
-      const rawHvacShiftSuccessRatePct = Number(el.hvacShiftSuccessRatePct.value);
-      const rawPreCoolStartHour = Number(el.preCoolStartHour.value);
-      const rawPreCoolEndHour = Number(el.preCoolEndHour.value);
-      const rawMaxShiftHoursPerDay = Number(el.maxShiftHoursPerDay.value);
-      const rawMaxShiftKwhPerDay = Number(el.maxShiftKwhPerDay.value);
+    }
 
-      let maxPrecoolOffsetF = clamp(Number.isFinite(rawMaxPrecoolOffsetF) ? rawMaxPrecoolOffsetF : 3, 0, 10);
-      let maxPreheatOffsetF = clamp(Number.isFinite(rawMaxPreheatOffsetF) ? rawMaxPreheatOffsetF : 2, 0, 10);
-      let maxPeakRelaxOffsetF = clamp(Number.isFinite(rawMaxPeakRelaxOffsetF) ? rawMaxPeakRelaxOffsetF : 2, 0, 10);
-      let hvacSensitivityKwhPerDegHour = Math.max(0.000001, Number.isFinite(rawHvacSensitivityKwhPerDegHour) ? rawHvacSensitivityKwhPerDegHour : 0.60);
-      let hvacShiftSuccessRatePct = clamp(Number.isFinite(rawHvacShiftSuccessRatePct) ? rawHvacShiftSuccessRatePct : 70, 0, 100);
-      let preCoolStartHour = clamp(Math.floor(Number.isFinite(rawPreCoolStartHour) ? rawPreCoolStartHour : 12), 0, 23);
-      let preCoolEndHour = clamp(Math.floor(Number.isFinite(rawPreCoolEndHour) ? rawPreCoolEndHour : 16), 0, 23);
-      let maxShiftHoursPerDay = clamp(Math.floor(Number.isFinite(rawMaxShiftHoursPerDay) ? rawMaxShiftHoursPerDay : 4), 1, 12);
-      let maxShiftKwhPerDay = Math.max(0, Number.isFinite(rawMaxShiftKwhPerDay) ? rawMaxShiftKwhPerDay : 6);
-
-      if (enableWhf) {
-        whfFanWatts = readNumber(el.whfFanWatts, "WHF fan watts", errors, { min: 0 });
-        whfDisplacedAcWatts = readNumber(el.whfDisplacedAcWatts, "WHF displaced AC watts", errors, { min: 0 });
-        whfStartHour = readNumber(el.whfStartHour, "WHF start hour", errors, { integer: true, min: 0, max: 23 });
-        whfStartMinute = readNumber(el.whfStartMinute, "WHF start minute", errors, { integer: true, min: 0, max: 59 });
-        whfEndHour = readNumber(el.whfEndHour, "WHF end hour", errors, { integer: true, min: 0, max: 23 });
-        whfEndMinute = readNumber(el.whfEndMinute, "WHF end minute", errors, { integer: true, min: 0, max: 59 });
-        whfSuccessRatePct = readNumber(el.whfSuccessRatePct, "WHF success rate", errors, { min: 0, max: 100 });
+    function resolveMonthlyReservePct(policy, fixedReservePct, customMonthlyReservePct) {
+      if (policy === "fixed") {
+        const fixed = clamp((Number(fixedReservePct) || 0) / 100, 0, 0.95);
+        return new Array(12).fill(fixed);
       }
-
-      if (hasEvCharging) {
-        evMilesPerMonth = readNumber(el.evMilesPerMonth, "EV miles per month", errors, { min: 0 });
-        evKwhPerMile = readNumber(el.evKwhPerMile, "EV kWh per mile", errors, { min: 0.000001 });
-        evDayChargingPct = readNumber(el.evDayChargingPct, "EV daytime charging share", errors, { min: 0, max: 100 });
+      if (policy === "custom_monthly") {
+        return customMonthlyReservePct.map((value) => clamp((Number(value) || 0) / 100, 0, 0.95));
       }
+      return DEFAULT_MONTHLY_RESERVE_PCT.map((value) => clamp(value / 100, 0, 0.95));
+    }
 
-      if (enableHaShift) {
-        maxPrecoolOffsetF = readNumber(el.maxPrecoolOffsetF, "Max pre-cool offset", errors, { min: 0, max: 10 });
-        maxPreheatOffsetF = readNumber(el.maxPreheatOffsetF, "Max pre-heat offset", errors, { min: 0, max: 10 });
-        maxPeakRelaxOffsetF = readNumber(el.maxPeakRelaxOffsetF, "Max peak-hour setpoint drift", errors, { min: 0, max: 10 });
-        hvacSensitivityKwhPerDegHour = readNumber(el.hvacSensitivityKwhPerDegHour, "HVAC sensitivity", errors, { min: 0.000001 });
-        hvacShiftSuccessRatePct = readNumber(el.hvacShiftSuccessRatePct, "HVAC shift success rate", errors, { min: 0, max: 100 });
-        preCoolStartHour = readNumber(el.preCoolStartHour, "Pre-window start hour", errors, { integer: true, min: 0, max: 23 });
-        preCoolEndHour = readNumber(el.preCoolEndHour, "Pre-window end hour", errors, { integer: true, min: 0, max: 23 });
-        maxShiftHoursPerDay = readNumber(el.maxShiftHoursPerDay, "Max shift hours/day", errors, { integer: true, min: 1, max: 12 });
-        maxShiftKwhPerDay = readNumber(el.maxShiftKwhPerDay, "Max shift kWh/day", errors, { min: 0 });
+    function getMonthTempProfile(tempHourlyFByMonth, monthIndex) {
+      if (isValidTempHourlyByMonth(tempHourlyFByMonth)) {
+        return tempHourlyFByMonth[monthIndex];
       }
+      return buildSyntheticTempHourlyShape(monthIndex);
+    }
 
-      const zipInfo = inferYieldFromZip(el.zipCode.value);
+    function deriveAutoWhfProfile(tempHourlyFByMonth, summerSetpointF) {
+      const successRateByMonth = new Array(12).fill(0.1);
+      const autoWindowByMonth = new Array(12).fill(0).map(() => ({ startMinuteOfDay: (20 * 60) + 30, endMinuteOfDay: 6 * 60 }));
+      const autoActiveMonths = [];
+      const candidateBandHours = [18, 19, 20, 21, 22, 23, 0, 1, 2, 3, 4, 5, 6, 7, 8];
+      for (let month = 0; month < 12; month += 1) {
+        const monthTemps = getMonthTempProfile(tempHourlyFByMonth, month);
+        const days = DAYS_IN_MONTH[month];
+        const eligiblePerDay = monthTemps.reduce((sum, tempF) => sum + ((tempF >= 55 && tempF <= 82) ? 1 : 0), 0);
+        const monthlyCoolingStress = monthTemps.reduce((sum, tempF) => sum + Math.max(0, tempF - summerSetpointF), 0) / 24;
+        const monthlyEligibleHours = eligiblePerDay * days;
+
+        let best = {
+          score: Number.NEGATIVE_INFINITY,
+          eligibleWindowHours: 0,
+          windowHours: 1,
+          startHour: 20,
+          endHour: 6
+        };
+        for (let startIdx = 0; startIdx < candidateBandHours.length - 1; startIdx += 1) {
+          for (let endIdx = startIdx + 2; endIdx <= candidateBandHours.length; endIdx += 1) {
+            const windowHoursList = candidateBandHours.slice(startIdx, endIdx);
+            const windowHours = windowHoursList.length;
+            const eligibleWindowHours = windowHoursList.reduce((sum, hour) => sum + ((monthTemps[hour] >= 55 && monthTemps[hour] <= 82) ? 1 : 0), 0);
+            const avgCoolingStress = windowHoursList.reduce((sum, hour) => sum + Math.max(0, monthTemps[hour] - summerSetpointF), 0) / Math.max(1, windowHours);
+            const score = (eligibleWindowHours * 1.5) + (avgCoolingStress * 0.35);
+            if (score > best.score + 1e-9 || (Math.abs(score - best.score) <= 1e-9 && eligibleWindowHours > best.eligibleWindowHours)) {
+              best = {
+                score,
+                eligibleWindowHours,
+                windowHours,
+                startHour: windowHoursList[0],
+                endHour: (windowHoursList[windowHoursList.length - 1] + 1) % 24
+              };
+            }
+          }
+        }
+
+        const successRate = clamp(best.eligibleWindowHours / Math.max(1, best.windowHours), 0.10, 0.95);
+        const active = monthlyEligibleHours >= 45 && monthlyCoolingStress >= 0.5;
+        successRateByMonth[month] = successRate;
+        autoWindowByMonth[month] = {
+          startMinuteOfDay: best.startHour * 60,
+          endMinuteOfDay: best.endHour * 60
+        };
+        if (active) autoActiveMonths.push(month);
+      }
+      return {
+        successRateByMonth,
+        autoWindowByMonth,
+        autoActiveMonths
+      };
+    }
+
+    function deriveAutoHaProfile(tempHourlyFByMonth, summerSetpointF, winterSetpointF) {
+      const successRateByMonth = new Array(12).fill(0.15);
+      const autoPreWindowByMonth = new Array(12).fill(0).map(() => ({ startHour: 13, endHour: 16 }));
+      for (let month = 0; month < 12; month += 1) {
+        const monthTemps = getMonthTempProfile(tempHourlyFByMonth, month);
+        const coolingStress = monthTemps.reduce((sum, tempF) => sum + Math.max(0, tempF - summerSetpointF), 0) / 24;
+        const heatingStress = monthTemps.reduce((sum, tempF) => sum + Math.max(0, winterSetpointF - tempF), 0) / 24;
+        const stressIndex = clamp((coolingStress + heatingStress) / 8, 0, 1);
+        successRateByMonth[month] = clamp(0.15 + (stressIndex * 0.80), 0.15, 0.95);
+
+        if (coolingStress > (heatingStress * 1.1)) {
+          autoPreWindowByMonth[month] = { startHour: 12, endHour: 16 };
+        } else if (heatingStress > (coolingStress * 1.1)) {
+          autoPreWindowByMonth[month] = { startHour: 11, endHour: 15 };
+        } else {
+          autoPreWindowByMonth[month] = { startHour: 13, endHour: 16 };
+        }
+      }
+      return {
+        successRateByMonth,
+        autoPreWindowByMonth
+      };
+    }
+
+    function collectInputs() {
+      clearAllFieldErrors();
+      const errors = [];
+      const parsed = parseFieldsBySchema(errors);
+      const values = parsed.values;
+      const zipInfo = inferYieldFromZip(values.zipCode);
+      const climateContext = buildClimateContext(values.zipCode, values.nrelApiKey);
+      const climateSnapshot = getClimateSnapshot(climateContext);
       if (!zipInfo.ok) {
         errors.push("ZIP code must be a valid 5-digit value.");
         setFieldError(el.zipCode, "Enter a 5-digit ZIP.");
       }
 
-      if (solarSearchMinKw !== null && solarSearchMaxKw !== null && solarSearchMaxKw < solarSearchMinKw) {
+      if (values.solarSearchMaxKw !== null && values.solarSearchMinKw !== null && values.solarSearchMaxKw < values.solarSearchMinKw) {
         errors.push("Solar search max must be >= min.");
         setFieldError(el.solarSearchMaxKw, "Must be >= min.");
       }
 
-      if (solarSearchStepKw !== null && solarSearchStepKw <= 0) {
+      if (values.solarSearchStepKw !== null && values.solarSearchStepKw <= 0) {
         errors.push("Solar search step must be > 0.");
         setFieldError(el.solarSearchStepKw, "Must be > 0.");
       }
 
-      const exportRateMode = el.exportRateMode.value === "tou_export" ? "tou_export" : "nem3_override";
-
-      const importOffPeak = readNumber(el.importOffPeak, "Import off-peak rate", errors, { min: 0 });
-      const importPeak = readNumber(el.importPeak, "Import peak rate", errors, { min: 0 });
-      const fixedMonthlyCharge = readNumber(el.fixedMonthlyCharge, "Fixed monthly charge", errors, { min: 0 });
-      const nbcPerImportKwh = readNumber(el.nbcPerImportKwh, "NBC rate", errors, { min: 0 });
-      const exportPeakSharePct = readNumber(el.exportPeakShare, "Export peak share", errors, { min: 0, max: 100 });
-
-      const nem3ExportRate = readNumber(el.nem3ExportRate, "NEM 3.0 export rate", errors, { min: 0 });
-      const exportOffPeak = readNumber(el.exportOffPeak, "Export off-peak rate", errors, { min: 0 });
-      const exportPeak = readNumber(el.exportPeak, "Export peak rate", errors, { min: 0 });
-
-      const solarBaseCost = readNumber(el.solarBaseCost, "Solar base cost", errors, { min: 0 });
-      const solarCostPerKw = readNumber(el.solarCostPerKw, "Solar cost per kW", errors, { min: 0 });
-      const batteryCost1 = readNumber(el.batteryCost1, "1 Powerwall cost", errors, { min: 0 });
-      const batteryCost2 = readNumber(el.batteryCost2, "2 Powerwalls cost", errors, { min: 0 });
-      const batteryCost3 = readNumber(el.batteryCost3, "3 Powerwalls cost", errors, { min: 0 });
-      const batteryCost4 = readNumber(el.batteryCost4, "4 Powerwalls cost", errors, { min: 0 });
-
-      const cyclesPerDay = readNumber(el.cyclesPerDay, "Cycles/day", errors, { min: 0, max: 2 });
-      const roundTripEfficiencyPct = readNumber(el.roundTripEfficiency, "Round-trip efficiency", errors, { min: 50, max: 100 });
-
-      const aprPct = readNumber(el.apr, "APR", errors, { min: 0 });
-      const financeYears = readNumber(el.financeYears, "Loan term", errors, { integer: true, min: 1 });
-
-      const requiredValues = [
-        powerwallCount, solarSearchMinKw, solarSearchMaxKw, solarSearchStepKw, annualLoadKwh,
-        summerSetpointF, winterSetpointF,
-        importOffPeak, importPeak, fixedMonthlyCharge, nbcPerImportKwh, exportPeakSharePct,
-        nem3ExportRate, exportOffPeak, exportPeak, solarBaseCost, solarCostPerKw,
-        batteryCost1, batteryCost2, batteryCost3, batteryCost4, cyclesPerDay,
-        roundTripEfficiencyPct, aprPct, financeYears
-      ];
-      if (hasEvCharging) {
-        requiredValues.push(evMilesPerMonth, evKwhPerMile, evDayChargingPct);
-      }
-      if (enableHaShift) {
-        requiredValues.push(
-          summerSetpointF,
-          winterSetpointF,
-          maxPrecoolOffsetF,
-          maxPreheatOffsetF,
-          maxPeakRelaxOffsetF,
-          hvacSensitivityKwhPerDegHour,
-          hvacShiftSuccessRatePct,
-          preCoolStartHour,
-          preCoolEndHour,
-          maxShiftHoursPerDay,
-          maxShiftKwhPerDay
-        );
-      }
-      if (enableWhf) {
-        requiredValues.push(whfFanWatts, whfDisplacedAcWatts, whfStartHour, whfStartMinute, whfEndHour, whfEndMinute, whfSuccessRatePct);
-      }
-
-      if (requiredValues.some((v) => v === null) || !zipInfo.ok) {
+      const whfActiveMonthsManual = collectWhfActiveMonths();
+      if (parsed.hasInvalidRequired || !zipInfo.ok) {
         return { errors, inputs: null, zipInfo };
       }
 
-      if (enableHaShift) {
-        const candidateHours = buildHourRange(preCoolStartHour, preCoolEndHour, 24);
+      if (values.enableHaShift && values.haMode === "manual") {
+        const candidateHours = buildHourRange(values.preCoolStartHour, values.preCoolEndHour, 24);
         if (candidateHours.length === 0) {
           errors.push("Pre-window start and end hour must define a non-zero window.");
           setFieldError(el.preCoolEndHour, "Must define non-zero window.");
         }
       }
-      if (enableWhf) {
-        const whfStartMinuteOfDay = (whfStartHour * 60) + whfStartMinute;
-        const whfEndMinuteOfDay = (whfEndHour * 60) + whfEndMinute;
+      if (values.enableWhf && values.whfMode === "manual") {
+        const whfStartMinuteOfDay = (values.whfStartHour * 60) + values.whfStartMinute;
+        const whfEndMinuteOfDay = (values.whfEndHour * 60) + values.whfEndMinute;
         if (whfStartMinuteOfDay === whfEndMinuteOfDay) {
           errors.push("WHF start and end times must define a non-zero window.");
           setFieldError(el.whfEndMinute, "Must define non-zero window.");
         }
-        if (!whfActiveMonths.length) {
+        if (!whfActiveMonthsManual.length) {
           errors.push("WHF must have at least one active month.");
           setFieldError(el.whfSuccessRatePct, "Select >= 1 active month.");
         }
@@ -1413,18 +2458,66 @@
         return { errors, inputs: null, zipInfo };
       }
 
-      const evDayChargingShare = hasEvCharging ? clamp(evDayChargingPct / 100, 0, 1) : 0;
-      const evNightChargingShare = hasEvCharging ? (1 - evDayChargingShare) : 0;
-      const evKwhPerMonth = hasEvCharging ? evMilesPerMonth * evKwhPerMile : 0;
+      const monthlyReservePctRaw = new Array(12).fill(0).map((_, month) => {
+        const key = "monthlyReservePct" + month;
+        const numericValue = Number(values[key]);
+        return clamp(Number.isFinite(numericValue) ? numericValue : DEFAULT_MONTHLY_RESERVE_PCT[month], 0, 95);
+      });
+      const monthlyReservePct = resolveMonthlyReservePct(values.reservePolicy, values.minSocReservePct, monthlyReservePctRaw);
+      const temperatureProfile = isValidTempHourlyByMonth(climateSnapshot.tempHourlyFByMonth)
+        ? climateSnapshot.tempHourlyFByMonth
+        : getSyntheticTempHourlyByMonthProfiles();
+
+      const autoWhfProfile = deriveAutoWhfProfile(temperatureProfile, values.summerSetpointF);
+      const autoHaProfile = deriveAutoHaProfile(temperatureProfile, values.summerSetpointF, values.winterSetpointF);
+
+      const manualWhfStartMinuteOfDay = (values.whfStartHour * 60) + values.whfStartMinute;
+      const manualWhfEndMinuteOfDay = (values.whfEndHour * 60) + values.whfEndMinute;
+      const manualWhfSuccess = clamp((Number(values.whfSuccessRatePct) || 0) / 100, 0, 1);
+      const whfSuccessRateByMonth = values.enableWhf
+        ? (values.whfMode === "auto"
+          ? autoWhfProfile.successRateByMonth
+          : new Array(12).fill(manualWhfSuccess))
+        : new Array(12).fill(0);
+      const whfAutoWindowByMonth = values.enableWhf
+        ? (values.whfMode === "auto"
+          ? autoWhfProfile.autoWindowByMonth
+          : new Array(12).fill(0).map(() => ({
+            startMinuteOfDay: manualWhfStartMinuteOfDay,
+            endMinuteOfDay: manualWhfEndMinuteOfDay
+          })))
+        : new Array(12).fill(0).map(() => ({ startMinuteOfDay: 0, endMinuteOfDay: 0 }));
+      const whfAutoActiveMonths = values.enableWhf
+        ? (values.whfMode === "auto" ? autoWhfProfile.autoActiveMonths : whfActiveMonthsManual)
+        : [];
+
+      const manualHaSuccess = clamp((Number(values.hvacShiftSuccessRatePct) || 0) / 100, 0, 1);
+      const haSuccessRateByMonth = values.enableHaShift
+        ? (values.haMode === "auto"
+          ? autoHaProfile.successRateByMonth
+          : new Array(12).fill(manualHaSuccess))
+        : new Array(12).fill(0);
+      const haAutoPreWindowByMonth = values.enableHaShift
+        ? (values.haMode === "auto"
+          ? autoHaProfile.autoPreWindowByMonth
+          : new Array(12).fill(0).map(() => ({
+            startHour: values.preCoolStartHour,
+            endHour: values.preCoolEndHour
+          })))
+        : new Array(12).fill(0).map(() => ({ startHour: 12, endHour: 16 }));
+
+      const evDayChargingShare = values.hasEvCharging ? clamp(values.evDayChargingPct / 100, 0, 1) : 0;
+      const evNightChargingShare = values.hasEvCharging ? (1 - evDayChargingShare) : 0;
+      const evKwhPerMonth = values.hasEvCharging ? values.evMilesPerMonth * values.evKwhPerMile : 0;
 
       const inputs = {
         sizing: {
-          powerwallCount,
-          lockPowerwallCount,
-          solarSearchMinKw,
-          solarSearchMaxKw,
-          solarSearchStepKw,
-          objectiveMode: sizingObjective
+          powerwallCount: values.powerwallCount,
+          lockPowerwallCount: values.lockPowerwallCount,
+          solarSearchMinKw: values.solarSearchMinKw,
+          solarSearchMaxKw: values.solarSearchMaxKw,
+          solarSearchStepKw: values.solarSearchStepKw,
+          objectiveMode: values.sizingObjective
         },
         analysis: {
           years: 15,
@@ -1435,38 +2528,46 @@
         },
         production: {
           annualYield: zipInfo.annualYield,
-          zipLabel: zipInfo.label
+          zipLabel: zipInfo.label,
+          solarToHomeEfficiency: clamp(values.solarToHomeEfficiencyPct / 100, 0.8, 1),
+          solarMonthlyProfile: climateSnapshot.monthlyProfile,
+          solarHourlyByMonth: climateSnapshot.hourlyByMonth,
+          tempHourlyFByMonth: temperatureProfile,
+          tempSource: climateSnapshot.tempSource || "synthetic_temp_fallback"
         },
         load: {
-          annualKwh: annualLoadKwh,
+          annualKwh: values.annualLoadKwh,
           peakShare: 0.4,
           monthProfile: LOAD_PROFILE,
-          summerSetpointF,
-          winterSetpointF
+          summerSetpointF: values.summerSetpointF,
+          winterSetpointF: values.winterSetpointF
         },
         ev: {
-          enabled: hasEvCharging,
-          milesPerMonth: hasEvCharging ? evMilesPerMonth : 0,
-          kwhPerMile: hasEvCharging ? evKwhPerMile : 0.30,
+          enabled: values.hasEvCharging,
+          milesPerMonth: values.hasEvCharging ? values.evMilesPerMonth : 0,
+          kwhPerMile: values.hasEvCharging ? values.evKwhPerMile : 0.30,
           dayChargingShare: evDayChargingShare,
           nightChargingShare: evNightChargingShare,
           kwhPerMonth: evKwhPerMonth,
           chargingRule: "solar_first_shift"
         },
         ha: {
-          enabled: enableHaShift,
+          enabled: values.enableHaShift,
+          mode: values.enableHaShift ? values.haMode : "manual",
+          successRateByMonth: haSuccessRateByMonth,
+          autoPreWindowByMonth: haAutoPreWindowByMonth,
           tempUnits: "F",
-          summerSetpointF,
-          winterSetpointF,
-          maxPrecoolOffsetF: enableHaShift ? maxPrecoolOffsetF : 0,
-          maxPreheatOffsetF: enableHaShift ? maxPreheatOffsetF : 0,
-          maxPeakRelaxOffsetF: enableHaShift ? maxPeakRelaxOffsetF : 0,
-          hvacSensitivityKwhPerDegHour: enableHaShift ? hvacSensitivityKwhPerDegHour : 0.60,
-          successRate: enableHaShift ? clamp(hvacShiftSuccessRatePct / 100, 0, 1) : 0,
-          preCoolStartHour: enableHaShift ? preCoolStartHour : 12,
-          preCoolEndHour: enableHaShift ? preCoolEndHour : 16,
-          maxShiftHoursPerDay: enableHaShift ? maxShiftHoursPerDay : 0,
-          maxShiftKwhPerDay: enableHaShift ? maxShiftKwhPerDay : 0,
+          summerSetpointF: values.summerSetpointF,
+          winterSetpointF: values.winterSetpointF,
+          maxPrecoolOffsetF: values.enableHaShift ? values.maxPrecoolOffsetF : 0,
+          maxPreheatOffsetF: values.enableHaShift ? values.maxPreheatOffsetF : 0,
+          maxPeakRelaxOffsetF: values.enableHaShift ? values.maxPeakRelaxOffsetF : 0,
+          hvacSensitivityKwhPerDegHour: values.enableHaShift ? values.hvacSensitivityKwhPerDegHour : DEFAULT_HVAC_SENSITIVITY,
+          successRate: values.enableHaShift ? manualHaSuccess : 0,
+          preCoolStartHour: values.enableHaShift ? values.preCoolStartHour : 12,
+          preCoolEndHour: values.enableHaShift ? values.preCoolEndHour : 16,
+          maxShiftHoursPerDay: values.enableHaShift ? values.maxShiftHoursPerDay : 0,
+          maxShiftKwhPerDay: values.enableHaShift ? values.maxShiftKwhPerDay : 0,
           horizon: "day_ahead_heuristic",
           seasonMap: {
             summerMonths: [4, 5, 6, 7, 8],
@@ -1474,47 +2575,67 @@
             shoulderMonths: [2, 3, 9]
           }
         },
+        vpp: {
+          enabled: values.vppEnabled
+        },
         whf: {
-          enabled: enableWhf,
-          fanWatts: enableWhf ? whfFanWatts : 0,
-          displacedAcWatts: enableWhf ? whfDisplacedAcWatts : 0,
-          startMinuteOfDay: enableWhf ? ((whfStartHour * 60) + whfStartMinute) : 0,
-          endMinuteOfDay: enableWhf ? ((whfEndHour * 60) + whfEndMinute) : 0,
-          activeMonths: enableWhf ? whfActiveMonths : [],
-          successRate: enableWhf ? clamp(whfSuccessRatePct / 100, 0, 1) : 0
+          enabled: values.enableWhf,
+          mode: values.enableWhf ? values.whfMode : "manual",
+          fanWatts: values.enableWhf ? values.whfFanWatts : 0,
+          displacedAcWatts: values.enableWhf ? values.whfDisplacedAcWatts : 0,
+          startMinuteOfDay: values.enableWhf ? manualWhfStartMinuteOfDay : 0,
+          endMinuteOfDay: values.enableWhf ? manualWhfEndMinuteOfDay : 0,
+          activeMonths: values.enableWhf ? whfActiveMonthsManual : [],
+          successRate: values.enableWhf ? manualWhfSuccess : 0,
+          successRateByMonth: whfSuccessRateByMonth,
+          autoWindowByMonth: whfAutoWindowByMonth,
+          autoActiveMonths: whfAutoActiveMonths
         },
         rates: {
-          importOffPeak,
-          importPeak,
-          fixedMonthlyCharge,
-          nbcPerImportKwh,
-          exportRateMode,
-          nem3ExportRate,
-          exportOffPeak,
-          exportPeak,
-          exportPeakShare: clamp(exportPeakSharePct / 100, 0, 1)
+          tariffPreset: values.tariffPreset,
+          importOffPeak: values.importOffPeak,
+          importPeak: values.importPeak,
+          fixedMonthlyCharge: values.fixedMonthlyCharge,
+          nbcPerImportKwh: values.nbcPerImportKwh,
+          exportRateMode: values.exportRateMode,
+          nem3ExportRate: values.nem3ExportRate,
+          exportOffPeak: values.exportOffPeak,
+          exportPeak: values.exportPeak
         },
         pricing: {
-          solarBaseCost,
-          solarCostPerKw,
+          solarBaseCost: values.solarBaseCost,
+          solarCostPerKw: values.solarCostPerKw,
           batteryCosts: {
             0: 0,
-            1: batteryCost1,
-            2: batteryCost2,
-            3: batteryCost3,
-            4: batteryCost4
+            1: values.batteryCost1,
+            2: values.batteryCost2,
+            3: values.batteryCost3,
+            4: values.batteryCost4
           }
         },
         battery: {
           usableKwhPerBattery: BATTERY_USABLE_KWH,
-          cyclesPerDay,
-          roundTripEfficiency: clamp(roundTripEfficiencyPct / 100, 0.5, 1),
-          dispatchMode: "cost_priority_peak_then_postpeak",
-          minSocReservePct: 0.20
+          cyclesPerDay: values.cyclesPerDay,
+          roundTripEfficiency: clamp(values.roundTripEfficiency / 100, 0.5, 1),
+          dispatchMode: values.dispatchMode,
+          reservePolicy: values.reservePolicy,
+          minSocReservePct: clamp((values.minSocReservePct || 0) / 100, 0, 0.95),
+          monthlyReservePct
         },
         financing: {
-          apr: aprPct / 100,
-          years: financeYears
+          apr: values.apr / 100,
+          years: values.financeYears
+        },
+        climate: {
+          status: climateSnapshot.status,
+          locationLabel: climateSnapshot.locationLabel,
+          lastVerifiedAt: climateSnapshot.lastVerifiedAt,
+          fallbackReason: climateSnapshot.fallbackReason,
+          keyMode: climateSnapshot.keyMode,
+          blockedByFallbackAck: climateSnapshot.blockedByFallbackAck,
+          pending: climateSnapshot.pending,
+          nextRetryAt: climateSnapshot.nextRetryAt,
+          tempSource: climateSnapshot.tempSource || "synthetic_temp_fallback"
         }
       };
 
@@ -1562,7 +2683,7 @@
       return normalizeProfile(BASE_LOAD_HOURLY.map((v, hour) => v * (PEAK_HOURS.has(hour) ? peakScale : offScale)));
     }
 
-    function buildSolarHourlyShape(monthIndex) {
+    function buildSyntheticSolarHourlyShape(monthIndex) {
       const daylight = MONTHLY_DAYLIGHT_HOURS[monthIndex] || 12;
       const sunrise = 12 - daylight / 2;
       const sunset = 12 + daylight / 2;
@@ -1574,6 +2695,13 @@
         return Math.exp(-(spread * spread) / (2 * sigma * sigma));
       });
       return normalizeProfile(profile);
+    }
+
+    function buildSolarHourlyShape(monthIndex, solarHourlyByMonth = null) {
+      if (isValidHourlyByMonth(solarHourlyByMonth) && Array.isArray(solarHourlyByMonth[monthIndex]) && solarHourlyByMonth[monthIndex].length === 24) {
+        return normalizeProfile(solarHourlyByMonth[monthIndex].map((v) => Number.isFinite(v) ? Math.max(0, v) : 0));
+      }
+      return buildSyntheticSolarHourlyShape(monthIndex);
     }
 
     function getSeasonDailyHvacShiftCapacity(ha, monthIndex, preWindowHours) {
@@ -1743,10 +2871,12 @@
 
     function simulateRepresentativeDay(dayInput) {
       const loadShape = buildHourlyLoadShape(dayInput.peakShare);
-      const solarShape = buildSolarHourlyShape(dayInput.monthIndex);
+      const solarShape = buildSolarHourlyShape(dayInput.monthIndex, dayInput.solarHourlyByMonth);
       const batteryCapacity = dayInput.powerwallCount * dayInput.usableKwhPerBattery;
       const maxDailyDischarge = batteryCapacity * dayInput.cyclesPerDay;
       const minSocReserveKwh = batteryCapacity * (dayInput.minSocReservePct || 0);
+      const solarToHomeEfficiency = clamp(dayInput.solarToHomeEfficiency || 1, 0.8, 1);
+      const maxAcOutputKw = Number.isFinite(dayInput.maxAcOutputKw) ? Math.max(0, dayInput.maxAcOutputKw) : Number.POSITIVE_INFINITY;
       const haPlan = getHvacShiftPlan(dayInput, loadShape);
       const whfPlan = getWholeHouseFanPlan(dayInput);
       const evDayTarget = dayInput.evEnabled ? dayInput.evDayTargetKwh : 0;
@@ -1768,10 +2898,13 @@
           importPeakKwh: 0,
           importOffKwh: 0,
           exportKwh: 0,
+          exportPeakKwh: 0,
+          exportOffKwh: 0,
           directSolarToLoad: 0,
           solarToBatteryInputKwh: 0,
           solarToBatteryStoredKwh: 0,
           batteryToLoad: 0,
+          batteryToGridExportKwh: 0,
           batteryToLoadPeakKwh: 0,
           batteryToLoadPostPeakKwh: 0,
           batteryReserveHits: 0,
@@ -1789,7 +2922,9 @@
           whfDisplacedAcKwh: 0,
           whfNetReductionKwh: 0,
           whfActiveHours: 0,
-          minHomeLoadKwh: Number.POSITIVE_INFINITY
+          minHomeLoadKwh: Number.POSITIVE_INFINITY,
+          clippedSolarKwh: 0,
+          solarGenerationKwh: 0
         };
 
         for (let hour = 0; hour < 24; hour += 1) {
@@ -1806,7 +2941,10 @@
           }
           stats.minHomeLoadKwh = Math.min(stats.minHomeLoadKwh, hourlyHomeLoad);
           const hourlyEvBeforeLoad = (dayChargeHour ? evBeforeDayPerHour : 0) + (nightChargeHour ? evBeforeNightPerHour : 0);
-          const hourlySolar = dayInput.daySolarKwh * solarShape[hour];
+          const hourlySolarRaw = dayInput.daySolarKwh * solarShape[hour];
+          const hourlySolar = Math.min(hourlySolarRaw, maxAcOutputKw);
+          stats.clippedSolarKwh += Math.max(0, hourlySolarRaw - hourlySolar);
+          stats.solarGenerationKwh += hourlySolar;
 
           if (hour === 16 && evDayRemaining > 0) {
             evShiftToNight = evDayRemaining;
@@ -1820,10 +2958,13 @@
           let loadRemaining = hourlyHomeLoad;
           let solarRemaining = hourlySolar;
 
-          const directSolar = Math.min(loadRemaining, solarRemaining);
-          loadRemaining -= directSolar;
-          solarRemaining -= directSolar;
-          stats.directSolarToLoad += directSolar;
+          const directSolarDelivered = Math.min(loadRemaining, solarRemaining * solarToHomeEfficiency);
+          if (directSolarDelivered > 0) {
+            const directSolarDc = directSolarDelivered / solarToHomeEfficiency;
+            loadRemaining -= directSolarDelivered;
+            solarRemaining -= directSolarDc;
+            stats.directSolarToLoad += directSolarDelivered;
+          }
 
           if (batteryCapacity > 0 && solarRemaining > 0) {
             const chargeRoom = Math.max(0, batteryCapacity - soc);
@@ -1838,10 +2979,13 @@
           }
 
           if (dayChargeHour && evDayRemaining > 0 && solarRemaining > 0) {
-            const evDaySolarServed = Math.min(solarRemaining, evDayRemaining);
-            solarRemaining -= evDaySolarServed;
-            evDayRemaining -= evDaySolarServed;
-            stats.evDaySolarServedKwh += evDaySolarServed;
+            const evDaySolarServed = Math.min(evDayRemaining, solarRemaining * solarToHomeEfficiency);
+            if (evDaySolarServed > 0) {
+              const evDaySolarDc = evDaySolarServed / solarToHomeEfficiency;
+              solarRemaining -= evDaySolarDc;
+              evDayRemaining -= evDaySolarServed;
+              stats.evDaySolarServedKwh += evDaySolarServed;
+            }
           }
 
           if (nightChargeHour) {
@@ -1853,8 +2997,14 @@
             stats.evNightLoadAfterKwh += nightDemand;
           }
 
-          const inDispatchWindow = peakHour || (dayInput.dispatchMode === "cost_priority_peak_then_postpeak" && POST_PEAK_HOUR_SET.has(hour));
-          if (inDispatchWindow && batteryCapacity > 0 && remainingDischarge > 0 && loadRemaining > 0) {
+          const importRate = peakHour ? (Number(dayInput.importPeakRate) || 0) : (Number(dayInput.importOffPeakRate) || 0);
+          const exportRate = peakHour ? (Number(dayInput.exportPeakRate) || 0) : (Number(dayInput.exportOffPeakRate) || 0);
+          const selfConsumptionWindow = peakHour || POST_PEAK_HOUR_SET.has(hour);
+          const allowLoadDischarge = dayInput.dispatchMode === "arbitrage_price_event"
+            ? true
+            : selfConsumptionWindow;
+
+          if (allowLoadDischarge && batteryCapacity > 0 && remainingDischarge > 0 && loadRemaining > 0) {
             const availableDischarge = Math.max(0, soc - minSocReserveKwh);
             const discharge = Math.min(loadRemaining, availableDischarge, remainingDischarge);
             if (discharge > 0) {
@@ -1869,12 +3019,30 @@
             }
           }
 
+          if (dayInput.dispatchMode === "arbitrage_price_event" && batteryCapacity > 0 && remainingDischarge > 0 && exportRate > importRate + 1e-9) {
+            const availableForExport = Math.max(0, soc - minSocReserveKwh);
+            const dischargeToGrid = Math.min(availableForExport, remainingDischarge);
+            if (dischargeToGrid > 0) {
+              soc -= dischargeToGrid;
+              remainingDischarge -= dischargeToGrid;
+              stats.batteryToGridExportKwh += dischargeToGrid;
+              stats.exportKwh += dischargeToGrid;
+              if (peakHour) stats.exportPeakKwh += dischargeToGrid;
+              else stats.exportOffKwh += dischargeToGrid;
+            } else if (availableForExport <= 1e-9) {
+              stats.batteryReserveHits += 1;
+            }
+          }
+
           stats.minSocKwh = Math.min(stats.minSocKwh, soc);
 
           if (peakHour) stats.importPeakKwh += loadRemaining;
           else stats.importOffKwh += loadRemaining;
 
-          stats.exportKwh += Math.max(0, solarRemaining);
+          const solarExport = Math.max(0, solarRemaining * solarToHomeEfficiency);
+          stats.exportKwh += solarExport;
+          if (peakHour) stats.exportPeakKwh += solarExport;
+          else stats.exportOffKwh += solarExport;
         }
 
         if (evDayRemaining > 0) {
@@ -1888,6 +3056,74 @@
       }
 
       return measured;
+    }
+
+    function getHaMonthDispatchConfig(ha, monthIndex) {
+      if (!ha || !ha.enabled) {
+        return {
+          haSuccessRate: 0,
+          haPreCoolStartHour: 12,
+          haPreCoolEndHour: 16,
+          haMaxShiftHoursPerDay: 0
+        };
+      }
+      const autoWindow = Array.isArray(ha.autoPreWindowByMonth) ? ha.autoPreWindowByMonth[monthIndex] : null;
+      const manualWindow = {
+        startHour: Number.isFinite(ha.preCoolStartHour) ? ha.preCoolStartHour : 12,
+        endHour: Number.isFinite(ha.preCoolEndHour) ? ha.preCoolEndHour : 16
+      };
+      const selectedWindow = ha.mode === "auto" && autoWindow ? autoWindow : manualWindow;
+      const startHour = clamp(Math.floor(Number(selectedWindow.startHour) || 0), 0, 23);
+      const endHour = clamp(Math.floor(Number(selectedWindow.endHour) || 0), 0, 23);
+      const autoMaxShiftHours = Math.max(1, buildHourRange(startHour, endHour, 24).length);
+      const maxShiftHoursPerDay = ha.mode === "auto"
+        ? autoMaxShiftHours
+        : clamp(Math.floor(Number(ha.maxShiftHoursPerDay) || 0), 1, 12);
+      const monthSuccess = (ha.mode === "auto" && Array.isArray(ha.successRateByMonth))
+        ? ha.successRateByMonth[monthIndex]
+        : ha.successRate;
+      return {
+        haSuccessRate: clamp(Number(monthSuccess) || 0, 0, 1),
+        haPreCoolStartHour: startHour,
+        haPreCoolEndHour: endHour,
+        haMaxShiftHoursPerDay: maxShiftHoursPerDay
+      };
+    }
+
+    function getWhfMonthDispatchConfig(whf, monthIndex) {
+      if (!whf || !whf.enabled) {
+        return {
+          whfActiveMonth: false,
+          whfSuccessRate: 0,
+          whfStartMinuteOfDay: 0,
+          whfEndMinuteOfDay: 0
+        };
+      }
+      const autoWindow = Array.isArray(whf.autoWindowByMonth) ? whf.autoWindowByMonth[monthIndex] : null;
+      const selectedWindow = whf.mode === "auto" && autoWindow
+        ? autoWindow
+        : {
+          startMinuteOfDay: Number.isFinite(whf.startMinuteOfDay) ? whf.startMinuteOfDay : 0,
+          endMinuteOfDay: Number.isFinite(whf.endMinuteOfDay) ? whf.endMinuteOfDay : 0
+        };
+      const activeMonths = whf.mode === "auto" ? (whf.autoActiveMonths || []) : (whf.activeMonths || []);
+      const monthSuccess = (whf.mode === "auto" && Array.isArray(whf.successRateByMonth))
+        ? whf.successRateByMonth[monthIndex]
+        : whf.successRate;
+      return {
+        whfActiveMonth: activeMonths.includes(monthIndex),
+        whfSuccessRate: clamp(Number(monthSuccess) || 0, 0, 1),
+        whfStartMinuteOfDay: clamp(Math.floor(Number(selectedWindow.startMinuteOfDay) || 0), 0, 1439),
+        whfEndMinuteOfDay: clamp(Math.floor(Number(selectedWindow.endMinuteOfDay) || 0), 0, 1439)
+      };
+    }
+
+    function getMonthReservePct(batteryConfig, monthIndex) {
+      const monthly = Array.isArray(batteryConfig.monthlyReservePct) ? batteryConfig.monthlyReservePct : null;
+      if (monthly && Number.isFinite(monthly[monthIndex])) {
+        return clamp(monthly[monthIndex], 0, 0.95);
+      }
+      return clamp(Number(batteryConfig.minSocReservePct) || 0, 0, 0.95);
     }
 
     function computeMonthBills(monthInput) {
@@ -1906,9 +3142,15 @@
         powerwallCount: monthInput.powerwallCount,
         usableKwhPerBattery: monthInput.usableKwhPerBattery,
         cyclesPerDay: monthInput.cyclesPerDay,
+        solarToHomeEfficiency: monthInput.solarToHomeEfficiency,
+        maxAcOutputKw: monthInput.maxAcOutputKw,
         roundTripEfficiency: monthInput.roundTripEfficiency,
         dispatchMode: monthInput.dispatchMode,
         minSocReservePct: monthInput.minSocReservePct,
+        importOffPeakRate: monthInput.importOffPeak,
+        importPeakRate: monthInput.importPeak,
+        exportOffPeakRate: monthInput.exportOffPeak,
+        exportPeakRate: monthInput.exportPeak,
         evEnabled: monthInput.evEnabled,
         evDayTargetKwh,
         evNightTargetKwh,
@@ -1928,7 +3170,8 @@
         whfDisplacedAcWatts: monthInput.whfDisplacedAcWatts,
         whfSuccessRate: monthInput.whfSuccessRate,
         whfStartMinuteOfDay: monthInput.whfStartMinuteOfDay,
-        whfEndMinuteOfDay: monthInput.whfEndMinuteOfDay
+        whfEndMinuteOfDay: monthInput.whfEndMinuteOfDay,
+        solarHourlyByMonth: monthInput.solarHourlyByMonth
       });
 
       const scale = safeDays;
@@ -1936,13 +3179,13 @@
       const beforeImportOffKwh = dayResult.beforeImportOffKwh * scale;
       const importPeakKwh = dayResult.importPeakKwh * scale;
       const importOffKwh = dayResult.importOffKwh * scale;
-      const exportKwh = dayResult.exportKwh * scale;
+      const exportPeakKwh = dayResult.exportPeakKwh * scale;
+      const exportOffKwh = dayResult.exportOffKwh * scale;
+      const exportKwh = exportPeakKwh + exportOffKwh;
       const importKwh = importPeakKwh + importOffKwh;
       const beforeImportKwh = beforeImportPeakKwh + beforeImportOffKwh;
 
-      const exportPeak = exportKwh * monthInput.exportPeakShare;
-      const exportOff = exportKwh - exportPeak;
-      const exportCredit = exportPeak * monthInput.exportPeak + exportOff * monthInput.exportOffPeak;
+      const exportCreditValue = (exportPeakKwh * monthInput.exportPeak) + (exportOffKwh * monthInput.exportOffPeak);
 
       const billBeforeEnergy = beforeImportPeakKwh * monthInput.importPeak + beforeImportOffKwh * monthInput.importOffPeak;
       const billBeforeNbc = beforeImportKwh * monthInput.nbcPerImportKwh;
@@ -1950,15 +3193,21 @@
 
       const billAfterEnergy = importPeakKwh * monthInput.importPeak + importOffKwh * monthInput.importOffPeak;
       const billAfterNbc = importKwh * monthInput.nbcPerImportKwh;
-      const rawBillAfter = billAfterEnergy + billAfterNbc + monthInput.fixedMonthlyCharge - exportCredit;
+      const rawBillAfter = billAfterEnergy + billAfterNbc + monthInput.fixedMonthlyCharge - exportCreditValue;
 
       return {
         billBefore,
         rawBillAfter,
+        billAfterEnergy,
+        billAfterNbc,
+        fixedCharge: monthInput.fixedMonthlyCharge,
+        exportCreditValue,
         importKwh,
         importPeakKwh,
         importOffKwh,
         exportKwh,
+        exportPeakKwh,
+        exportOffKwh,
         beforeImportPeakKwh,
         beforeImportOffKwh,
         beforeImportKwh,
@@ -1966,6 +3215,7 @@
         solarToBatteryInputKwh: dayResult.solarToBatteryInputKwh * scale,
         solarToBatteryStoredKwh: dayResult.solarToBatteryStoredKwh * scale,
         batteryToLoadKwh: dayResult.batteryToLoad * scale,
+        batteryToGridExportKwh: dayResult.batteryToGridExportKwh * scale,
         batteryToLoadPeakKwh: dayResult.batteryToLoadPeakKwh * scale,
         batteryToLoadPostPeakKwh: dayResult.batteryToLoadPostPeakKwh * scale,
         batteryReserveHits: dayResult.batteryReserveHits * scale,
@@ -1982,7 +3232,9 @@
         whfFanKwh: dayResult.whfFanKwh * scale,
         whfDisplacedAcKwh: dayResult.whfDisplacedAcKwh * scale,
         whfNetReductionKwh: dayResult.whfNetReductionKwh * scale,
-        whfActiveHours: dayResult.whfActiveHours * scale
+        whfActiveHours: dayResult.whfActiveHours * scale,
+        clippedSolarKwh: dayResult.clippedSolarKwh * scale,
+        solarGenerationKwh: dayResult.solarGenerationKwh * scale
       };
     }
 
@@ -1991,17 +3243,23 @@
       const batteryScale = scaleOptions && Number.isFinite(scaleOptions.batteryScale) ? Math.max(0, scaleOptions.batteryScale) : 1;
       const rateScale = scaleOptions && Number.isFinite(scaleOptions.rateScale) ? Math.max(0, scaleOptions.rateScale) : 1;
       let annualBefore = 0;
-      let annualAfterRaw = 0;
       let annualImportKwh = 0;
       let annualImportPeakKwh = 0;
       let annualImportOffKwh = 0;
       let annualExportKwh = 0;
+      let annualExportPeakKwh = 0;
+      let annualExportOffKwh = 0;
+      let annualImportEnergyCostAfter = 0;
+      let annualExportCreditValue = 0;
+      let annualNbcAfter = 0;
+      let annualFixedChargeTotal = 0;
       let annualBeforeImportPeakKwh = 0;
       let annualBeforeImportOffKwh = 0;
       let annualDirectSolarToLoadKwh = 0;
       let annualSolarToBatteryInputKwh = 0;
       let annualSolarToBatteryStoredKwh = 0;
       let annualBatteryToLoadKwh = 0;
+      let annualBatteryToGridExportKwh = 0;
       let annualBatteryToLoadPeakKwh = 0;
       let annualBatteryToLoadPostPeakKwh = 0;
       let annualBatteryReserveHits = 0;
@@ -2021,24 +3279,30 @@
       let annualWhfDisplacedAcKwh = 0;
       let annualWhfNetReductionKwh = 0;
       let annualWhfActiveHours = 0;
+      let annualClippedSolarKwh = 0;
       const evKwhMonth = inputs.ev.enabled ? inputs.ev.kwhPerMonth : 0;
+      const solarMonthlyProfile = isValidMonthlyProfile(inputs.production.solarMonthlyProfile) ? inputs.production.solarMonthlyProfile : SOLAR_PROFILE;
+      const solarHourlyByMonth = isValidHourlyByMonth(inputs.production.solarHourlyByMonth) ? inputs.production.solarHourlyByMonth : null;
       const exportOffPeakRateBase = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak;
       const exportPeakRateBase = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak;
+      const maxAcOutputKw = powerwallCountOverride >= 1 ? powerwallCountOverride * POWERWALL3_AC_KW : Number.POSITIVE_INFINITY;
 
       for (let month = 0; month < 12; month += 1) {
         const baseHomeLoadKwh = inputs.load.annualKwh * inputs.load.monthProfile[month];
         const homeLoadSeasonMultiplier = getSeasonLoadMultiplier(inputs.load, month);
         const homeLoadKwh = baseHomeLoadKwh * homeLoadSeasonMultiplier;
-        const solarKwh = solarKw * inputs.production.annualYield * SOLAR_PROFILE[month] * solarScale;
+        const solarKwh = solarKw * inputs.production.annualYield * solarMonthlyProfile[month] * solarScale;
         const exportOffPeakRate = exportOffPeakRateBase * rateScale;
         const exportPeakRate = exportPeakRateBase * rateScale;
+        const monthReservePct = getMonthReservePct(inputs.battery, month);
+        const haMonthConfig = getHaMonthDispatchConfig(inputs.ha, month);
+        const whfMonthConfig = getWhfMonthDispatchConfig(inputs.whf, month);
 
         const monthResult = computeMonthBills({
           monthIndex: month,
           homeLoadKwh,
           solarKwh,
           peakShare: inputs.load.peakShare,
-          exportPeakShare: inputs.rates.exportPeakShare,
           importOffPeak: inputs.rates.importOffPeak * rateScale,
           importPeak: inputs.rates.importPeak * rateScale,
           fixedMonthlyCharge: inputs.rates.fixedMonthlyCharge * rateScale,
@@ -2048,45 +3312,54 @@
           powerwallCount: powerwallCountOverride,
           usableKwhPerBattery: inputs.battery.usableKwhPerBattery * batteryScale,
           cyclesPerDay: inputs.battery.cyclesPerDay,
+          solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+          maxAcOutputKw,
           roundTripEfficiency: inputs.battery.roundTripEfficiency,
           dispatchMode: inputs.battery.dispatchMode,
-          minSocReservePct: inputs.battery.minSocReservePct,
+          minSocReservePct: monthReservePct,
           evEnabled: inputs.ev.enabled,
           evKwhMonth,
           evDayChargingShare: inputs.ev.dayChargingShare,
           evNightChargingShare: inputs.ev.nightChargingShare,
           haEnabled: inputs.ha.enabled,
           ha: inputs.ha,
-          haSuccessRate: inputs.ha.successRate,
-          haPreCoolStartHour: inputs.ha.preCoolStartHour,
-          haPreCoolEndHour: inputs.ha.preCoolEndHour,
-          haMaxShiftHoursPerDay: inputs.ha.maxShiftHoursPerDay,
+          haSuccessRate: haMonthConfig.haSuccessRate,
+          haPreCoolStartHour: haMonthConfig.haPreCoolStartHour,
+          haPreCoolEndHour: haMonthConfig.haPreCoolEndHour,
+          haMaxShiftHoursPerDay: haMonthConfig.haMaxShiftHoursPerDay,
           haSummerSetpointF: inputs.ha.summerSetpointF,
           haWinterSetpointF: inputs.ha.winterSetpointF,
           haMaxPrecoolOffsetF: inputs.ha.maxPrecoolOffsetF,
           haMaxPreheatOffsetF: inputs.ha.maxPreheatOffsetF,
           whfEnabled: inputs.whf.enabled,
-          whfActiveMonth: inputs.whf.activeMonths.includes(month),
+          whfActiveMonth: whfMonthConfig.whfActiveMonth,
           whfFanWatts: inputs.whf.fanWatts,
           whfDisplacedAcWatts: inputs.whf.displacedAcWatts,
-          whfSuccessRate: inputs.whf.successRate,
-          whfStartMinuteOfDay: inputs.whf.startMinuteOfDay,
-          whfEndMinuteOfDay: inputs.whf.endMinuteOfDay,
+          whfSuccessRate: whfMonthConfig.whfSuccessRate,
+          whfStartMinuteOfDay: whfMonthConfig.whfStartMinuteOfDay,
+          whfEndMinuteOfDay: whfMonthConfig.whfEndMinuteOfDay,
+          solarHourlyByMonth,
           days: DAYS_IN_MONTH[month]
         });
 
         annualBefore += monthResult.billBefore;
-        annualAfterRaw += monthResult.rawBillAfter;
+        annualImportEnergyCostAfter += monthResult.billAfterEnergy;
+        annualExportCreditValue += monthResult.exportCreditValue;
+        annualNbcAfter += monthResult.billAfterNbc;
+        annualFixedChargeTotal += monthResult.fixedCharge;
         annualImportKwh += monthResult.importKwh;
         annualImportPeakKwh += monthResult.importPeakKwh;
         annualImportOffKwh += monthResult.importOffKwh;
         annualExportKwh += monthResult.exportKwh;
+        annualExportPeakKwh += monthResult.exportPeakKwh;
+        annualExportOffKwh += monthResult.exportOffKwh;
         annualBeforeImportPeakKwh += monthResult.beforeImportPeakKwh;
         annualBeforeImportOffKwh += monthResult.beforeImportOffKwh;
         annualDirectSolarToLoadKwh += monthResult.directSolarToLoadKwh;
         annualSolarToBatteryInputKwh += monthResult.solarToBatteryInputKwh;
         annualSolarToBatteryStoredKwh += monthResult.solarToBatteryStoredKwh;
         annualBatteryToLoadKwh += monthResult.batteryToLoadKwh;
+        annualBatteryToGridExportKwh += monthResult.batteryToGridExportKwh;
         annualBatteryToLoadPeakKwh += monthResult.batteryToLoadPeakKwh;
         annualBatteryToLoadPostPeakKwh += monthResult.batteryToLoadPostPeakKwh;
         annualBatteryReserveHits += monthResult.batteryReserveHits;
@@ -2099,16 +3372,22 @@
         annualHvacPeakImportAvoidedKwh += monthResult.hvacPeakImportAvoidedKwh;
         annualHvacShiftToPreWindowKwh += monthResult.hvacShiftToPreWindowKwh;
         annualHvacShiftToPostPeakKwh += monthResult.hvacShiftToPostPeakKwh;
-        annualSolarGenerationKwh += solarKwh;
+        annualSolarGenerationKwh += monthResult.solarGenerationKwh;
         annualHomeLoadAdjustedKwh += homeLoadKwh;
         annualMinSocKwh = Math.min(annualMinSocKwh, monthResult.minSocKwh);
         annualWhfFanKwh += monthResult.whfFanKwh;
         annualWhfDisplacedAcKwh += monthResult.whfDisplacedAcKwh;
         annualWhfNetReductionKwh += monthResult.whfNetReductionKwh;
         annualWhfActiveHours += monthResult.whfActiveHours;
+        annualClippedSolarKwh += monthResult.clippedSolarKwh;
       }
 
+      const annualEnergyNetAfterTrueUp = Math.max(0, annualImportEnergyCostAfter - annualExportCreditValue);
+      const annualVppCredit = inputs.vpp.enabled ? (powerwallCountOverride * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) : 0;
+      const annualAfterRaw = annualFixedChargeTotal + annualNbcAfter + annualEnergyNetAfterTrueUp - annualVppCredit;
       const annualTotalLoadAfterEvKwh = annualHomeLoadAdjustedKwh + (inputs.ev.enabled ? evKwhMonth * 12 : 0);
+      const annualSolarPotentialKwh = annualSolarGenerationKwh + annualClippedSolarKwh;
+      const annualClippedSolarPct = annualSolarPotentialKwh > 0 ? (annualClippedSolarKwh / annualSolarPotentialKwh) : 0;
 
       return {
         annualBefore,
@@ -2118,12 +3397,15 @@
         annualImportPeakKwh,
         annualImportOffKwh,
         annualExportKwh,
+        annualExportPeakKwh,
+        annualExportOffKwh,
         annualBeforeImportPeakKwh,
         annualBeforeImportOffKwh,
         annualDirectSolarToLoadKwh,
         annualSolarToBatteryInputKwh,
         annualSolarToBatteryStoredKwh,
         annualBatteryToLoadKwh,
+        annualBatteryToGridExportKwh,
         annualBatteryToLoadPeakKwh,
         annualBatteryToLoadPostPeakKwh,
         annualBatteryReserveHits,
@@ -2143,7 +3425,15 @@
         annualWhfFanKwh,
         annualWhfDisplacedAcKwh,
         annualWhfNetReductionKwh,
-        annualWhfActiveHours
+        annualWhfActiveHours,
+        annualImportEnergyCostAfter,
+        annualExportCreditValue,
+        annualEnergyNetAfterTrueUp,
+        annualNbcAfter,
+        annualFixedChargeTotal,
+        annualVppCredit,
+        annualClippedSolarKwh,
+        annualClippedSolarPct
       };
     }
 
@@ -2242,12 +3532,15 @@
         annualImportPeakKwh: annualEffective.annualImportPeakKwh,
         annualImportOffKwh: annualEffective.annualImportOffKwh,
         annualExportKwh: annualEffective.annualExportKwh,
+        annualExportPeakKwh: annualEffective.annualExportPeakKwh,
+        annualExportOffKwh: annualEffective.annualExportOffKwh,
         annualBeforeImportPeakKwh: annualEffective.annualBeforeImportPeakKwh,
         annualBeforeImportOffKwh: annualEffective.annualBeforeImportOffKwh,
         annualDirectSolarToLoadKwh: annualEffective.annualDirectSolarToLoadKwh,
         annualSolarToBatteryInputKwh: annualEffective.annualSolarToBatteryInputKwh,
         annualSolarToBatteryStoredKwh: annualEffective.annualSolarToBatteryStoredKwh,
         annualBatteryToLoadKwh: annualEffective.annualBatteryToLoadKwh,
+        annualBatteryToGridExportKwh: annualEffective.annualBatteryToGridExportKwh,
         annualBatteryToLoadPeakKwh: annualEffective.annualBatteryToLoadPeakKwh,
         annualBatteryToLoadPostPeakKwh: annualEffective.annualBatteryToLoadPostPeakKwh,
         annualBatteryReserveHits: annualEffective.annualBatteryReserveHits,
@@ -2268,6 +3561,14 @@
         annualWhfDisplacedAcKwh: annualEffective.annualWhfDisplacedAcKwh,
         annualWhfNetReductionKwh: annualEffective.annualWhfNetReductionKwh,
         annualWhfActiveHours: annualEffective.annualWhfActiveHours,
+        annualImportEnergyCostAfter: annualEffective.annualImportEnergyCostAfter,
+        annualExportCreditValue: annualEffective.annualExportCreditValue,
+        annualEnergyNetAfterTrueUp: annualEffective.annualEnergyNetAfterTrueUp,
+        annualNbcAfter: annualEffective.annualNbcAfter,
+        annualFixedChargeTotal: annualEffective.annualFixedChargeTotal,
+        annualVppCredit: annualEffective.annualVppCredit,
+        annualClippedSolarKwh: annualEffective.annualClippedSolarKwh,
+        annualClippedSolarPct: annualEffective.annualClippedSolarPct,
         annualAfterRawConfigured: annualConfigured.annualAfterRaw,
         haGuardApplied: comparison.haGuardApplied,
         haGuardPreventedAnnualCost: comparison.haGuardPreventedAnnualCost,
@@ -2318,8 +3619,11 @@
       let paybackYears = Number.POSITIVE_INFINITY;
       const batteryFactor = scenario.powerwallCount > 0 ? (1 - inputs.analysis.batteryDegradation) : 1;
       const annualScale = (1 + inputs.analysis.utilityEscalation) * (1 - inputs.analysis.solarDegradation) * batteryFactor;
+      const utilitySavingsAnnualBase = scenario.annualSavings - scenario.annualVppCredit;
+      const vppSavingsAnnualBase = scenario.annualVppCredit;
       for (let year = 1; year <= years; year += 1) {
-        const annualSavings = scenario.annualSavings * Math.pow(annualScale, year - 1);
+        const utilityScaled = utilitySavingsAnnualBase * Math.pow(annualScale, year - 1);
+        const annualSavings = utilityScaled + vppSavingsAnnualBase;
         cumulative += annualSavings;
         npv += annualSavings / Math.pow(1 + inputs.analysis.discountRate, year);
         if (!Number.isFinite(paybackYears) && cumulative >= 0) {
@@ -2481,12 +3785,28 @@
         ok: Math.abs(best.annualImportKwh - (best.annualImportPeakKwh + best.annualImportOffKwh)) < 0.01
       });
       checks.push({
+        name: "Annual export equals peak + off-peak export",
+        ok: Math.abs(best.annualExportKwh - (best.annualExportPeakKwh + best.annualExportOffKwh)) < 0.01
+      });
+      checks.push({
         name: "Same-load identity: PG&E before - after equals utility savings (monthly tolerance)",
         ok: Math.abs((best.pgeBeforeMonthly - best.pgeAfterMonthlyTrueUp) - best.utilitySavingsMonthly) < 0.01
       });
       checks.push({
         name: "Whole-home identity: baseline - after equals whole-home utility savings (monthly tolerance)",
         ok: Math.abs((best.pgeBaselineMonthlyNoControls - best.pgeAfterMonthlyTrueUp) - best.utilitySavingsMonthlyWholeHome) < 0.01
+      });
+      checks.push({
+        name: "Annual energy true-up is floored at zero",
+        ok: Math.abs(best.annualEnergyNetAfterTrueUp - Math.max(0, best.annualImportEnergyCostAfter - best.annualExportCreditValue)) < 0.01
+      });
+      checks.push({
+        name: "Annual after-bill matches fixed + NBC + energy net - VPP (unclamped)",
+        ok: Math.abs(best.annualAfterRaw - (best.annualFixedChargeTotal + best.annualNbcAfter + best.annualEnergyNetAfterTrueUp - best.annualVppCredit)) < 0.01
+      });
+      checks.push({
+        name: "Savings identity holds even when annual bill is negative",
+        ok: Math.abs(best.annualSavings - (best.annualBefore - best.annualAfterRaw)) < 0.01
       });
 
       const recomputedBest = [...optimization.results].sort((a, b) => compareObjective(a, b, objectiveMode))[0];
@@ -2512,12 +3832,22 @@
         name: "WHF net reduction is non-negative",
         ok: best.annualWhfNetReductionKwh >= -eps
       });
+      const vppOffInputs = {
+        ...inputs,
+        vpp: { enabled: false }
+      };
+      const vppOffScenario = evaluateScenario(vppOffInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore: calculateNoControlsAnnualBefore(vppOffInputs) });
+      checks.push({
+        name: "VPP ON/OFF annual bill delta equals modeled VPP credit",
+        ok: Math.abs((vppOffScenario.annualAfterRaw - best.annualAfterRaw) - best.annualVppCredit) < 0.01
+      });
 
       const whfOnInputs = {
         ...inputs,
         whf: {
           ...inputs.whf,
           enabled: true,
+          mode: "manual",
           activeMonths: inputs.whf.activeMonths.length ? inputs.whf.activeMonths : [4, 5, 6, 7, 8],
           fanWatts: inputs.whf.fanWatts > 0 ? inputs.whf.fanWatts : 200,
           displacedAcWatts: inputs.whf.displacedAcWatts > 0 ? inputs.whf.displacedAcWatts : 3500,
@@ -2553,9 +3883,15 @@
         powerwallCount: 0,
         usableKwhPerBattery: BATTERY_USABLE_KWH,
         cyclesPerDay: 0,
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Number.POSITIVE_INFINITY,
         roundTripEfficiency: 0.9,
         dispatchMode: inputs.battery.dispatchMode,
-        minSocReservePct: inputs.battery.minSocReservePct,
+        minSocReservePct: getMonthReservePct(inputs.battery, 6),
+        importOffPeakRate: inputs.rates.importOffPeak,
+        importPeakRate: inputs.rates.importPeak,
+        exportOffPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak,
+        exportPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak,
         evEnabled: false,
         evDayTargetKwh: 0,
         evNightTargetKwh: 0,
@@ -2590,9 +3926,15 @@
         powerwallCount: Math.max(1, best.powerwallCount),
         usableKwhPerBattery: BATTERY_USABLE_KWH,
         cyclesPerDay: Math.max(0.8, inputs.battery.cyclesPerDay),
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Math.max(1, best.powerwallCount) * POWERWALL3_AC_KW,
         roundTripEfficiency: inputs.battery.roundTripEfficiency,
         dispatchMode: inputs.battery.dispatchMode,
-        minSocReservePct: inputs.battery.minSocReservePct,
+        minSocReservePct: getMonthReservePct(inputs.battery, 6),
+        importOffPeakRate: inputs.rates.importOffPeak,
+        importPeakRate: inputs.rates.importPeak,
+        exportOffPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak,
+        exportPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak,
         evEnabled: false,
         evDayTargetKwh: 0,
         evNightTargetKwh: 0,
@@ -2615,14 +3957,183 @@
         whfEndMinuteOfDay: 0
       });
       const probeBatteryCapacity = Math.max(1, best.powerwallCount) * BATTERY_USABLE_KWH;
-      const probeMinSoc = probeBatteryCapacity * inputs.battery.minSocReservePct;
+      const probeReservePct = getMonthReservePct(inputs.battery, 6);
+      const probeMinSoc = probeBatteryCapacity * probeReservePct;
       checks.push({
-        name: "Dispatch check: peak discharge occurs when economical",
-        ok: dispatchProbe.batteryToLoadPeakKwh > 0.01
+        name: "Dispatch check: battery discharges during economical periods",
+        ok: (dispatchProbe.batteryToLoadPeakKwh + dispatchProbe.batteryToGridExportKwh) > 0.01
       });
       checks.push({
-        name: "Dispatch check: reserve floor respected (SOC >= 20%)",
+        name: "Dispatch check: reserve floor respected for active month policy",
         ok: dispatchProbe.minSocKwh >= probeMinSoc - 0.001
+      });
+      const arbitragePositiveProbe = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 22,
+        daySolarKwh: 95,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: Math.max(1, best.powerwallCount),
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: Math.max(1, inputs.battery.cyclesPerDay),
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Math.max(1, best.powerwallCount) * POWERWALL3_AC_KW,
+        roundTripEfficiency: inputs.battery.roundTripEfficiency,
+        dispatchMode: "arbitrage_price_event",
+        minSocReservePct: getMonthReservePct(inputs.battery, 6),
+        importOffPeakRate: 0.30,
+        importPeakRate: 0.35,
+        exportOffPeakRate: 0.05,
+        exportPeakRate: 0.60,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      const arbitrageBlockedProbe = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 22,
+        daySolarKwh: 95,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: Math.max(1, best.powerwallCount),
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: Math.max(1, inputs.battery.cyclesPerDay),
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Math.max(1, best.powerwallCount) * POWERWALL3_AC_KW,
+        roundTripEfficiency: inputs.battery.roundTripEfficiency,
+        dispatchMode: "arbitrage_price_event",
+        minSocReservePct: getMonthReservePct(inputs.battery, 6),
+        importOffPeakRate: 0.30,
+        importPeakRate: 0.35,
+        exportOffPeakRate: 0.10,
+        exportPeakRate: 0.30,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      checks.push({
+        name: "Arbitrage mode can export battery energy when export > import",
+        ok: arbitragePositiveProbe.batteryToGridExportKwh > 0.01
+      });
+      checks.push({
+        name: "Arbitrage mode blocks battery export when export <= import",
+        ok: arbitrageBlockedProbe.batteryToGridExportKwh <= 0.01
+      });
+      const clipProbeNoPw = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 15,
+        daySolarKwh: 200,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: 0,
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: 0,
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: Number.POSITIVE_INFINITY,
+        roundTripEfficiency: 0.9,
+        dispatchMode: inputs.battery.dispatchMode,
+        minSocReservePct: getMonthReservePct(inputs.battery, 6),
+        importOffPeakRate: inputs.rates.importOffPeak,
+        importPeakRate: inputs.rates.importPeak,
+        exportOffPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak,
+        exportPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      const clipProbePw1 = simulateRepresentativeDay({
+        monthIndex: 6,
+        dayHomeLoadKwh: 15,
+        daySolarKwh: 200,
+        peakShare: inputs.load.peakShare,
+        powerwallCount: 1,
+        usableKwhPerBattery: BATTERY_USABLE_KWH,
+        cyclesPerDay: 0.8,
+        solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
+        maxAcOutputKw: POWERWALL3_AC_KW,
+        roundTripEfficiency: 0.9,
+        dispatchMode: inputs.battery.dispatchMode,
+        minSocReservePct: getMonthReservePct(inputs.battery, 6),
+        importOffPeakRate: inputs.rates.importOffPeak,
+        importPeakRate: inputs.rates.importPeak,
+        exportOffPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak,
+        exportPeakRate: inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak,
+        evEnabled: false,
+        evDayTargetKwh: 0,
+        evNightTargetKwh: 0,
+        haEnabled: false,
+        ha: { ...inputs.ha, enabled: false },
+        haSuccessRate: 0,
+        haPreCoolStartHour: 12,
+        haPreCoolEndHour: 16,
+        haMaxShiftHoursPerDay: 4,
+        haSummerSetpointF: inputs.load.summerSetpointF,
+        haWinterSetpointF: inputs.load.winterSetpointF,
+        haMaxPrecoolOffsetF: 0,
+        haMaxPreheatOffsetF: 0,
+        whfEnabled: false,
+        whfActiveMonth: false,
+        whfFanWatts: 0,
+        whfDisplacedAcWatts: 0,
+        whfSuccessRate: 0,
+        whfStartMinuteOfDay: 0,
+        whfEndMinuteOfDay: 0
+      });
+      checks.push({
+        name: "Clipping disabled when Powerwalls = 0",
+        ok: clipProbeNoPw.clippedSolarKwh <= 1e-6
+      });
+      checks.push({
+        name: "Clipping appears when Powerwalls >= 1 under oversized solar",
+        ok: clipProbePw1.clippedSolarKwh > 0.01
       });
 
       const passCount = checks.filter((c) => c.ok).length;
@@ -2671,11 +4182,12 @@
       const objectiveDeltaKw = bestV2.idealSolarKw - bestV1Like.idealSolarKw;
       const gridDeltaPw = bestV2.powerwallCount - bestModuleGridByV2.powerwallCount;
       const objectiveDeltaPw = bestV2.powerwallCount - bestV1Like.powerwallCount;
+      const julReservePct = getMonthReservePct(inputs.battery, 6);
 
       const lines = [];
       lines.push("Shared baseline probe:");
       lines.push("Objective mode: " + objectiveLabel(objectiveMode) + ".");
-      lines.push("Dispatch mode: " + inputs.battery.dispatchMode + " with reserve " + fmt(inputs.battery.minSocReservePct * 100, 0) + "%.");
+      lines.push("Dispatch mode: " + inputs.battery.dispatchMode + " with reserve policy " + inputs.battery.reservePolicy + " (Jul reserve " + fmt(julReservePct * 100, 0) + "%).");
       lines.push("v2 continuous-step best: " + fmt(bestV2.idealSolarKw, 3) + " kW / " + bestV2.powerwallCount + " PW.");
       lines.push("Module-grid (0.395 kW step) best: " + fmt(bestModuleGridByV2.idealSolarKw, 3) + " kW / " + bestModuleGridByV2.powerwallCount + " PW.");
       lines.push("v1-like objective best (includes 5% opportunity term): " + fmt(bestV1Like.idealSolarKw, 3) + " kW / " + bestV1Like.powerwallCount + " PW.");
@@ -2694,7 +4206,9 @@
       el.cardPowerwallChoice.textContent = "Powerwalls: " + result.powerwallCount;
       el.cardPgeBefore.textContent = usdPrecise(result.pgeBaselineMonthlyNoControls);
       el.cardPgeAfter.textContent = usdPrecise(result.pgeAfterMonthlyTrueUp);
-      el.cardTrueUpNote.textContent = "Annual true-up subtotal: " + usdPrecise(result.annualAfterRaw);
+      el.cardTrueUpNote.textContent = "Annual true-up bill: " + usdPrecise(result.annualAfterRaw) + " | Energy net: " + usdPrecise(result.annualEnergyNetAfterTrueUp) + " | VPP: " + usdPrecise(result.annualVppCredit) + " | Battery->Grid: " + fmt(result.annualBatteryToGridExportKwh, 0) + " kWh/yr";
+      el.cardClippedSolar.textContent = fmt(result.annualClippedSolarKwh, 0) + " kWh/yr";
+      el.cardClippedSolarNote.textContent = "Clipped share: " + fmt(result.annualClippedSolarPct * 100, 1) + "% (PW3 cap " + fmt(POWERWALL3_AC_KW, 1) + " kW/PW)";
       renderDelta(el.cardSavings, utilityBillChangeMonthly);
       el.cardUtilityChangeFormula.textContent = "(PG&E After) - (PG&E Baseline No WHF/HA) = " + usdSigned(utilityBillChangeMonthly);
       el.cardSolarOnlyDelta.textContent = "Solar-only delta (same-load baseline): " + usdSigned(utilityBillChangeMonthlySolarOnly);
@@ -2840,6 +4354,11 @@
       const topRows = optimization ? optimization.results.slice(0, 5) : [];
 
       const lines = [];
+      lines.push("<p class='calc-line'><strong>" + getClimateSourceText(inputs.climate) + "</strong></p>");
+      lines.push("<p class='calc-line'><strong>" + getTemperatureSourceText(inputs.production) + "</strong></p>");
+      if (inputs.climate && inputs.climate.lastVerifiedAt) {
+        lines.push("<p class='calc-line'>Last verified climate dataset: " + formatTimestampForUi(inputs.climate.lastVerifiedAt) + ".</p>");
+      }
       lines.push("<p class='calc-line'><strong>1) Total load assumption</strong></p>");
       lines.push("<p class='calc-line'>Home load base (non-EV) = " + fmt(inputs.load.annualKwh, 0) + " kWh/year.</p>");
       lines.push("<p class='calc-line'>Setpoint-driven seasonal multipliers: summer x" + fmt(summerLoadMult, 2) + " (setpoint " + fmt(inputs.load.summerSetpointF, 0) + "F), winter x" + fmt(winterLoadMult, 2) + " (setpoint " + fmt(inputs.load.winterSetpointF, 0) + "F), shoulder x" + fmt(shoulderLoadMult, 2) + ".</p>");
@@ -2852,8 +4371,16 @@
         lines.push("<p class='calc-line'>EV load is OFF, so no EV kWh is added.</p>");
       }
       if (inputs.whf.enabled) {
-        const whfMonths = inputs.whf.activeMonths.map((idx) => ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][idx]).join(", ");
-        lines.push("<p class='calc-line'>WHF load replacement: fan " + fmt(inputs.whf.fanWatts, 0) + "W, displaced AC " + fmt(inputs.whf.displacedAcWatts, 0) + "W, success " + fmt(inputs.whf.successRate * 100, 0) + "%, active months: " + whfMonths + ".</p>");
+        if (inputs.whf.mode === "auto") {
+          const whfMonths = (inputs.whf.autoActiveMonths || []).map((idx) => MONTH_LABELS[idx]).join(", ");
+          const janWindow = inputs.whf.autoWindowByMonth[0] || { startMinuteOfDay: 0, endMinuteOfDay: 0 };
+          const julWindow = inputs.whf.autoWindowByMonth[6] || { startMinuteOfDay: 0, endMinuteOfDay: 0 };
+          lines.push("<p class='calc-line'>WHF AUTO load replacement: fan " + fmt(inputs.whf.fanWatts, 0) + "W, displaced AC " + fmt(inputs.whf.displacedAcWatts, 0) + "W. Active months: " + (whfMonths || "none") + ".</p>");
+          lines.push("<p class='calc-line'>AUTO WHF success: Jan " + fmt((inputs.whf.successRateByMonth[0] || 0) * 100, 0) + "%, Jul " + fmt((inputs.whf.successRateByMonth[6] || 0) * 100, 0) + "%. AUTO windows: Jan " + fmt(Math.floor(janWindow.startMinuteOfDay / 60), 0) + ":00-" + fmt(Math.floor(janWindow.endMinuteOfDay / 60), 0) + ":00, Jul " + fmt(Math.floor(julWindow.startMinuteOfDay / 60), 0) + ":00-" + fmt(Math.floor(julWindow.endMinuteOfDay / 60), 0) + ":00.</p>");
+        } else {
+          const whfMonths = inputs.whf.activeMonths.map((idx) => MONTH_LABELS[idx]).join(", ");
+          lines.push("<p class='calc-line'>WHF MANUAL load replacement: fan " + fmt(inputs.whf.fanWatts, 0) + "W, displaced AC " + fmt(inputs.whf.displacedAcWatts, 0) + "W, success " + fmt(inputs.whf.successRate * 100, 0) + "%, active months: " + whfMonths + ".</p>");
+        }
         lines.push("<p class='calc-line'>WHF annual effect at selected scenario: fan " + fmt(result.annualWhfFanKwh, 0) + " kWh/yr, displaced AC " + fmt(result.annualWhfDisplacedAcKwh, 0) + " kWh/yr, net reduction " + fmt(result.annualWhfNetReductionKwh, 0) + " kWh/yr, active hours " + fmt(result.annualWhfActiveHours, 0) + ".</p>");
       } else {
         lines.push("<p class='calc-line'>WHF load replacement is OFF.</p>");
@@ -2927,6 +4454,7 @@
       const avgDayBatteryToLoad = result.annualBatteryToLoadKwh / DAYS_PER_YEAR;
       const avgDayBatteryToLoadPeak = result.annualBatteryToLoadPeakKwh / DAYS_PER_YEAR;
       const avgDayBatteryToLoadPostPeak = result.annualBatteryToLoadPostPeakKwh / DAYS_PER_YEAR;
+      const avgDayBatteryToGrid = result.annualBatteryToGridExportKwh / DAYS_PER_YEAR;
       const avgDayImportPeak = result.annualImportPeakKwh / DAYS_PER_YEAR;
       const avgDayImportOff = result.annualImportOffKwh / DAYS_PER_YEAR;
       const avgDayEvShift = result.annualEvDayShiftedToNightKwh / DAYS_PER_YEAR;
@@ -2936,6 +4464,7 @@
       const avgDayHvacShiftExecuted = result.annualHvacShiftExecutedKwh / DAYS_PER_YEAR;
       const avgDayHvacShiftToPreWindow = result.annualHvacShiftToPreWindowKwh / DAYS_PER_YEAR;
       const avgDayHvacPeakImportAvoided = result.annualHvacPeakImportAvoidedKwh / DAYS_PER_YEAR;
+      const avgDayClippedSolar = result.annualClippedSolarKwh / DAYS_PER_YEAR;
 
       const genPct = (v) => (avgDaySolarGen > 0 ? (100 * v) / avgDaySolarGen : 0);
       const loadPct = (v) => (avgDayLoad > 0 ? (100 * v) / avgDayLoad : 0);
@@ -2943,18 +4472,22 @@
 
       lines.push("<p class='calc-line'><strong>6) Daily Model Flow (NEM3/TOU/EV)</strong></p>");
       lines.push("<p class='calc-line'>Legend: <strong>Gen%</strong> = percent of solar generation. <strong>Load%</strong> = percent of total load.</p>");
-      lines.push("<p class='calc-line'>Representative day shown here is annualized model output divided by 365 days (same synthetic day engine used in calculations).</p>");
-      lines.push("<p class='calc-line'>Flow order: HVAC shift (if enabled) -> WHF replacement (if enabled) -> solar generation -> home load -> battery charging -> daytime EV (solar-first) -> exports -> peak battery discharge -> post-peak battery discharge (if SOC above reserve) -> grid imports.</p>");
+      lines.push("<p class='calc-line'>Representative day shown here is annualized model output divided by 365 days (same day-engine logic used in calculations).</p>");
+      lines.push("<p class='calc-line'>Dispatch mode: " + inputs.battery.dispatchMode + ". Reserve policy: " + inputs.battery.reservePolicy + " (Jan " + fmt(getMonthReservePct(inputs.battery, 0) * 100, 0) + "%, Jul " + fmt(getMonthReservePct(inputs.battery, 6) * 100, 0) + "%).</p>");
+      lines.push("<p class='calc-line'>Flow order: HVAC shift (if enabled) -> WHF replacement (if enabled) -> solar generation -> inverter clipping cap -> direct solar to home/EV/export at solar-to-home efficiency -> battery charging (round-trip efficiency model) -> battery discharge to load (dispatch mode rules) -> optional battery-to-grid export in arbitrage mode when export rate &gt; import rate -> grid imports.</p>");
+      lines.push("<p class='calc-line'>Efficiency assumptions: solar-to-home " + fmt(inputs.production.solarToHomeEfficiency * 100, 1) + "%, battery round-trip " + fmt(inputs.battery.roundTripEfficiency * 100, 1) + "%.</p>");
 
       lines.push("<table class='calc-table'><thead><tr><th>Metric</th><th>kWh/day</th><th>% (Gen or Load)</th><th>How computed</th></tr></thead><tbody>");
       lines.push("<tr><td>Solar generation</td><td>" + fmt(avgDaySolarGen, 2) + "</td><td>" + pctText(100, "Gen") + "</td><td>Annual solar generation / 365</td></tr>");
+      lines.push("<tr><td>Solar clipped</td><td>" + fmt(avgDayClippedSolar, 2) + "</td><td>" + pctText(result.annualClippedSolarPct * 100, "Gen") + "</td><td>Generation discarded by PW3 inverter cap</td></tr>");
       lines.push("<tr><td>Solar -> home load</td><td>" + fmt(avgDaySolarToLoad, 2) + "</td><td>" + pctText(genPct(avgDaySolarToLoad), "Gen") + "</td><td>Direct solar consumed by home load</td></tr>");
       lines.push("<tr><td>Solar -> battery (stored)</td><td>" + fmt(avgDaySolarToBatteryStored, 2) + "</td><td>" + pctText(genPct(avgDaySolarToBatteryStored), "Gen") + "</td><td>Charge input x round-trip efficiency</td></tr>");
       lines.push("<tr><td>Solar -> daytime EV</td><td>" + fmt(avgDaySolarToEvDay, 2) + "</td><td>" + pctText(genPct(avgDaySolarToEvDay), "Gen") + "</td><td>Surplus solar to EV in 09:00-16:00</td></tr>");
       lines.push("<tr><td>Solar export</td><td>" + fmt(avgDaySolarExport, 2) + "</td><td>" + pctText(genPct(avgDaySolarExport), "Gen") + "</td><td>Remaining solar sent to grid</td></tr>");
       lines.push("<tr><td>Battery -> load (peak)</td><td>" + fmt(avgDayBatteryToLoadPeak, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoadPeak), "Load") + "</td><td>Cost-priority discharge in 16:00-21:00</td></tr>");
-      lines.push("<tr><td>Battery -> load (post-peak)</td><td>" + fmt(avgDayBatteryToLoadPostPeak, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoadPostPeak), "Load") + "</td><td>21:00-23:00 discharge only if SOC remains above reserve</td></tr>");
-      lines.push("<tr><td>Battery -> load (total)</td><td>" + fmt(avgDayBatteryToLoad, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoad), "Load") + "</td><td>Peak + post-peak discharge</td></tr>");
+      lines.push("<tr><td>Battery -> load (non-peak)</td><td>" + fmt(avgDayBatteryToLoadPostPeak, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoadPostPeak), "Load") + "</td><td>Non-peak discharge (post-peak only in self-consumption mode)</td></tr>");
+      lines.push("<tr><td>Battery -> load (total)</td><td>" + fmt(avgDayBatteryToLoad, 2) + "</td><td>" + pctText(loadPct(avgDayBatteryToLoad), "Load") + "</td><td>Peak + non-peak discharge</td></tr>");
+      lines.push("<tr><td>Battery -> grid export</td><td>" + fmt(avgDayBatteryToGrid, 2) + "</td><td>" + pctText(genPct(avgDayBatteryToGrid), "Gen") + "</td><td>Arbitrage-only export when export rate &gt; import rate</td></tr>");
       lines.push("<tr><td>Grid import peak</td><td>" + fmt(avgDayImportPeak, 2) + "</td><td>" + pctText(loadPct(avgDayImportPeak), "Load") + "</td><td>Post-solar/battery unmet load in peak hours</td></tr>");
       lines.push("<tr><td>Grid import off-peak</td><td>" + fmt(avgDayImportOff, 2) + "</td><td>" + pctText(loadPct(avgDayImportOff), "Load") + "</td><td>Post-solar unmet load outside peak hours</td></tr>");
       lines.push("<tr><td>EV day shifted to night</td><td>" + fmt(avgDayEvShift, 2) + "</td><td>" + pctText(loadPct(avgDayEvShift), "Load") + "</td><td>Unserved daytime EV moved to night window</td></tr>");
@@ -2964,6 +4497,14 @@
       lines.push("<p class='calc-line'><strong>7) HVAC temperature-driven shift controls</strong></p>");
       if (!inputs.ha.enabled) {
         lines.push("<p class='calc-line'>HomeAssistant HVAC shift is OFF. Setpoints still affect seasonal load multipliers; only shifting behavior is disabled.</p>");
+      } else if (inputs.ha.mode === "auto") {
+        const janWindow = inputs.ha.autoPreWindowByMonth[0] || { startHour: 11, endHour: 15 };
+        const julWindow = inputs.ha.autoPreWindowByMonth[6] || { startHour: 12, endHour: 16 };
+        lines.push("<p class='calc-line'>HA AUTO mode is ON. Month-by-month success and pre-windows are inferred from temperature stress (cooling/heating) and bounded to deterministic defaults.</p>");
+        lines.push("<p class='calc-line'>AUTO success examples: Jan " + fmt((inputs.ha.successRateByMonth[0] || 0) * 100, 0) + "%, Jul " + fmt((inputs.ha.successRateByMonth[6] || 0) * 100, 0) + "%.</p>");
+        lines.push("<p class='calc-line'>AUTO pre-window examples: Jan " + janWindow.startHour + ":00-" + janWindow.endHour + ":00, Jul " + julWindow.startHour + ":00-" + julWindow.endHour + ":00.</p>");
+        lines.push("<p class='calc-line'>Max shift caps still apply: maxShiftHoursPerDay " + fmt(inputs.ha.maxShiftHoursPerDay, 0) + ", maxShiftKwhPerDay " + fmt(inputs.ha.maxShiftKwhPerDay, 2) + ".</p>");
+        lines.push("<p class='calc-line'>Representative day results: capacity " + fmt(avgDayHvacShiftCapacity, 2) + " kWh/day, scheduled " + fmt(avgDayHvacShiftScheduled, 2) + " kWh/day, executed " + fmt(avgDayHvacShiftExecuted, 2) + " kWh/day, shifted to pre-window " + fmt(avgDayHvacShiftToPreWindow, 2) + " kWh/day, shifted to post-peak recovery " + fmt(result.annualHvacShiftToPostPeakKwh / DAYS_PER_YEAR, 2) + " kWh/day, peak-import avoided estimate " + fmt(avgDayHvacPeakImportAvoided, 2) + " kWh/day.</p>");
       } else {
         const preWindowHours = buildHourRange(inputs.ha.preCoolStartHour, inputs.ha.preCoolEndHour, 24).slice(0, inputs.ha.maxShiftHoursPerDay).length;
         const seasonSummer = getSeasonDailyHvacShiftCapacity(inputs.ha, 6, preWindowHours);
@@ -2982,26 +4523,28 @@
         lines.push("<p class='calc-line'>Annual HVAC shift totals: capacity " + fmt(result.annualHvacShiftCapacityKwh, 0) + " kWh/yr, scheduled " + fmt(result.annualHvacShiftScheduledKwh, 0) + " kWh/yr, executed " + fmt(result.annualHvacShiftExecutedKwh, 0) + " kWh/yr, shifted to pre-window " + fmt(result.annualHvacShiftToPreWindowKwh, 0) + " kWh/yr, shifted to post-peak " + fmt(result.annualHvacShiftToPostPeakKwh, 0) + " kWh/yr.</p>");
       }
 
-      const exportPeakAnnual = result.annualExportKwh * inputs.rates.exportPeakShare;
-      const exportOffAnnual = result.annualExportKwh - exportPeakAnnual;
+      const exportPeakAnnual = Number(result.annualExportPeakKwh) || 0;
+      const exportOffAnnual = Number(result.annualExportOffKwh) || 0;
       const exportPeakRate = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportPeak;
       const exportOffRate = inputs.rates.exportRateMode === "nem3_override" ? inputs.rates.nem3ExportRate : inputs.rates.exportOffPeak;
-      const annualBillAfterEnergy = (result.annualImportPeakKwh * inputs.rates.importPeak) + (result.annualImportOffKwh * inputs.rates.importOffPeak);
-      const annualBillAfterNbc = result.annualImportKwh * inputs.rates.nbcPerImportKwh;
-      const annualExportCredit = (exportPeakAnnual * exportPeakRate) + (exportOffAnnual * exportOffRate);
-      const annualFixed = inputs.rates.fixedMonthlyCharge * 12;
-      const annualAfterFromFlow = annualBillAfterEnergy + annualBillAfterNbc + annualFixed - annualExportCredit;
+      const annualAfterFromFlow = result.annualFixedChargeTotal + result.annualNbcAfter + result.annualEnergyNetAfterTrueUp - result.annualVppCredit;
 
       lines.push("<p class='calc-line'><strong>Annual rollup and TOU/NEM3 bill linkage</strong></p>");
       if (inputs.rates.exportRateMode === "nem3_override") {
         lines.push("<p class='calc-line'>Export mode: NEM3 override. All exported kWh credited at " + usdPrecise(inputs.rates.nem3ExportRate) + "/kWh.</p>");
       } else {
-        lines.push("<p class='calc-line'>Export mode: TOU export. Export split uses peak share " + fmt(inputs.rates.exportPeakShare * 100, 0) + "% (peak rate " + usdPrecise(inputs.rates.exportPeak) + "/kWh, off-peak " + usdPrecise(inputs.rates.exportOffPeak) + "/kWh).</p>");
+        lines.push("<p class='calc-line'>Export mode: TOU export. Export is bucketed hourly into peak/off-peak (peak rate " + usdPrecise(inputs.rates.exportPeak) + "/kWh, off-peak " + usdPrecise(inputs.rates.exportOffPeak) + "/kWh).</p>");
       }
-      lines.push("<p class='calc-line'>billAfterEnergy = importPeakKwh*peakRate + importOffKwh*offPeakRate = (" + fmt(result.annualImportPeakKwh, 0) + "*" + usdPrecise(inputs.rates.importPeak) + ") + (" + fmt(result.annualImportOffKwh, 0) + "*" + usdPrecise(inputs.rates.importOffPeak) + ") = " + usdPrecise(annualBillAfterEnergy) + ".</p>");
-      lines.push("<p class='calc-line'>billAfterNbc = importKwh*nbcRate = " + fmt(result.annualImportKwh, 0) + "*" + usdPrecise(inputs.rates.nbcPerImportKwh) + " = " + usdPrecise(annualBillAfterNbc) + ".</p>");
-      lines.push("<p class='calc-line'>exportCredit = exportPeakKwh*exportPeakRate + exportOffPeakKwh*exportOffPeakRate = (" + fmt(exportPeakAnnual, 0) + "*" + usdPrecise(exportPeakRate) + ") + (" + fmt(exportOffAnnual, 0) + "*" + usdPrecise(exportOffRate) + ") = " + usdPrecise(annualExportCredit) + ".</p>");
-      lines.push("<p class='calc-line'>rawBillAfter = billAfterEnergy + billAfterNbc + fixedCharge - exportCredit = " + usdPrecise(annualBillAfterEnergy) + " + " + usdPrecise(annualBillAfterNbc) + " + " + usdPrecise(annualFixed) + " - " + usdPrecise(annualExportCredit) + " = " + usdPrecise(annualAfterFromFlow) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_Import_Cost_After = " + usdPrecise(result.annualImportEnergyCostAfter) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_Export_Value = exportPeakKwh*exportPeakRate + exportOffPeakKwh*exportOffPeakRate = (" + fmt(exportPeakAnnual, 0) + "*" + usdPrecise(exportPeakRate) + ") + (" + fmt(exportOffAnnual, 0) + "*" + usdPrecise(exportOffRate) + ") = " + usdPrecise(result.annualExportCreditValue) + ".</p>");
+      lines.push("<p class='calc-line'>Battery_To_Grid_Export = " + fmt(result.annualBatteryToGridExportKwh, 0) + " kWh/year (included in annual export buckets).</p>");
+      lines.push("<p class='calc-line'>Annual_Energy_Net = max(0, Annual_Import_Cost_After - Annual_Export_Value) = max(0, " + usdPrecise(result.annualImportEnergyCostAfter) + " - " + usdPrecise(result.annualExportCreditValue) + ") = " + usdPrecise(result.annualEnergyNetAfterTrueUp) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_Fixed_Total = " + usdPrecise(result.annualFixedChargeTotal) + ", Annual_NBC_After = " + usdPrecise(result.annualNbcAfter) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_VPP_Credit = " + fmt(result.powerwallCount, 0) + "*" + fmt(POWERWALL3_AC_KW, 1) + "*" + usdPrecise(VPP_CREDIT_PER_KW_YEAR) + " = " + usdPrecise(result.annualVppCredit) + ".</p>");
+      lines.push("<p class='calc-line'>annualAfterRaw = Annual_Fixed_Total + Annual_NBC_After + Annual_Energy_Net - Annual_VPP_Credit = " + usdPrecise(result.annualFixedChargeTotal) + " + " + usdPrecise(result.annualNbcAfter) + " + " + usdPrecise(result.annualEnergyNetAfterTrueUp) + " - " + usdPrecise(result.annualVppCredit) + " = " + usdPrecise(annualAfterFromFlow) + ".</p>");
+      if (annualAfterFromFlow < 0) {
+        lines.push("<p class='calc-line'>Result is negative: modeled annual utility position is net-positive cashflow (VPP payout exceeds annual liability).</p>");
+      }
       lines.push("<p class='calc-line'>Bridge checks: PG&amp;E After / Month = " + usdPrecise(result.pgeAfterMonthlyTrueUp) + ", Primary Utility Bill Change / Month = " + usdSigned(utilityBillChangeMonthlyWholeHome) + ", Solar-only delta / Month = " + usdSigned(utilityBillChangeMonthlySolarOnly) + ", Net Change / Month = " + usdSigned(netPaymentChangeMonthly) + ".</p>");
 
       el.calcBreakdown.innerHTML = lines.join("");
@@ -3012,7 +4555,9 @@
       el.cardPowerwallChoice.textContent = "Powerwalls: --";
       el.cardPgeBefore.textContent = "--";
       el.cardPgeAfter.textContent = "--";
-      el.cardTrueUpNote.textContent = "Annual true-up subtotal: --";
+      el.cardTrueUpNote.textContent = "Annual true-up bill: --";
+      el.cardClippedSolar.textContent = "--";
+      el.cardClippedSolarNote.textContent = "Annual clipped solar: --";
       el.cardSavings.textContent = "--";
       el.cardUtilityChangeFormula.textContent = "(PG&E After) - (PG&E Baseline No WHF/HA)";
       el.cardSolarOnlyDelta.textContent = "Solar-only delta (same-load baseline): --";
@@ -3033,6 +4578,7 @@
     }
 
     function syncControlStates() {
+      applyRescueDefaults();
       const objectiveMode = el.sizingObjective.value === "total_outflow"
         ? "total_outflow"
         : (el.sizingObjective.value === "utility_bill_knee" ? "utility_bill_knee" : "return_npv");
@@ -3049,24 +4595,35 @@
       el.nem3ExportRate.disabled = !nemMode;
       el.exportOffPeak.disabled = nemMode;
       el.exportPeak.disabled = nemMode;
+      const tariffPreset = el.tariffPreset.value === "pge_e_elec" ? "pge_e_elec" : "custom";
       el.exportModeNote.textContent = nemMode
-        ? "NEM 3.0 override active: export credits use one rate."
-        : "TOU export mode active: peak/off-peak export rates are used.";
+        ? "NEM 3.0 override active: export credits use one rate and annual energy true-up rollover."
+        : "TOU export mode active: modeled hourly export is bucketed by peak/off-peak.";
+      if (tariffPreset === "pge_e_elec") {
+        el.exportModeNote.textContent += " Tariff preset: PG&E E-ELEC reference.";
+      }
 
       const whfEnabled = el.enableWhf.checked;
+      const whfManualMode = el.whfMode.value === "manual";
       el.whfFields.classList.toggle("hidden", !whfEnabled);
+      el.whfMode.disabled = !whfEnabled;
+      el.whfManualFields.classList.toggle("hidden", !whfEnabled || !whfManualMode);
       el.whfFanWatts.disabled = !whfEnabled;
       el.whfDisplacedAcWatts.disabled = !whfEnabled;
-      el.whfStartHour.disabled = !whfEnabled;
-      el.whfStartMinute.disabled = !whfEnabled;
-      el.whfEndHour.disabled = !whfEnabled;
-      el.whfEndMinute.disabled = !whfEnabled;
-      el.whfSuccessRatePct.disabled = !whfEnabled;
+      el.whfStartHour.disabled = !whfEnabled || !whfManualMode;
+      el.whfStartMinute.disabled = !whfEnabled || !whfManualMode;
+      el.whfEndHour.disabled = !whfEnabled || !whfManualMode;
+      el.whfEndMinute.disabled = !whfEnabled || !whfManualMode;
+      el.whfSuccessRatePct.disabled = !whfEnabled || !whfManualMode;
       el.whfMonthNodes.forEach((node) => {
-        node.disabled = !whfEnabled;
+        node.disabled = !whfEnabled || !whfManualMode;
       });
       if (!whfEnabled) {
         el.whfNote.textContent = "WHF: OFF.";
+      } else if (!whfManualMode) {
+        const fanW = Math.max(0, Number(el.whfFanWatts.value) || 0);
+        const displacedW = Math.max(0, Number(el.whfDisplacedAcWatts.value) || 0);
+        el.whfNote.textContent = "WHF: AUTO | Window/success/months are derived per month from temperature profile. Fan " + fmt(fanW, 0) + "W | Displaced AC " + fmt(displacedW, 0) + "W.";
       } else {
         const startHour = clamp(Number(el.whfStartHour.value) || 0, 0, 23);
         const startMinute = clamp(Number(el.whfStartMinute.value) || 0, 0, 59);
@@ -3098,7 +4655,10 @@
       }
 
       const haEnabled = el.enableHaShift.checked;
+      const haManualMode = el.haMode.value === "manual";
       el.haFields.classList.toggle("hidden", !haEnabled);
+      el.haMode.disabled = !haEnabled;
+      el.haManualFields.classList.toggle("hidden", !haEnabled || !haManualMode);
       el.tempUnitsDisplay.disabled = false;
       el.summerSetpointF.disabled = false;
       el.winterSetpointF.disabled = false;
@@ -3106,9 +4666,9 @@
       el.maxPreheatOffsetF.disabled = !haEnabled;
       el.maxPeakRelaxOffsetF.disabled = !haEnabled;
       el.hvacSensitivityKwhPerDegHour.disabled = !haEnabled;
-      el.hvacShiftSuccessRatePct.disabled = !haEnabled;
-      el.preCoolStartHour.disabled = !haEnabled;
-      el.preCoolEndHour.disabled = !haEnabled;
+      el.hvacShiftSuccessRatePct.disabled = !haEnabled || !haManualMode;
+      el.preCoolStartHour.disabled = !haEnabled || !haManualMode;
+      el.preCoolEndHour.disabled = !haEnabled || !haManualMode;
       el.maxShiftHoursPerDay.disabled = !haEnabled;
       el.maxShiftKwhPerDay.disabled = !haEnabled;
 
@@ -3119,6 +4679,20 @@
 
       if (!haEnabled) {
         el.haLoadShiftNote.textContent = "HVAC shift: OFF. Setpoint load multipliers active: summer x" + fmt(setpointSummerMult, 2) + ", winter x" + fmt(setpointWinterMult, 2) + ".";
+      } else if (!haManualMode) {
+        const climateContext = buildClimateContext(el.zipCode.value, el.nrelApiKey.value);
+        const climateSnapshot = getClimateSnapshot(climateContext);
+        const tempProfile = isValidTempHourlyByMonth(climateSnapshot.tempHourlyFByMonth)
+          ? climateSnapshot.tempHourlyFByMonth
+          : getSyntheticTempHourlyByMonthProfiles();
+        const autoHaPreview = deriveAutoHaProfile(
+          tempProfile,
+          Number.isFinite(summerSetpoint) ? summerSetpoint : BASE_SUMMER_SETPOINT_F,
+          Number.isFinite(winterSetpoint) ? winterSetpoint : BASE_WINTER_SETPOINT_F
+        );
+        const summerWindow = autoHaPreview.autoPreWindowByMonth[6];
+        const winterWindow = autoHaPreview.autoPreWindowByMonth[0];
+        el.haLoadShiftNote.textContent = "Setpoint multipliers: summer x" + fmt(setpointSummerMult, 2) + ", winter x" + fmt(setpointWinterMult, 2) + ". AUTO windows: Summer " + summerWindow.startHour + ":00-" + summerWindow.endHour + ":00, Winter " + winterWindow.startHour + ":00-" + winterWindow.endHour + ":00. AUTO success by month is temperature-stress weighted.";
       } else {
         const preStart = Number(el.preCoolStartHour.value);
         const preEnd = Number(el.preCoolEndHour.value);
@@ -3136,6 +4710,18 @@
         el.haLoadShiftNote.textContent = "Setpoint multipliers: summer x" + fmt(setpointSummerMult, 2) + ", winter x" + fmt(setpointWinterMult, 2) + ". Daily shift cap: Summer " + fmt(summerCap, 2) + " kWh, Winter " + fmt(winterCap, 2) + " kWh, Shoulder " + fmt(shoulderCap, 2) + " kWh. Success " + fmt(successPct, 0) + "%.";
       }
 
+      const reservePolicy = el.reservePolicy.value === "fixed"
+        ? "fixed"
+        : (el.reservePolicy.value === "custom_monthly" ? "custom_monthly" : "auto_seasonal");
+      const fixedReserveMode = reservePolicy === "fixed";
+      const customReserveMode = reservePolicy === "custom_monthly";
+      el.fixedReserveField.classList.toggle("hidden", !fixedReserveMode);
+      el.reserveMonthlyFields.classList.toggle("hidden", !customReserveMode);
+      el.minSocReservePct.disabled = !fixedReserveMode;
+      el.monthlyReservePctNodes.forEach((node) => {
+        if (node) node.disabled = !customReserveMode;
+      });
+
     }
 
     function showErrors(errors) {
@@ -3148,16 +4734,120 @@
       el.errorBox.innerHTML = "<strong>Fix input issues:</strong><br>" + errors.join("<br>");
     }
 
+    function setClimateBadge(className, text) {
+      el.climateDataBadge.classList.remove("climate-badge-live", "climate-badge-cached", "climate-badge-fallback");
+      if (className) el.climateDataBadge.classList.add(className);
+      let dot = el.climateDataBadge.querySelector(".climate-badge-dot");
+      let label = el.climateDataBadge.querySelector("span:last-child");
+      if (!dot || !label) {
+        el.climateDataBadge.innerHTML = "";
+        dot = document.createElement("span");
+        dot.className = "climate-badge-dot";
+        label = document.createElement("span");
+        el.climateDataBadge.appendChild(dot);
+        el.climateDataBadge.appendChild(label);
+      }
+      label.textContent = text;
+    }
+
+    function renderClimateStatusUi(climate, climateContext) {
+      const keyModeLabel = climate.keyMode === "user_key" ? "user key" : "DEMO_KEY";
+      if (!climateContext.ok) {
+        setClimateBadge("climate-badge-fallback", "Climate Data: invalid ZIP");
+        el.climateAssumptionPill.textContent = "Climate source: unavailable (invalid ZIP)";
+        el.climateFallbackBanner.classList.remove("visible");
+        el.fallbackProceedBtn.style.display = "none";
+        return;
+      }
+
+      const lastVerifiedText = formatTimestampForUi(climate.lastVerifiedAt);
+      if (climate.pending && climate.status !== "verified_live" && climate.status !== "verified_cached") {
+        setClimateBadge("", "Climate Data: fetching NREL for " + climate.locationLabel + "...");
+        el.climateAssumptionPill.textContent = "Climate source: fetching NREL data";
+        el.climateFallbackBanner.classList.remove("visible");
+        el.fallbackProceedBtn.style.display = "none";
+        return;
+      }
+      if (climate.status === "verified_live") {
+        setClimateBadge("climate-badge-live", "Climate Data: " + climate.locationLabel + " (NREL Verified Live, " + lastVerifiedText + ")");
+        el.climateAssumptionPill.textContent = "Climate source: NREL Live | " + climate.locationLabel + " | Verified " + lastVerifiedText;
+      } else if (climate.status === "verified_cached") {
+        const cachedNote = climate.fallbackReason === "rate_limit_429" ? " due to rate limit" : "";
+        setClimateBadge("climate-badge-cached", "Climate Data: " + climate.locationLabel + " (NREL Verified Cached" + cachedNote + ", " + lastVerifiedText + ")");
+        el.climateAssumptionPill.textContent = "Climate source: NREL Cached" + cachedNote + " | " + climate.locationLabel + " | Verified " + lastVerifiedText;
+      } else {
+        setClimateBadge("climate-badge-fallback", "Climate Data: Synthetic Fallback (" + climateFallbackReasonText(climate.fallbackReason) + ")");
+        el.climateAssumptionPill.textContent = "Climate source: Synthetic fallback | " + climateFallbackReasonText(climate.fallbackReason) + " | Key " + keyModeLabel;
+      }
+
+      const fallbackActive = climate.status === "fallback_synthetic" || climate.status === "fetch_error";
+      el.climateFallbackBanner.classList.toggle("visible", fallbackActive);
+      if (!fallbackActive) {
+        el.fallbackProceedBtn.style.display = "none";
+        return;
+      }
+
+      const retryAfter = climate.nextRetryAt > Date.now()
+        ? (" Auto retry after " + formatTimestampForUi(new Date(climate.nextRetryAt).toISOString()) + ".")
+        : "";
+      const parts = [
+        "Synthetic fallback is active.",
+        climateFallbackReasonText(climate.fallbackReason),
+        "Key mode: " + keyModeLabel + ".",
+        "Last verified NREL dataset: " + lastVerifiedText + ".",
+        retryAfter,
+        "Paste a personal NREL API key and retry for higher reliability."
+      ];
+      el.climateFallbackMessage.textContent = parts.join(" ").replace(/\s+/g, " ").trim();
+      el.fallbackProceedBtn.style.display = "inline-block";
+    }
+
     function render() {
       syncControlStates();
+      const climateContext = buildClimateContext(el.zipCode.value, el.nrelApiKey.value);
+      if (climateContext.ok) {
+        ensureClimateProfile(climateContext, { forceRefresh: false });
+      }
       const { errors, inputs, zipInfo } = collectInputs();
+      const climateSnapshot = getClimateSnapshot(climateContext);
 
       el.zipYieldNote.textContent = zipInfo.ok
-        ? "Yield profile: " + zipInfo.annualYield + " kWh/kW-yr (" + zipInfo.label + ")."
+        ? ("Yield profile: " + zipInfo.annualYield + " kWh/kW-yr (" + zipInfo.label + "). Climate: " + (climateSnapshot.status === "verified_live"
+          ? "NREL verified live"
+          : (climateSnapshot.status === "verified_cached" ? "NREL verified cached" : "synthetic fallback")) + ". Temp source: " + (climateSnapshot.tempSource === "nrel_tamb" ? "NREL tamb" : "synthetic fallback") + ".")
         : "Yield profile: invalid ZIP.";
       el.yieldAssumptionPill.textContent = zipInfo.ok
         ? "Yield profile: " + zipInfo.label
         : "Yield profile: invalid ZIP";
+      el.tariffAssumptionPill.textContent = "Tariff floor: annual export offsets energy only; fixed + NBC are non-offsettable. Preset: " + (el.tariffPreset.value === "pge_e_elec" ? "PG&E E-ELEC" : "Custom") + ".";
+      renderClimateStatusUi(climateSnapshot, climateContext);
+      if (inputs) {
+        const clipCap = inputs.sizing.powerwallCount >= 1 ? (inputs.sizing.powerwallCount * POWERWALL3_AC_KW) : 0;
+        el.vppAssumptionPill.textContent = inputs.vpp.enabled
+          ? ("VPP: ON | " + usdPrecise(inputs.sizing.powerwallCount * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) + "/yr proxy at selected PW.")
+          : "VPP: OFF";
+        el.tempAssumptionPill.textContent = getTemperatureSourceText(inputs.production);
+        el.dispatchAssumptionPill.textContent = "Dispatch mode: " + inputs.battery.dispatchMode + ".";
+        const janReserve = getMonthReservePct(inputs.battery, 0);
+        const julReserve = getMonthReservePct(inputs.battery, 6);
+        el.reserveAssumptionPill.textContent = "Reserve policy: " + inputs.battery.reservePolicy + " (Jan " + fmt(janReserve * 100, 0) + "%, Jul " + fmt(julReserve * 100, 0) + "%).";
+        el.clipAssumptionPill.textContent = inputs.sizing.powerwallCount >= 1
+          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW).")
+          : "Clipping: OFF for 0 Powerwalls.";
+      } else {
+        const pw = Math.max(0, Number(el.powerwallCount.value) || 0);
+        const clipCap = pw >= 1 ? pw * POWERWALL3_AC_KW : 0;
+        el.vppAssumptionPill.textContent = el.vppEnabled.checked
+          ? ("VPP: ON | " + usdPrecise(pw * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) + "/yr proxy at selected PW.")
+          : "VPP: OFF";
+        el.tempAssumptionPill.textContent = "Temperature source: pending climate profile.";
+        el.dispatchAssumptionPill.textContent = "Dispatch mode: " + (el.dispatchMode.value || "self_consumption_peak_then_postpeak") + ".";
+        const reservePolicyLabel = el.reservePolicy.value || "auto_seasonal";
+        el.reserveAssumptionPill.textContent = "Reserve policy: " + reservePolicyLabel + ".";
+        el.clipAssumptionPill.textContent = pw >= 1
+          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW).")
+          : "Clipping: OFF for 0 Powerwalls.";
+      }
       if (inputs && inputs.ev.enabled) {
         el.evAssumptionPill.textContent = "EV: ON | " + fmt(inputs.ev.milesPerMonth, 0) + " mi/mo | Day " + fmt(inputs.ev.dayChargingShare * 100, 0) + "% / Night " + fmt(inputs.ev.nightChargingShare * 100, 0) + "% | Solar-first day shift.";
       } else if (el.hasEvCharging.checked) {
@@ -3166,8 +4856,14 @@
         el.evAssumptionPill.textContent = "EV: OFF";
       }
       if (inputs && inputs.ha.enabled) {
-        const preHours = buildHourRange(inputs.ha.preCoolStartHour, inputs.ha.preCoolEndHour, 24).slice(0, inputs.ha.maxShiftHoursPerDay).length;
-        el.haAssumptionPill.textContent = "HA HVAC shift: ON | Setpoints S " + fmt(inputs.ha.summerSetpointF, 0) + "F / W " + fmt(inputs.ha.winterSetpointF, 0) + "F | Peak drift " + fmt(inputs.ha.maxPeakRelaxOffsetF, 1) + "F | Pre-window " + preHours + "h | Success " + fmt(inputs.ha.successRate * 100, 0) + "%.";
+        if (inputs.ha.mode === "auto") {
+          const summerWindow = inputs.ha.autoPreWindowByMonth[6] || { startHour: 12, endHour: 16 };
+          const winterWindow = inputs.ha.autoPreWindowByMonth[0] || { startHour: 11, endHour: 15 };
+          el.haAssumptionPill.textContent = "HA HVAC shift: AUTO | Setpoints S " + fmt(inputs.ha.summerSetpointF, 0) + "F / W " + fmt(inputs.ha.winterSetpointF, 0) + "F | Success Jan " + fmt((inputs.ha.successRateByMonth[0] || 0) * 100, 0) + "%, Jul " + fmt((inputs.ha.successRateByMonth[6] || 0) * 100, 0) + "% | Windows Winter " + winterWindow.startHour + "-" + winterWindow.endHour + ", Summer " + summerWindow.startHour + "-" + summerWindow.endHour + ".";
+        } else {
+          const preHours = buildHourRange(inputs.ha.preCoolStartHour, inputs.ha.preCoolEndHour, 24).slice(0, inputs.ha.maxShiftHoursPerDay).length;
+          el.haAssumptionPill.textContent = "HA HVAC shift: MANUAL | Setpoints S " + fmt(inputs.ha.summerSetpointF, 0) + "F / W " + fmt(inputs.ha.winterSetpointF, 0) + "F | Peak drift " + fmt(inputs.ha.maxPeakRelaxOffsetF, 1) + "F | Pre-window " + preHours + "h | Success " + fmt(inputs.ha.successRate * 100, 0) + "%.";
+        }
       } else if (el.enableHaShift.checked) {
         el.haAssumptionPill.textContent = "HA HVAC shift: ON (input invalid).";
       } else {
@@ -3176,9 +4872,13 @@
         el.haAssumptionPill.textContent = "HA HVAC shift: OFF | Setpoints S " + fmt(Number.isFinite(summerSet) ? summerSet : BASE_SUMMER_SETPOINT_F, 0) + "F / W " + fmt(Number.isFinite(winterSet) ? winterSet : BASE_WINTER_SETPOINT_F, 0) + "F";
       }
       if (inputs && inputs.whf.enabled) {
-        const monthLabels = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-        const activeMonths = inputs.whf.activeMonths.map((idx) => monthLabels[idx]).join(",");
-        el.whfAssumptionPill.textContent = "WHF: ON | " + fmt(inputs.whf.fanWatts, 0) + "W fan | " + fmt(inputs.whf.displacedAcWatts, 0) + "W displaced AC | Success " + fmt(inputs.whf.successRate * 100, 0) + "% | Months " + activeMonths;
+        if (inputs.whf.mode === "auto") {
+          const activeMonths = (inputs.whf.autoActiveMonths || []).map((idx) => MONTH_LABELS[idx]).join(",");
+          el.whfAssumptionPill.textContent = "WHF: AUTO | " + fmt(inputs.whf.fanWatts, 0) + "W fan | " + fmt(inputs.whf.displacedAcWatts, 0) + "W displaced AC | Success Jan " + fmt((inputs.whf.successRateByMonth[0] || 0) * 100, 0) + "%, Jul " + fmt((inputs.whf.successRateByMonth[6] || 0) * 100, 0) + "% | Active months " + (activeMonths || "none") + ".";
+        } else {
+          const activeMonths = inputs.whf.activeMonths.map((idx) => MONTH_LABELS[idx]).join(",");
+          el.whfAssumptionPill.textContent = "WHF: MANUAL | " + fmt(inputs.whf.fanWatts, 0) + "W fan | " + fmt(inputs.whf.displacedAcWatts, 0) + "W displaced AC | Success " + fmt(inputs.whf.successRate * 100, 0) + "% | Months " + activeMonths;
+        }
       } else if (el.enableWhf.checked) {
         el.whfAssumptionPill.textContent = "WHF: ON (input invalid).";
       } else {
@@ -3187,6 +4887,13 @@
 
       if (errors.length) {
         showErrors(errors);
+        renderInvalidState();
+        el.recalculateBtn.disabled = true;
+        return;
+      }
+
+      if (inputs && inputs.climate && inputs.climate.blockedByFallbackAck) {
+        showErrors(["NREL climate fetch is unavailable. Click \"Use Synthetic Fallback For Now\" to continue, or paste a personal NREL API key and retry."]);
         renderInvalidState();
         el.recalculateBtn.disabled = true;
         return;
@@ -3239,6 +4946,9 @@
       document.querySelectorAll("input, select").forEach((node) => {
         node.addEventListener("input", scheduleRender);
       });
+      el.hvacSensitivityKwhPerDegHour.addEventListener("input", () => {
+        hvacSensitivityTouched = true;
+      });
       el.powerwallCount.addEventListener("input", () => {
         selectedScenarioKey = null;
       });
@@ -3247,6 +4957,20 @@
           clearTimeout(renderTimer);
           renderTimer = null;
         }
+        render();
+      });
+      el.fallbackProceedBtn.addEventListener("click", () => {
+        const climateContext = buildClimateContext(el.zipCode.value, el.nrelApiKey.value);
+        if (!climateContext.ok) return;
+        acknowledgeSyntheticFallback(climateContext.signature);
+        climateState.blockedByFallbackAck = false;
+        render();
+      });
+      el.climateRetryBtn.addEventListener("click", () => {
+        const climateContext = buildClimateContext(el.zipCode.value, el.nrelApiKey.value);
+        if (!climateContext.ok) return;
+        climateState.nextRetryAt = 0;
+        ensureClimateProfile(climateContext, { forceRefresh: true });
         render();
       });
     }
