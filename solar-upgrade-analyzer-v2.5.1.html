@@ -408,6 +408,45 @@
       display: none;
     }
 
+    details.collapsible {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: #fff;
+      margin-bottom: 10px;
+      overflow: hidden;
+    }
+
+    details.collapsible > summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 10px;
+      font-weight: 600;
+      color: #2c4035;
+      background: #f4f8f1;
+      border-bottom: 1px solid #e1eadc;
+    }
+
+    details.collapsible > summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.collapsible > .section {
+      margin-top: 0;
+      border: none;
+      border-radius: 0;
+    }
+
+    details.collapsible > .group {
+      margin: 0;
+      border: none;
+      border-radius: 0;
+      border-top: 1px solid #e3ebdf;
+    }
+
+    details.collapsible > .group:first-of-type {
+      border-top: none;
+    }
+
     .calc-body {
       padding: 10px;
       font-size: 0.85rem;
@@ -634,6 +673,27 @@
         </div>
 
         <div class="group">
+          <h3>Physical Constraints: Home + Yield</h3>
+          <div class="field">
+            <label for="annualLoadKwh">Annual home load (non-EV kWh)</label>
+            <input id="annualLoadKwh" type="number" min="0" step="100" value="24000" />
+          </div>
+          <div class="field">
+            <label for="zipCode">ZIP code (5-digit)</label>
+            <input id="zipCode" type="text" value="95672" />
+          </div>
+          <div class="field">
+            <label for="nrelApiKey">NREL API key (optional)</label>
+            <input id="nrelApiKey" type="text" value="" placeholder="DEMO_KEY is used when empty" autocomplete="off" />
+          </div>
+          <div class="hint" id="zipYieldNote">Yield profile: --</div>
+          <div class="climate-badge" id="climateDataBadge">
+            <span class="climate-badge-dot"></span>
+            <span>Climate Data: --</span>
+          </div>
+        </div>
+
+        <div class="group">
           <h3>Load Shaping: Whole House Fan</h3>
           <div class="field">
             <label class="checkline"><input id="enableWhf" type="checkbox" /> Enable WHF load replacement</label>
@@ -697,50 +757,6 @@
           <div class="hint" id="whfNote">WHF: OFF.</div>
           <div class="hint">Auto mode derives month windows and success from hourly temperatures (55F-82F eligibility + cooling stress).</div>
           <div class="hint">Rescue manual preset: May-Sep, 20:30-06:00, 3500W displaced AC, 200W fan, 85% success.</div>
-        </div>
-
-        <div class="group">
-          <h3>Physical Constraints: Home + Yield</h3>
-          <div class="field">
-            <label for="annualLoadKwh">Annual home load (non-EV kWh)</label>
-            <input id="annualLoadKwh" type="number" min="0" step="100" value="24000" />
-          </div>
-          <div class="field">
-            <label for="zipCode">ZIP code (5-digit)</label>
-            <input id="zipCode" type="text" value="95672" />
-          </div>
-          <div class="field">
-            <label for="nrelApiKey">NREL API key (optional)</label>
-            <input id="nrelApiKey" type="text" value="" placeholder="DEMO_KEY is used when empty" autocomplete="off" />
-          </div>
-          <div class="hint" id="zipYieldNote">Yield profile: --</div>
-          <div class="climate-badge" id="climateDataBadge">
-            <span class="climate-badge-dot"></span>
-            <span>Climate Data: --</span>
-          </div>
-        </div>
-
-        <div class="group">
-          <h3>Load Shaping: EV Charging</h3>
-          <div class="field">
-            <label class="checkline"><input id="hasEvCharging" type="checkbox" /> Include EV charging load</label>
-          </div>
-          <div id="evFields">
-            <div class="field">
-              <label for="evMilesPerMonth">Miles driven per month</label>
-              <input id="evMilesPerMonth" type="number" min="0" step="10" value="800" />
-            </div>
-            <div class="field">
-              <label for="evKwhPerMile">EV efficiency (kWh/mile)</label>
-              <input id="evKwhPerMile" type="number" min="0.01" step="0.01" value="0.30" />
-            </div>
-            <div class="field">
-              <label for="evDayChargingPct">Daytime charging share (%)</label>
-              <input id="evDayChargingPct" type="number" min="0" max="100" step="1" value="60" />
-            </div>
-          </div>
-          <div class="hint" id="evLoadNote">EV load: OFF.</div>
-          <div class="hint">Charging windows: Day 09:00-16:00, Night 21:00-06:00. Day charging is solar-only; unmet day charging shifts to night.</div>
         </div>
 
         <div class="group">
@@ -813,150 +829,186 @@
         </div>
 
         <div class="group">
-          <h3>Tariff &amp; Programs</h3>
+          <h3>Load Shaping: EV Charging</h3>
           <div class="field">
-            <label for="tariffPreset">Tariff preset</label>
-            <select id="tariffPreset">
-              <option value="custom" selected>Custom</option>
-              <option value="pge_e_elec">PG&amp;E E-ELEC (reference)</option>
-            </select>
+            <label class="checkline"><input id="hasEvCharging" type="checkbox" /> Include EV charging load</label>
           </div>
-          <div class="field">
-            <label for="importOffPeak">Import off-peak ($/kWh)</label>
-            <input id="importOffPeak" type="number" min="0" step="0.01" value="0.36" />
-          </div>
-          <div class="field">
-            <label for="importPeak">Import peak ($/kWh)</label>
-            <input id="importPeak" type="number" min="0" step="0.01" value="0.58" />
-          </div>
-          <div class="field">
-            <label for="fixedMonthlyCharge">Fixed monthly charge ($)</label>
-            <input id="fixedMonthlyCharge" type="number" min="0" step="0.01" value="24.15" />
-          </div>
-          <div class="field">
-            <label for="nbcPerImportKwh">NBC on imports ($/kWh)</label>
-            <input id="nbcPerImportKwh" type="number" min="0" step="0.001" value="0.03" />
-          </div>
-          <div class="field">
-            <label for="exportRateMode">Export rate mode</label>
-            <select id="exportRateMode">
-              <option value="nem3_override" selected>NEM 3.0 override</option>
-              <option value="tou_export">TOU export rates</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="nem3ExportRate">NEM 3.0 export rate ($/kWh)</label>
-            <input id="nem3ExportRate" type="number" min="0" step="0.01" value="0.04" />
-          </div>
-          <div class="field">
-            <label for="exportOffPeak">Export off-peak ($/kWh)</label>
-            <input id="exportOffPeak" type="number" min="0" step="0.01" value="0.05" />
-          </div>
-          <div class="field">
-            <label for="exportPeak">Export peak ($/kWh)</label>
-            <input id="exportPeak" type="number" min="0" step="0.01" value="0.12" />
-          </div>
-          <div class="field">
-            <label class="checkline"><input id="vppEnabled" type="checkbox" checked /> Include VPP revenue (DSGS/ELRP proxy)</label>
-          </div>
-          <div class="hint" id="exportModeNote">Export note: --</div>
-          <div class="hint">Annual true-up logic: export value offsets annual energy import charges only. Fixed charge and NBC remain non-offsettable.</div>
-          <div class="hint">VPP credit model: Powerwalls * 11.5 kW * $35/kW-year. This can make annual utility results negative (net profit).</div>
-        </div>
-
-        <div class="group">
-          <h3>Physical Constraints: System Pricing</h3>
-          <div class="field">
-            <label for="solarBaseCost">Solar base cost ($)</label>
-            <input id="solarBaseCost" type="number" min="0" step="50" value="2710" />
-          </div>
-          <div class="field">
-            <label for="solarCostPerKw">Solar cost per kW ($)</label>
-            <input id="solarCostPerKw" type="number" min="0" step="25" value="2785" />
-          </div>
-          <div class="field">
-            <label for="batteryCost1">1 Powerwall cost ($)</label>
-            <input id="batteryCost1" type="number" min="0" step="50" value="16875" />
-          </div>
-          <div class="field">
-            <label for="batteryCost2">2 Powerwalls cost ($)</label>
-            <input id="batteryCost2" type="number" min="0" step="50" value="31250" />
-          </div>
-          <div class="field">
-            <label for="batteryCost3">3 Powerwalls cost ($)</label>
-            <input id="batteryCost3" type="number" min="0" step="50" value="45625" />
-          </div>
-          <div class="field">
-            <label for="batteryCost4">4 Powerwalls cost ($)</label>
-            <input id="batteryCost4" type="number" min="0" step="50" value="60000" />
-          </div>
-        </div>
-
-        <div class="group">
-          <h3>Physical Constraints: Battery + Inverter</h3>
-          <div class="field">
-            <label for="dispatchMode">Battery dispatch mode</label>
-            <select id="dispatchMode">
-              <option value="self_consumption_peak_then_postpeak" selected>Self-Consumption (peak then post-peak)</option>
-              <option value="arbitrage_price_event">VPP Arbitrage (export when export &gt; import)</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="reservePolicy">Reserve policy</label>
-            <select id="reservePolicy">
-              <option value="auto_seasonal" selected>Auto Seasonal (50/30/20)</option>
-              <option value="fixed">Fixed reserve</option>
-              <option value="custom_monthly">Custom monthly table</option>
-            </select>
-          </div>
-          <div class="field" id="fixedReserveField">
-            <label for="minSocReservePct">Fixed minimum SOC reserve (%)</label>
-            <input id="minSocReservePct" type="number" min="0" max="95" step="1" value="20" />
-          </div>
-          <div class="field hidden" id="reserveMonthlyFields">
-            <label>Monthly reserve table (%)</label>
-            <div class="month-grid monthly-reserve">
-              <label class="checkline">Jan<input id="monthlyReservePct0" type="number" min="0" max="95" step="1" value="50" /></label>
-              <label class="checkline">Feb<input id="monthlyReservePct1" type="number" min="0" max="95" step="1" value="50" /></label>
-              <label class="checkline">Mar<input id="monthlyReservePct2" type="number" min="0" max="95" step="1" value="30" /></label>
-              <label class="checkline">Apr<input id="monthlyReservePct3" type="number" min="0" max="95" step="1" value="30" /></label>
-              <label class="checkline">May<input id="monthlyReservePct4" type="number" min="0" max="95" step="1" value="20" /></label>
-              <label class="checkline">Jun<input id="monthlyReservePct5" type="number" min="0" max="95" step="1" value="20" /></label>
-              <label class="checkline">Jul<input id="monthlyReservePct6" type="number" min="0" max="95" step="1" value="20" /></label>
-              <label class="checkline">Aug<input id="monthlyReservePct7" type="number" min="0" max="95" step="1" value="20" /></label>
-              <label class="checkline">Sep<input id="monthlyReservePct8" type="number" min="0" max="95" step="1" value="20" /></label>
-              <label class="checkline">Oct<input id="monthlyReservePct9" type="number" min="0" max="95" step="1" value="30" /></label>
-              <label class="checkline">Nov<input id="monthlyReservePct10" type="number" min="0" max="95" step="1" value="50" /></label>
-              <label class="checkline">Dec<input id="monthlyReservePct11" type="number" min="0" max="95" step="1" value="50" /></label>
+          <div id="evFields">
+            <div class="field">
+              <label for="evMilesPerMonth">Miles driven per month</label>
+              <input id="evMilesPerMonth" type="number" min="0" step="10" value="800" />
+            </div>
+            <div class="field">
+              <label for="evKwhPerMile">EV efficiency (kWh/mile)</label>
+              <input id="evKwhPerMile" type="number" min="0.01" step="0.01" value="0.30" />
+            </div>
+            <div class="field">
+              <label for="evDayChargingPct">Daytime charging share (%)</label>
+              <input id="evDayChargingPct" type="number" min="0" max="100" step="1" value="60" />
             </div>
           </div>
-          <div class="field">
-            <label for="cyclesPerDay">Cycles/day</label>
-            <input id="cyclesPerDay" type="number" min="0" max="2" step="0.01" value="0.85" />
-          </div>
-          <div class="field">
-            <label for="solarToHomeEfficiencyPct">Solar-to-home efficiency (%)</label>
-            <input id="solarToHomeEfficiencyPct" type="number" min="80" max="100" step="0.1" value="97.5" />
-          </div>
-          <div class="field">
-            <label for="roundTripEfficiency">Round-trip efficiency (%)</label>
-            <input id="roundTripEfficiency" type="number" min="50" max="100" step="1" value="90" />
-          </div>
-          <div class="hint">Powerwall 3 clipping: solar AC output is capped at 11.5 kW per Powerwall when Powerwalls &gt;= 1. For 0 Powerwalls, clipping cap is disabled.</div>
-          <div class="hint">Self-consumption mode discharges to reduce load in peak/post-peak. Arbitrage mode can export battery energy when export price exceeds import price.</div>
+          <div class="hint" id="evLoadNote">EV load: OFF.</div>
+          <div class="hint">Charging windows: Day 09:00-16:00, Night 21:00-06:00. Day charging is solar-only; unmet day charging shifts to night.</div>
         </div>
 
-        <div class="group">
-          <h3>Financing</h3>
-          <div class="field">
-            <label for="apr">APR (%)</label>
-            <input id="apr" type="number" min="0" step="0.01" value="6" />
+        <details class="collapsible">
+          <summary>Tariff &amp; Programs</summary>
+          <div class="group">
+            <h3>Tariff &amp; Programs</h3>
+            <div class="field">
+              <label for="tariffPreset">Tariff preset</label>
+              <select id="tariffPreset">
+                <option value="custom" selected>Custom</option>
+                <option value="pge_e_elec">PG&amp;E E-ELEC (reference)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="importOffPeak">Import off-peak ($/kWh)</label>
+              <input id="importOffPeak" type="number" min="0" step="0.01" value="0.36" />
+            </div>
+            <div class="field">
+              <label for="importPeak">Import peak ($/kWh)</label>
+              <input id="importPeak" type="number" min="0" step="0.01" value="0.58" />
+            </div>
+            <div class="field">
+              <label for="fixedMonthlyCharge">Fixed monthly charge ($)</label>
+              <input id="fixedMonthlyCharge" type="number" min="0" step="0.01" value="24.15" />
+            </div>
+            <div class="field">
+              <label for="nbcPerImportKwh">NBC on imports ($/kWh)</label>
+              <input id="nbcPerImportKwh" type="number" min="0" step="0.001" value="0.03" />
+            </div>
+            <div class="field">
+              <label for="exportRateMode">Export rate mode</label>
+              <select id="exportRateMode">
+                <option value="nem3_override" selected>NEM 3.0 override</option>
+                <option value="tou_export">TOU export rates</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="nem3ExportRate">NEM 3.0 export rate ($/kWh)</label>
+              <input id="nem3ExportRate" type="number" min="0" step="0.01" value="0.04" />
+            </div>
+            <div class="field">
+              <label for="exportOffPeak">Export off-peak ($/kWh)</label>
+              <input id="exportOffPeak" type="number" min="0" step="0.01" value="0.05" />
+            </div>
+            <div class="field">
+              <label for="exportPeak">Export peak ($/kWh)</label>
+              <input id="exportPeak" type="number" min="0" step="0.01" value="0.12" />
+            </div>
+            <div class="field">
+              <label class="checkline"><input id="vppEnabled" type="checkbox" checked /> Include VPP revenue (DSGS/ELRP proxy)</label>
+            </div>
+            <div class="hint" id="exportModeNote">Export note: --</div>
+            <div class="hint">Annual true-up logic: export value offsets annual energy import charges only. Fixed charge and NBC remain non-offsettable.</div>
+            <div class="hint">VPP credit model: Powerwalls * 11.5 kW * $35/kW-year. This can make annual utility results negative (net profit).</div>
           </div>
-          <div class="field">
-            <label for="financeYears">Loan term (years)</label>
-            <input id="financeYears" type="number" min="1" step="1" value="15" />
+        </details>
+
+        <details class="collapsible">
+          <summary>Physical Constraints: System Pricing</summary>
+          <div class="group">
+            <h3>Physical Constraints: System Pricing</h3>
+            <div class="field">
+              <label for="solarBaseCost">Solar base cost ($)</label>
+              <input id="solarBaseCost" type="number" min="0" step="50" value="2710" />
+            </div>
+            <div class="field">
+              <label for="solarCostPerKw">Solar cost per kW ($)</label>
+              <input id="solarCostPerKw" type="number" min="0" step="25" value="2785" />
+            </div>
+            <div class="field">
+              <label for="batteryCost1">1 Powerwall cost ($)</label>
+              <input id="batteryCost1" type="number" min="0" step="50" value="16875" />
+            </div>
+            <div class="field">
+              <label for="batteryCost2">2 Powerwalls cost ($)</label>
+              <input id="batteryCost2" type="number" min="0" step="50" value="31250" />
+            </div>
+            <div class="field">
+              <label for="batteryCost3">3 Powerwalls cost ($)</label>
+              <input id="batteryCost3" type="number" min="0" step="50" value="45625" />
+            </div>
+            <div class="field">
+              <label for="batteryCost4">4 Powerwalls cost ($)</label>
+              <input id="batteryCost4" type="number" min="0" step="50" value="60000" />
+            </div>
           </div>
-        </div>
+        </details>
+
+        <details class="collapsible">
+          <summary>Physical Constraints: Battery + Inverter</summary>
+          <div class="group">
+            <h3>Physical Constraints: Battery + Inverter</h3>
+            <div class="field">
+              <label for="dispatchMode">Battery dispatch mode</label>
+              <select id="dispatchMode">
+                <option value="self_consumption_peak_then_postpeak" selected>Self-Consumption (peak then post-peak)</option>
+                <option value="arbitrage_price_event">VPP Arbitrage (export when export &gt; import)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="reservePolicy">Reserve policy</label>
+              <select id="reservePolicy">
+                <option value="auto_seasonal" selected>Auto Seasonal (50/30/20)</option>
+                <option value="fixed">Fixed reserve</option>
+                <option value="custom_monthly">Custom monthly table</option>
+              </select>
+            </div>
+            <div class="field" id="fixedReserveField">
+              <label for="minSocReservePct">Fixed minimum SOC reserve (%)</label>
+              <input id="minSocReservePct" type="number" min="0" max="95" step="1" value="20" />
+            </div>
+            <div class="field hidden" id="reserveMonthlyFields">
+              <label>Monthly reserve table (%)</label>
+              <div class="month-grid monthly-reserve">
+                <label class="checkline">Jan<input id="monthlyReservePct0" type="number" min="0" max="95" step="1" value="50" /></label>
+                <label class="checkline">Feb<input id="monthlyReservePct1" type="number" min="0" max="95" step="1" value="50" /></label>
+                <label class="checkline">Mar<input id="monthlyReservePct2" type="number" min="0" max="95" step="1" value="30" /></label>
+                <label class="checkline">Apr<input id="monthlyReservePct3" type="number" min="0" max="95" step="1" value="30" /></label>
+                <label class="checkline">May<input id="monthlyReservePct4" type="number" min="0" max="95" step="1" value="20" /></label>
+                <label class="checkline">Jun<input id="monthlyReservePct5" type="number" min="0" max="95" step="1" value="20" /></label>
+                <label class="checkline">Jul<input id="monthlyReservePct6" type="number" min="0" max="95" step="1" value="20" /></label>
+                <label class="checkline">Aug<input id="monthlyReservePct7" type="number" min="0" max="95" step="1" value="20" /></label>
+                <label class="checkline">Sep<input id="monthlyReservePct8" type="number" min="0" max="95" step="1" value="20" /></label>
+                <label class="checkline">Oct<input id="monthlyReservePct9" type="number" min="0" max="95" step="1" value="30" /></label>
+                <label class="checkline">Nov<input id="monthlyReservePct10" type="number" min="0" max="95" step="1" value="50" /></label>
+                <label class="checkline">Dec<input id="monthlyReservePct11" type="number" min="0" max="95" step="1" value="50" /></label>
+              </div>
+            </div>
+            <div class="field">
+              <label for="cyclesPerDay">Cycles/day</label>
+              <input id="cyclesPerDay" type="number" min="0" max="2" step="0.01" value="0.85" />
+            </div>
+            <div class="field">
+              <label for="solarToHomeEfficiencyPct">Solar-to-home efficiency (%)</label>
+              <input id="solarToHomeEfficiencyPct" type="number" min="80" max="100" step="0.1" value="97.5" />
+            </div>
+            <div class="field">
+              <label for="roundTripEfficiency">Round-trip efficiency (%)</label>
+              <input id="roundTripEfficiency" type="number" min="50" max="100" step="1" value="90" />
+            </div>
+            <div class="hint">Powerwall 3 clipping: solar AC output is capped at 11.5 kW per Powerwall when Powerwalls &gt;= 1. For 0 Powerwalls, clipping cap is disabled.</div>
+            <div class="hint">Self-consumption mode discharges to reduce load in peak/post-peak. Arbitrage mode can export battery energy when export price exceeds import price.</div>
+          </div>
+        </details>
+
+        <details class="collapsible">
+          <summary>Financing</summary>
+          <div class="group">
+            <h3>Financing</h3>
+            <div class="field">
+              <label for="apr">APR (%)</label>
+              <input id="apr" type="number" min="0" step="0.01" value="6" />
+            </div>
+            <div class="field">
+              <label for="financeYears">Loan term (years)</label>
+              <input id="financeYears" type="number" min="1" step="1" value="15" />
+            </div>
+          </div>
+        </details>
+
 
         <div class="actions">
           <button id="recalculateBtn" type="button">Recalculate Ideal System</button>
@@ -1047,36 +1099,51 @@
           </div>
         </div>
 
-        <div class="section">
-          <h3>Assumptions</h3>
-          <div class="inline-pills">
-            <div class="pill">Hourly dispatch retained</div>
-            <div class="pill">Battery dispatch/reserve are fully modeled by hour</div>
-            <div class="pill">Climate profile: NREL preferred, synthetic fallback guarded</div>
-            <div class="pill" id="climateAssumptionPill">Climate source: --</div>
-            <div class="pill" id="tempAssumptionPill">Temperature source: --</div>
-            <div class="pill" id="tariffAssumptionPill">Tariff floor: --</div>
-            <div class="pill" id="vppAssumptionPill">VPP: --</div>
-            <div class="pill" id="dispatchAssumptionPill">Dispatch mode: --</div>
-            <div class="pill" id="reserveAssumptionPill">Reserve policy: --</div>
-            <div class="pill" id="clipAssumptionPill">Clipping: --</div>
-            <div class="pill" id="yieldAssumptionPill">Yield profile: --</div>
-            <div class="pill" id="evAssumptionPill">EV: --</div>
-            <div class="pill" id="haAssumptionPill">HA HVAC shift: --</div>
-            <div class="pill" id="whfAssumptionPill">WHF: --</div>
+        <details class="collapsible" open>
+          <summary>Assumptions</summary>
+          <div class="section">
+            <h3>Assumptions</h3>
+            <div class="inline-pills">
+              <div class="pill">Hourly dispatch retained</div>
+              <div class="pill">Battery dispatch/reserve are fully modeled by hour</div>
+              <div class="pill">Climate profile: NREL preferred, synthetic fallback guarded</div>
+              <div class="pill" id="climateAssumptionPill">Climate source: --</div>
+              <div class="pill" id="tempAssumptionPill">Temperature source: --</div>
+              <div class="pill" id="tariffAssumptionPill">Tariff floor: --</div>
+              <div class="pill" id="vppAssumptionPill">VPP: --</div>
+              <div class="pill" id="dispatchAssumptionPill">Dispatch mode: --</div>
+              <div class="pill" id="reserveAssumptionPill">Reserve policy: --</div>
+              <div class="pill" id="clipAssumptionPill">Clipping: --</div>
+              <div class="pill" id="yieldAssumptionPill">Yield profile: --</div>
+              <div class="pill" id="evAssumptionPill">EV: --</div>
+              <div class="pill" id="haAssumptionPill">HA HVAC shift: --</div>
+              <div class="pill" id="whfAssumptionPill">WHF: --</div>
+            </div>
+            <p class="summary" id="objectiveSummary">
+              Ideal size is selected by minimizing <strong>Mortgage/Month + PG&amp;E After/Month</strong>. Tie-breakers: lower financed principal, then lower kW.
+            </p>
           </div>
-          <p class="summary" id="objectiveSummary">
-            Ideal size is selected by minimizing <strong>Mortgage/Month + PG&amp;E After/Month</strong>. Tie-breakers: lower financed principal, then lower kW.
-          </p>
-        </div>
+        </details>
 
-        <div class="section">
-          <h3>Scenario Matrix (Solar kW x Powerwalls)</h3>
-          <div class="table-wrap">
-            <table class="results-table" id="scenarioMatrixTable"></table>
+        <details class="collapsible" open>
+          <summary>Scenario Matrix (Solar kW x Powerwalls)</summary>
+          <div class="section">
+            <h3>Scenario Matrix (Solar kW x Powerwalls)</h3>
+            <div class="table-wrap">
+              <table class="results-table" id="scenarioMatrixTable"></table>
+            </div>
+            <p class="summary" id="scenarioMatrixNote">Matrix will render after a valid calculation. Click a cell to select a scenario.</p>
           </div>
-          <p class="summary" id="scenarioMatrixNote">Matrix will render after a valid calculation. Click a cell to select a scenario.</p>
-        </div>
+        </details>
+
+        <details class="collapsible" open>
+          <summary>Model Checks</summary>
+          <div class="section">
+            <h3>Model Checks</h3>
+            <div class="checks" id="checksOutput">Checks will run after a valid calculation.</div>
+          </div>
+        </details>
+
 
         <div class="section">
           <h3>Top Scenarios</h3>
@@ -1100,17 +1167,9 @@
           </div>
         </div>
 
-        <div class="section">
-          <h3>Model Checks</h3>
-          <div class="checks" id="checksOutput">Checks will run after a valid calculation.</div>
-        </div>
-
-        <div class="section">
-          <h3>Regression Probe Notes</h3>
-          <p class="summary" id="regressionOutput">
-            Probe pending. This panel compares v2 best size against a v1-like baseline (module-grid search + alternate objective) to explain expected sizing deltas.
-          </p>
-        </div>
+        <p class="summary hidden" id="regressionOutput">
+          Regression probe disabled.
+        </p>
 
         <details class="calc-details" id="calcDetails">
           <summary>Calculation Breakdown (Expandable)</summary>
