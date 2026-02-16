@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solar Upgrade Planner v3.2.0</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="bg-shape bg-shape-a" aria-hidden="true"></div>
+  <div class="bg-shape bg-shape-b" aria-hidden="true"></div>
+
+  <div class="app-shell">
+    <header class="hero card reveal">
+      <p class="eyebrow">Solar Upgrade Planner v3.2.0</p>
+      <h1>Builder baseline first, Tesla upgrades after</h1>
+      <p class="hero-subtitle">
+        Hourly dispatch model aligned with v2.6.1. Select a Builder base system, then optimize Tesla-priced upgrades from that baseline.
+      </p>
+    </header>
+
+    <main class="layout">
+      <aside class="controls card reveal">
+        <h2>Quick Inputs</h2>
+        <form id="plannerForm" novalidate>
+          <section class="form-group">
+            <h3>Builder Base + Search</h3>
+            <div class="field-grid two-col">
+              <label>
+                Builder base system
+                <select id="builderBasePresetKw" name="builderBasePresetKw">
+                  <option value="3.95" selected>3.95 kW (10 modules)</option>
+                  <option value="5.53">5.53 kW (14 modules)</option>
+                </select>
+              </label>
+              <label>
+                Builder base PW
+                <input type="text" value="0 PW (fixed)" disabled />
+              </label>
+              <label>
+                Upgrade solar min (kW)
+                <input id="solarMinKw" name="solarMinKw" type="number" min="0" step="0.1" value="3.95" />
+              </label>
+              <label>
+                Upgrade solar max (kW)
+                <input id="solarMaxKw" name="solarMaxKw" type="number" min="0" step="0.1" value="20" />
+              </label>
+              <label>
+                Upgrade solar step (kW)
+                <input id="solarStepKw" name="solarStepKw" type="number" min="0.05" step="0.05" value="0.1" />
+              </label>
+            </div>
+            <p class="hint">Expansion-only candidates: final solar &gt;= base solar and final PW in 0-2.</p>
+          </section>
+
+          <section class="form-group">
+            <h3>Load + Climate</h3>
+            <div class="field-grid two-col">
+              <label>
+                Annual load (kWh)
+                <input id="annualLoadKwh" name="annualLoadKwh" type="number" min="1000" step="100" value="24000" />
+              </label>
+              <label>
+                ZIP code
+                <input id="zipCode" name="zipCode" type="text" value="95672" maxlength="5" />
+              </label>
+              <label>
+                NREL API key (optional)
+                <input id="nrelApiKey" name="nrelApiKey" type="text" value="" placeholder="DEMO_KEY used when empty" autocomplete="off" />
+              </label>
+            </div>
+            <p id="climateStatus" class="hint">Climate: pending</p>
+          </section>
+
+          <section class="form-group">
+            <h3>Rates</h3>
+            <div class="field-grid two-col">
+              <label>
+                Import off-peak ($/kWh)
+                <input id="importOffPeak" name="importOffPeak" type="number" min="0" step="0.01" value="0.36" />
+              </label>
+              <label>
+                Import peak ($/kWh)
+                <input id="importPeak" name="importPeak" type="number" min="0" step="0.01" value="0.58" />
+              </label>
+              <label>
+                Export credit ($/kWh)
+                <input id="exportRate" name="exportRate" type="number" min="0" step="0.01" value="0.04" />
+              </label>
+              <label>
+                NBC on imports ($/kWh)
+                <input id="nbcRate" name="nbcRate" type="number" min="0" step="0.005" value="0.03" />
+              </label>
+              <label>
+                Fixed monthly charge ($)
+                <input id="fixedMonthlyCharge" name="fixedMonthlyCharge" type="number" min="0" step="0.5" value="24.15" />
+              </label>
+            </div>
+          </section>
+
+          <details class="form-group" open>
+            <summary>Builder Base Quotes (Editable)</summary>
+            <div class="field-grid two-col">
+              <label>
+                Quote for 3.95 kW base ($)
+                <input id="builderBaseQuote395" name="builderBaseQuote395" type="number" min="0" step="50" value="13710" />
+              </label>
+              <label>
+                Quote for 5.53 kW base ($)
+                <input id="builderBaseQuote553" name="builderBaseQuote553" type="number" min="0" step="50" value="18110" />
+              </label>
+            </div>
+          </details>
+
+          <details class="form-group" open>
+            <summary>Tesla Upgrade Pricing</summary>
+            <div class="field-grid two-col">
+              <label>
+                Solar rate if &lt; 10 kW ($/kW)
+                <input id="teslaSolarBelow10" name="teslaSolarBelow10" type="number" min="0" step="25" value="2760" />
+              </label>
+              <label>
+                Solar rate if &gt;= 10 kW ($/kW)
+                <input id="teslaSolarAtLeast10" name="teslaSolarAtLeast10" type="number" min="0" step="25" value="2660" />
+              </label>
+              <label>
+                Tesla battery total at 1 PW ($)
+                <input id="teslaBattery1" name="teslaBattery1" type="number" min="0" step="50" value="3900" />
+              </label>
+              <label>
+                Tesla battery total at 2 PW ($)
+                <input id="teslaBattery2" name="teslaBattery2" type="number" min="0" step="50" value="9700" />
+              </label>
+            </div>
+          </details>
+
+          <section class="form-group">
+            <h3>Programs</h3>
+            <label class="checkline">
+              <input id="vppEnabled" name="vppEnabled" type="checkbox" checked />
+              Include VPP revenue
+            </label>
+          </section>
+
+          <details class="form-group">
+            <summary>Financing + Analysis</summary>
+            <div class="field-grid two-col">
+              <label>
+                APR (%)
+                <input id="aprPct" name="aprPct" type="number" min="0" step="0.1" value="6" />
+              </label>
+              <label>
+                Loan term (years)
+                <input id="loanYears" name="loanYears" type="number" min="1" step="1" value="15" />
+              </label>
+              <label>
+                Analysis horizon (years)
+                <input id="horizonYears" name="horizonYears" type="number" min="5" step="1" value="15" />
+              </label>
+              <label>
+                Discount rate (%)
+                <input id="discountRatePct" name="discountRatePct" type="number" min="0" step="0.1" value="6" />
+              </label>
+              <label>
+                Utility escalation (%)
+                <input id="utilityEscalationPct" name="utilityEscalationPct" type="number" min="0" step="0.1" value="3" />
+              </label>
+              <label>
+                Solar degradation (%)
+                <input id="solarDegradationPct" name="solarDegradationPct" type="number" min="0" step="0.1" value="0.5" />
+              </label>
+              <label>
+                Battery degradation (%)
+                <input id="batteryDegradationPct" name="batteryDegradationPct" type="number" min="0" step="0.1" value="2" />
+              </label>
+            </div>
+          </details>
+
+          <button id="optimizeBtn" type="submit">Optimize Tesla Upgrade Path</button>
+          <p id="formError" class="form-error" role="alert"></p>
+        </form>
+      </aside>
+
+      <section class="results">
+        <p id="noUpgradeBanner" class="notice hidden"></p>
+
+        <section class="kpi-grid reveal">
+          <article class="kpi card">
+            <p class="kpi-label">Builder base system</p>
+            <p id="kpiBaseSystem" class="kpi-value">--</p>
+            <p id="kpiBaseDetail" class="kpi-sub">--</p>
+          </article>
+          <article class="kpi card">
+            <p class="kpi-label">Best Tesla upgrade</p>
+            <p id="kpiUpgradeSystem" class="kpi-value">--</p>
+            <p id="kpiUpgradeDetail" class="kpi-sub">--</p>
+          </article>
+          <article class="kpi card">
+            <p class="kpi-label">Incremental NPV</p>
+            <p id="kpiIncrementalNpv" class="kpi-value">--</p>
+            <p id="kpiIncrementalNpvDetail" class="kpi-sub">--</p>
+          </article>
+          <article class="kpi card">
+            <p class="kpi-label">PW recommendation</p>
+            <p id="kpiExpansion" class="kpi-value">--</p>
+            <p id="kpiExpansionDetail" class="kpi-sub">--</p>
+          </article>
+        </section>
+
+        <section class="panel card reveal">
+          <div class="panel-head">
+            <h2>Builder Base vs Best Tesla Upgrade</h2>
+            <p id="scenarioLabel" class="panel-sub">--</p>
+          </div>
+          <div id="scenarioMetrics" class="metric-grid"></div>
+        </section>
+
+        <section class="panel card reveal">
+          <div class="panel-head">
+            <h2>PW Expansion Explanation</h2>
+            <p id="expansionSummary" class="panel-sub">--</p>
+          </div>
+          <div class="table-wrap">
+            <table id="expansionTable">
+              <thead>
+                <tr>
+                  <th>Step</th>
+                  <th>Best solar (kW)</th>
+                  <th>Annual solar (kWh)</th>
+                  <th>Tesla-added solar (kWh)</th>
+                  <th>Delta annual benefit</th>
+                  <th>Delta NPV</th>
+                  <th>Delta monthly outflow</th>
+                  <th>Path status</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="panel card reveal">
+          <div class="panel-head">
+            <h2>Top Tesla Upgrade Scenarios</h2>
+            <p id="topScenarioHint" class="panel-sub">--</p>
+          </div>
+          <div class="table-wrap">
+            <table id="topScenarioTable">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Final solar (kW)</th>
+                  <th>Final PW</th>
+                  <th>Added solar (kW)</th>
+                  <th>Tesla-added solar (kWh)</th>
+                  <th>Incremental capex</th>
+                  <th>Incremental annual benefit</th>
+                  <th>Incremental monthly delta</th>
+                  <th>Incremental NPV</th>
+                  <th>Payback</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script src="./js/engine-v261.js"></script>
+  <script src="./js/model.js"></script>
+  <script src="./js/optimizer.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/main.js"></script>
+</body>
+</html>
