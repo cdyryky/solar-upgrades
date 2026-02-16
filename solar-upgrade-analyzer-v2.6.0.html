@@ -398,6 +398,14 @@
       background: #eff8f1;
     }
 
+    .row-clickable {
+      cursor: pointer;
+    }
+
+    .row-recommended {
+      background: #eaf7ef;
+    }
+
     details.calc-details {
       border: 1px solid var(--line);
       border-radius: 10px;
@@ -676,6 +684,19 @@
             <label class="checkline"><input id="lockPowerwallCount" type="checkbox" /> Lock optimization to selected Powerwalls</label>
           </div>
           <div class="field">
+            <label for="expansionPackCount">Preferred expansion packs for primary view</label>
+            <select id="expansionPackCount">
+              <option value="0" selected>0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="checkline"><input id="lockExpansionPackCount" type="checkbox" /> Lock optimization to selected expansion packs</label>
+          </div>
+          <div class="field">
             <label for="solarSearchMinKw">Solar search min (kW)</label>
             <input id="solarSearchMinKw" type="number" min="0" step="0.05" value="2" />
           </div>
@@ -696,7 +717,7 @@
             </select>
           </div>
           <div class="hint" id="sizingObjectiveHint">Objective: maximize unlevered NPV. Tie-breakers: faster payback, then lower levered outflow.</div>
-          <div class="hint" id="sweepModeHint">Optimizer sweeps all battery counts (0-4) across your solar range.</div>
+          <div class="hint" id="sweepModeHint">Optimizer sweeps all battery options: Powerwalls (0-4) and eligible expansion packs (0-4, capped at 3 per Powerwall).</div>
         </div>
 
         <div class="group">
@@ -970,40 +991,20 @@
           <summary>Physical Constraints: System Pricing</summary>
           <div class="group">
             <h3>Physical Constraints: System Pricing</h3>
-            <div class="field">
-              <label for="pricingModel">Pricing model</label>
-              <select id="pricingModel">
-                <option value="builder_manual" selected>Builder (manual)</option>
-                <option value="tesla_formula">Tesla (formula)</option>
-              </select>
-            </div>
-            <div class="field">
-              <label for="solarBaseCost">Solar base cost ($)</label>
-              <input id="solarBaseCost" type="number" min="0" step="50" value="2710" />
-            </div>
-            <div class="field">
-              <label for="solarCostPerKw">Solar cost per kW ($)</label>
-              <input id="solarCostPerKw" type="number" min="0" step="25" value="2785" />
-            </div>
-            <div class="field">
-              <label for="batteryCost1">1 Powerwall cost ($)</label>
-              <input id="batteryCost1" type="number" min="0" step="50" value="16875" />
-            </div>
-            <div class="field">
-              <label for="batteryCost2">2 Powerwalls cost ($)</label>
-              <input id="batteryCost2" type="number" min="0" step="50" value="31250" />
-            </div>
-            <div class="field">
-              <label for="batteryCost3">3 Powerwalls cost ($)</label>
-              <input id="batteryCost3" type="number" min="0" step="50" value="45625" />
-            </div>
-            <div class="field">
-              <label for="batteryCost4">4 Powerwalls cost ($)</label>
-              <input id="batteryCost4" type="number" min="0" step="50" value="60000" />
-            </div>
-            <div class="hint" id="pricingModeNote">Pricing model note: --</div>
-          </div>
-        </details>
+	            <div class="field">
+	              <label>Pricing workflow</label>
+	              <div class="hint">Choose builder package first, then model all additional upgrades using Tesla pricing.</div>
+	            </div>
+	            <div class="field" id="builderPackageField">
+	              <label for="builderPackage">Builder package</label>
+	              <select id="builderPackage">
+	                <option value="solar101" selected>Purchase standard system - 3.95 kW, 10 modules (SOLAR101 $13,710)</option>
+	                <option value="solar104">Purchase upgrade - 5.53 kW, 14 modules (SOLAR104 $18,110)</option>
+	              </select>
+	            </div>
+	            <div class="hint" id="pricingModeNote">Pricing note: --</div>
+	          </div>
+	        </details>
 
         <details class="collapsible">
           <summary>Physical Constraints: Battery + Inverter</summary>
@@ -1058,20 +1059,25 @@
               <input id="roundTripEfficiency" type="number" min="50" max="100" step="1" value="90" />
             </div>
             <div class="hint">Powerwall 3 clipping: solar AC output is capped at 11.5 kW per Powerwall when Powerwalls &gt;= 1. For 0 Powerwalls, clipping cap is disabled.</div>
+            <div class="hint">Expansion packs add 13.5 kWh each and do not add inverter capacity. Clipping remains tied to full Powerwall count, while VPP uses min(total inverter kW, total battery kWh / 2h).</div>
             <div class="hint">Self-consumption mode discharges to reduce load in peak/post-peak. Arbitrage mode can export battery energy when export price exceeds import price.</div>
           </div>
         </details>
 
-        <details class="collapsible">
-          <summary>Financing</summary>
-          <div class="group">
-            <h3>Financing</h3>
-            <div class="field">
-              <label for="apr">APR (%)</label>
-              <input id="apr" type="number" min="0" step="0.01" value="6" />
-            </div>
-            <div class="field">
-              <label for="financeYears">Loan term (years)</label>
+	        <details class="collapsible">
+	          <summary>Financing</summary>
+	          <div class="group">
+	            <h3>Financing</h3>
+	            <div class="field">
+	              <label>Builder APR</label>
+	              <div class="hint mono" id="builderAprDisplay">6.0% fixed</div>
+	            </div>
+	            <div class="field">
+	              <label>Tesla APR (upgrades)</label>
+	              <div class="hint mono" id="teslaAprDisplay">7.5% fixed</div>
+	            </div>
+	            <div class="field">
+	              <label for="financeYears">Loan term (years)</label>
               <input id="financeYears" type="number" min="1" step="1" value="15" />
             </div>
           </div>
@@ -1104,7 +1110,7 @@
               <div class="card">
                 <div class="k">Ideal Solar Size (kW)</div>
                 <div class="v" id="cardIdealSolarKw">--</div>
-                <div class="sub" id="cardPowerwallChoice">Powerwalls: --</div>
+                <div class="sub" id="cardPowerwallChoice">Powerwalls: -- | Expansion packs: --</div>
               </div>
               <div class="card">
                 <div class="k">Financed Principal</div>
@@ -1206,9 +1212,9 @@
         </details>
 
         <details class="collapsible">
-          <summary>Scenario Matrix (Solar kW x Powerwalls)</summary>
+          <summary>Scenario Matrix (Solar kW x Powerwalls; best packs per cell)</summary>
           <div class="section">
-            <h3>Scenario Matrix (Solar kW x Powerwalls)</h3>
+            <h3>Scenario Matrix (Solar kW x Powerwalls; best packs per cell)</h3>
             <div class="table-wrap">
               <table class="results-table" id="scenarioMatrixTable"></table>
             </div>
@@ -1225,15 +1231,16 @@
         </details>
 
 
-        <div class="section">
-          <h3>Top Scenarios</h3>
-          <div class="table-wrap" style="max-height: 260px;">
-            <table class="results-table">
+	        <div class="section">
+	          <h3>Top Scenarios</h3>
+	          <div class="table-wrap" style="max-height: 260px;">
+	            <table class="results-table">
               <thead>
                 <tr>
                   <th>Rank</th>
                   <th>Solar kW</th>
                   <th>PW</th>
+                  <th>Packs</th>
                   <th>NPV (Unlevered)</th>
                   <th>IRR</th>
                   <th>Payback</th>
@@ -1245,14 +1252,26 @@
                 </tr>
               </thead>
               <tbody id="topScenariosBody"></tbody>
-            </table>
-          </div>
-        </div>
+	            </table>
+	          </div>
+	        </div>
 
-        <div class="section">
-          <h3>Marginal Value</h3>
-          <div class="table-wrap">
-            <table class="results-table" id="marginalValueTable"></table>
+	        <div class="section hidden" id="builderTeslaResults">
+	          <h3>Builder Package + Tesla Upgrades</h3>
+	          <div class="table-wrap">
+	            <table class="results-table" id="builderPackageComparisonTable"></table>
+	          </div>
+	          <p class="summary" id="builderPackageComparisonNote">Comparison will render after a valid calculation.</p>
+	          <div class="table-wrap" style="margin-top: 8px;">
+	            <table class="results-table" id="teslaUpgradePlanTable"></table>
+	          </div>
+	          <p class="summary" id="teslaUpgradePlanNote">Upgrade plan will render after a valid calculation.</p>
+	        </div>
+
+	        <div class="section">
+	          <h3>Marginal Value</h3>
+	          <div class="table-wrap">
+	            <table class="results-table" id="marginalValueTable"></table>
           </div>
           <p class="summary" id="marginalValueNote">Marginal values will render after a valid calculation.</p>
         </div>
@@ -1300,14 +1319,21 @@
     const V1_LIKE_OPPORTUNITY_RATE = 0.05;
     const ZIP_DEFAULT_YIELD = 1700;
     const POWERWALL3_AC_KW = 11.5;
-    const VPP_CREDIT_PER_KW_YEAR = 35;
-    const TESLA_SOLAR_RATE_BELOW_10 = 2760;
-    const TESLA_SOLAR_RATE_AT_LEAST_10 = 2660;
-    const TESLA_BATTERY_COSTS = Object.freeze({ 0: 0, 1: 3900, 2: 9700 });
-    const TESLA_APR_DEFAULT_PCT = 7.6;
-    const RESCUE_ZIP = "95672";
-    const RESCUE_HVAC_SENSITIVITY = 0.45;
-    const DEFAULT_HVAC_SENSITIVITY = 0.60;
+    const EXPANSION_PACK_ADDED_KWH = 13.5;
+    const MAX_EXPANSION_PACKS_PER_POWERWALL = 3;
+    const MAX_EXPANSION_PACKS_UI = 4;
+    const VPP_DURATION_HOURS = 2.0;
+	    const VPP_CREDIT_PER_KW_YEAR = 35;
+	    const TESLA_SOLAR_BASE_FEE = 620;
+	    const TESLA_SOLAR_COST_PER_KW = 2622.4;
+    const TESLA_POWERWALL_FIRST_COST = 10700;
+    const TESLA_POWERWALL_ADDITIONAL_COST = 6900;
+    const TESLA_EXPANSION_PACK_COST = 5900;
+    const BUILDER_APR_PCT = 6.0;
+    const TESLA_APR_PCT = 7.5;
+	    const RESCUE_ZIP = "95672";
+	    const RESCUE_HVAC_SENSITIVITY = 0.45;
+	    const DEFAULT_HVAC_SENSITIVITY = 0.60;
     const NREL_DEMO_KEY = "DEMO_KEY";
     const NREL_PVWATTS_URL = "https://developer.nrel.gov/api/pvwatts/v8.json";
     const NREL_CACHE_STORAGE_KEY = "solarAnalyzer.nrelCache.v1";
@@ -1319,9 +1345,9 @@
     const NREL_GENERIC_RETRY_BACKOFF_MS = 60 * 1000;
     const SYNTHETIC_ACK_SESSION_KEY = "solarAnalyzer.syntheticFallbackAck.v1";
 
-    const DEFAULT_LOAD_PROFILE_RAW = [1.02, 0.95, 0.91, 0.82, 0.79, 0.83, 0.96, 1.07, 0.96, 0.89, 0.91, 0.99];
-    const DEFAULT_SOLAR_PROFILE_RAW = [0.58, 0.66, 0.86, 1.02, 1.12, 1.18, 1.16, 1.08, 0.98, 0.83, 0.64, 0.53];
-    const BASE_LOAD_HOURLY_RAW = [
+	    const DEFAULT_LOAD_PROFILE_RAW = [1.02, 0.95, 0.91, 0.82, 0.79, 0.83, 0.96, 1.07, 0.96, 0.89, 0.91, 0.99];
+	    const DEFAULT_SOLAR_PROFILE_RAW = [0.58, 0.66, 0.86, 1.02, 1.12, 1.18, 1.16, 1.08, 0.98, 0.83, 0.64, 0.53];
+	    const BASE_LOAD_HOURLY_RAW = [
       0.021, 0.019, 0.018, 0.018, 0.018, 0.021,
       0.028, 0.037, 0.043, 0.045, 0.043, 0.041,
       0.040, 0.039, 0.040, 0.044, 0.054, 0.066,
@@ -1343,6 +1369,8 @@
     const el = {
       powerwallCount: document.getElementById("powerwallCount"),
       lockPowerwallCount: document.getElementById("lockPowerwallCount"),
+      expansionPackCount: document.getElementById("expansionPackCount"),
+      lockExpansionPackCount: document.getElementById("lockExpansionPackCount"),
       solarSearchMinKw: document.getElementById("solarSearchMinKw"),
       solarSearchMaxKw: document.getElementById("solarSearchMaxKw"),
       solarSearchStepKw: document.getElementById("solarSearchStepKw"),
@@ -1404,14 +1432,9 @@
       exportMonthlyPeakNodes: new Array(12).fill(0).map((_, month) => document.getElementById("exportMonthlyPeak" + month)),
       vppEnabled: document.getElementById("vppEnabled"),
       exportModeNote: document.getElementById("exportModeNote"),
-      pricingModel: document.getElementById("pricingModel"),
-      solarBaseCost: document.getElementById("solarBaseCost"),
-      solarCostPerKw: document.getElementById("solarCostPerKw"),
-      batteryCost1: document.getElementById("batteryCost1"),
-      batteryCost2: document.getElementById("batteryCost2"),
-      batteryCost3: document.getElementById("batteryCost3"),
-      batteryCost4: document.getElementById("batteryCost4"),
       pricingModeNote: document.getElementById("pricingModeNote"),
+      builderPackageField: document.getElementById("builderPackageField"),
+      builderPackage: document.getElementById("builderPackage"),
       dispatchMode: document.getElementById("dispatchMode"),
       reservePolicy: document.getElementById("reservePolicy"),
       fixedReserveField: document.getElementById("fixedReserveField"),
@@ -1421,7 +1444,6 @@
       cyclesPerDay: document.getElementById("cyclesPerDay"),
       solarToHomeEfficiencyPct: document.getElementById("solarToHomeEfficiencyPct"),
       roundTripEfficiency: document.getElementById("roundTripEfficiency"),
-      apr: document.getElementById("apr"),
       financeYears: document.getElementById("financeYears"),
       recalculateBtn: document.getElementById("recalculateBtn"),
       candidateNote: document.getElementById("candidateNote"),
@@ -1461,11 +1483,16 @@
       scenarioMatrixTable: document.getElementById("scenarioMatrixTable"),
       scenarioMatrixNote: document.getElementById("scenarioMatrixNote"),
       topScenariosBody: document.getElementById("topScenariosBody"),
-      marginalValueTable: document.getElementById("marginalValueTable"),
-      marginalValueNote: document.getElementById("marginalValueNote"),
-      checksOutput: document.getElementById("checksOutput"),
-      regressionOutput: document.getElementById("regressionOutput"),
-      objectiveSummary: document.getElementById("objectiveSummary"),
+	      marginalValueTable: document.getElementById("marginalValueTable"),
+	      marginalValueNote: document.getElementById("marginalValueNote"),
+	      builderTeslaResults: document.getElementById("builderTeslaResults"),
+	      builderPackageComparisonTable: document.getElementById("builderPackageComparisonTable"),
+	      builderPackageComparisonNote: document.getElementById("builderPackageComparisonNote"),
+	      teslaUpgradePlanTable: document.getElementById("teslaUpgradePlanTable"),
+	      teslaUpgradePlanNote: document.getElementById("teslaUpgradePlanNote"),
+	      checksOutput: document.getElementById("checksOutput"),
+	      regressionOutput: document.getElementById("regressionOutput"),
+	      objectiveSummary: document.getElementById("objectiveSummary"),
       hvacImpactOutput: document.getElementById("hvacImpactOutput"),
       climateFallbackBanner: document.getElementById("climateFallbackBanner"),
       climateFallbackMessage: document.getElementById("climateFallbackMessage"),
@@ -1477,7 +1504,6 @@
     let selectedScenarioKey = null;
     let hvacSensitivityTouched = false;
     let lastExportRateModeValue = null;
-    let lastPricingModelValue = null;
     let climateFetchToken = 0;
     const optimizationCache = new Map();
     const OPTIMIZATION_CACHE_LIMIT = 12;
@@ -1598,8 +1624,8 @@
       return Number.isFinite(value) ? (fmt(value * 100, 1) + "%") : "No IRR";
     }
 
-    function scenarioKey(solarKw, powerwallCount) {
-      return Number(solarKw).toFixed(6) + "|" + powerwallCount;
+    function scenarioKey(solarKw, powerwallCount, expansionPackCount = 0) {
+      return Number(solarKw).toFixed(6) + "|" + powerwallCount + "|" + expansionPackCount;
     }
 
     function inputCacheKey(inputs) {
@@ -1629,13 +1655,47 @@
     }
 
     function normalizePricingModel(rawModel) {
-      return rawModel === "tesla_formula" ? "tesla_formula" : "builder_manual";
+      return "builder_then_tesla";
     }
 
-    function objectiveLabel(modeRaw) {
-      const mode = normalizeObjectiveMode(modeRaw);
-      if (mode === "return_npv_unlevered") return "highest unlevered NPV (payback and levered outflow tie-breakers)";
-      if (mode === "utility_bill_knee") return "utility bill Pareto knee-point";
+	    const BUILDER_PACKAGES = Object.freeze({
+	      solar101: { id: "solar101", code: "SOLAR101", label: "Standard system", modules: 10, kw: 3.95, price: 13710 },
+	      solar104: { id: "solar104", code: "SOLAR104", label: "Upgrade", modules: 14, kw: 5.53, price: 18110 }
+	    });
+
+	    function getBuilderPackageSpec(builderPackageRaw) {
+	      const key = String(builderPackageRaw || "");
+	      return BUILDER_PACKAGES[key] || BUILDER_PACKAGES.solar101;
+	    }
+
+	    function teslaBatteryCost(powerwallCount, expansionPackCount = 0) {
+	      const n = Math.max(0, Math.floor(powerwallCount));
+	      const packs = Math.max(0, Math.floor(expansionPackCount));
+	      if (n === 0) return packs > 0 ? Number.POSITIVE_INFINITY : 0;
+	      return TESLA_POWERWALL_FIRST_COST + (TESLA_POWERWALL_ADDITIONAL_COST * (n - 1)) + (TESLA_EXPANSION_PACK_COST * packs);
+	    }
+
+	    function teslaSolarCost(solarKw) {
+	      const kw = Math.max(0, Number(solarKw) || 0);
+	      return TESLA_SOLAR_BASE_FEE + (TESLA_SOLAR_COST_PER_KW * kw);
+	    }
+
+	    function teslaTotalCost(solarKw, powerwallCount, expansionPackCount = 0) {
+	      return teslaSolarCost(solarKw) + teslaBatteryCost(powerwallCount, expansionPackCount);
+	    }
+
+	    function teslaAddedTotalCost(addedKw, addedPowerwalls, addedExpansionPacks = 0) {
+	      const kw = Math.max(0, Number(addedKw) || 0);
+	      const pw = Math.max(0, Math.floor(addedPowerwalls));
+	      const packs = Math.max(0, Math.floor(addedExpansionPacks));
+	      if (kw <= 1e-9 && pw === 0 && packs === 0) return 0;
+	      return teslaTotalCost(kw, pw, packs);
+	    }
+
+	    function objectiveLabel(modeRaw) {
+	      const mode = normalizeObjectiveMode(modeRaw);
+	      if (mode === "return_npv_unlevered") return "highest unlevered NPV (payback and levered outflow tie-breakers)";
+	      if (mode === "utility_bill_knee") return "utility bill Pareto knee-point";
       return "minimum levered monthly net outflow";
     }
 
@@ -2347,6 +2407,8 @@
       const fields = [
         { key: "powerwallCount", kind: "number", label: "Powerwalls", required: true, integer: true, min: 0, max: 4, default: 2 },
         { key: "lockPowerwallCount", kind: "checkbox", default: false },
+        { key: "expansionPackCount", kind: "number", label: "Expansion packs", required: true, integer: true, min: 0, max: 4, default: 0 },
+        { key: "lockExpansionPackCount", kind: "checkbox", default: false },
         { key: "solarSearchMinKw", kind: "number", label: "Solar search min", required: true, min: 0, default: 2 },
         { key: "solarSearchMaxKw", kind: "number", label: "Solar search max", required: true, min: 0, default: 20 },
         { key: "solarSearchStepKw", kind: "number", label: "Solar search step", required: true, min: 0.000001, default: 0.1 },
@@ -2390,20 +2452,13 @@
         { key: "exportOffPeak", kind: "number", label: "Export off-peak rate", required: true, min: 0, default: 0.05 },
         { key: "exportPeak", kind: "number", label: "Export peak rate", required: true, min: 0, default: 0.12 },
         { key: "vppEnabled", kind: "checkbox", default: true },
-        { key: "pricingModel", kind: "select", options: ["builder_manual", "tesla_formula"], default: "builder_manual" },
-        { key: "solarBaseCost", kind: "number", label: "Solar base cost", required: true, min: 0, default: 2710 },
-        { key: "solarCostPerKw", kind: "number", label: "Solar cost per kW", required: true, min: 0, default: 2785 },
-        { key: "batteryCost1", kind: "number", label: "1 Powerwall cost", required: true, min: 0, default: 16875 },
-        { key: "batteryCost2", kind: "number", label: "2 Powerwalls cost", required: true, min: 0, default: 31250 },
-        { key: "batteryCost3", kind: "number", label: "3 Powerwalls cost", required: true, min: 0, default: 45625 },
-        { key: "batteryCost4", kind: "number", label: "4 Powerwalls cost", required: true, min: 0, default: 60000 },
+        { key: "builderPackage", kind: "select", options: ["solar101", "solar104"], default: "solar101" },
         { key: "dispatchMode", kind: "select", options: ["self_consumption_peak_then_postpeak", "arbitrage_price_event"], default: "self_consumption_peak_then_postpeak" },
         { key: "reservePolicy", kind: "select", options: ["fixed", "auto_seasonal", "custom_monthly"], default: "auto_seasonal" },
         { key: "minSocReservePct", kind: "number", label: "Fixed minimum SOC reserve", required: true, min: 0, max: 95, default: 20, enabledWhen: (values) => values.reservePolicy === "fixed" },
         { key: "cyclesPerDay", kind: "number", label: "Cycles/day", required: true, min: 0, max: 2, default: 0.85 },
         { key: "solarToHomeEfficiencyPct", kind: "number", label: "Solar-to-home efficiency", required: true, min: 80, max: 100, default: 97.5 },
         { key: "roundTripEfficiency", kind: "number", label: "Round-trip efficiency", required: true, min: 50, max: 100, default: 90 },
-        { key: "apr", kind: "number", label: "APR", required: true, min: 0, default: 6 },
         { key: "financeYears", kind: "number", label: "Loan term", required: true, integer: true, min: 1, default: 15 }
       ];
       DEFAULT_MONTHLY_RESERVE_PCT.forEach((defaultValue, month) => {
@@ -2632,14 +2687,14 @@
         setFieldError(el.zipCode, "Enter a 5-digit ZIP.");
       }
 
-      if (values.solarSearchMaxKw !== null && values.solarSearchMinKw !== null && values.solarSearchMaxKw < values.solarSearchMinKw) {
-        errors.push("Solar search max must be >= min.");
-        setFieldError(el.solarSearchMaxKw, "Must be >= min.");
+      const builderSpec = getBuilderPackageSpec(values.builderPackage);
+      if (values.solarSearchMaxKw !== null && values.solarSearchMaxKw < builderSpec.kw) {
+        errors.push("Solar search max must be >= builder package base size (" + fmt(builderSpec.kw, 2) + " kW).");
+        setFieldError(el.solarSearchMaxKw, "Must be >= builder base.");
       }
-
-      if (values.solarSearchStepKw !== null && values.solarSearchStepKw <= 0) {
-        errors.push("Solar search step must be > 0.");
-        setFieldError(el.solarSearchStepKw, "Must be > 0.");
+      if (values.lockExpansionPackCount && values.powerwallCount === 0 && values.expansionPackCount > 0) {
+        errors.push("Expansion packs require at least 1 full Powerwall. Set Powerwalls >= 1 or unlock expansion pack lock.");
+        setFieldError(el.expansionPackCount, "Requires >= 1 Powerwall.");
       }
 
       const whfActiveMonthsManual = collectWhfActiveMonths();
@@ -2735,6 +2790,8 @@
         sizing: {
           powerwallCount: values.powerwallCount,
           lockPowerwallCount: values.lockPowerwallCount,
+          expansionPackCount: values.expansionPackCount,
+          lockExpansionPackCount: values.lockExpansionPackCount,
           solarSearchMinKw: values.solarSearchMinKw,
           solarSearchMaxKw: values.solarSearchMaxKw,
           solarSearchStepKw: values.solarSearchStepKw,
@@ -2826,16 +2883,9 @@
           exportMonthlyPeak
         },
         pricing: {
-          model: values.pricingModel,
-          solarBaseCost: values.solarBaseCost,
-          solarCostPerKw: values.solarCostPerKw,
-          batteryCosts: {
-            0: 0,
-            1: values.batteryCost1,
-            2: values.batteryCost2,
-            3: values.batteryCost3,
-            4: values.batteryCost4
-          }
+          model: "builder_then_tesla",
+          builderPackage: values.builderPackage,
+          builderPackageSpec: getBuilderPackageSpec(values.builderPackage)
         },
         battery: {
           usableKwhPerBattery: BATTERY_USABLE_KWH,
@@ -2847,7 +2897,8 @@
           monthlyReservePct
         },
         financing: {
-          apr: values.apr / 100,
+          builderApr: BUILDER_APR_PCT / 100,
+          teslaApr: TESLA_APR_PCT / 100,
           years: values.financeYears
         },
         climate: {
@@ -3096,7 +3147,9 @@
     function simulateRepresentativeDay(dayInput) {
       const loadShape = buildHourlyLoadShape(dayInput.peakShare);
       const solarShape = buildSolarHourlyShape(dayInput.monthIndex, dayInput.solarHourlyByMonth);
-      const batteryCapacity = dayInput.powerwallCount * dayInput.usableKwhPerBattery;
+      const batteryCapacity = Number.isFinite(dayInput.totalBatteryCapacityKwh)
+        ? Math.max(0, dayInput.totalBatteryCapacityKwh)
+        : (dayInput.powerwallCount * dayInput.usableKwhPerBattery);
       const maxDailyDischarge = batteryCapacity * dayInput.cyclesPerDay;
       const minSocReserveKwh = batteryCapacity * (dayInput.minSocReservePct || 0);
       const solarToHomeEfficiency = clamp(dayInput.solarToHomeEfficiency || 1, 0.8, 1);
@@ -3385,6 +3438,7 @@
         peakShare: monthInput.peakShare,
         powerwallCount: monthInput.powerwallCount,
         usableKwhPerBattery: monthInput.usableKwhPerBattery,
+        totalBatteryCapacityKwh: monthInput.totalBatteryCapacityKwh,
         cyclesPerDay: monthInput.cyclesPerDay,
         solarToHomeEfficiency: monthInput.solarToHomeEfficiency,
         maxAcOutputKw: monthInput.maxAcOutputKw,
@@ -3482,10 +3536,18 @@
       };
     }
 
-    function calculateAnnualEnergyAndBills(inputs, solarKw, powerwallCountOverride = inputs.sizing.powerwallCount, scaleOptions = null) {
+    function calculateAnnualEnergyAndBills(
+      inputs,
+      solarKw,
+      powerwallCountOverride = inputs.sizing.powerwallCount,
+      expansionPackCountOverride = inputs.sizing.expansionPackCount,
+      scaleOptions = null
+    ) {
       const solarScale = scaleOptions && Number.isFinite(scaleOptions.solarScale) ? Math.max(0, scaleOptions.solarScale) : 1;
       const batteryScale = scaleOptions && Number.isFinite(scaleOptions.batteryScale) ? Math.max(0, scaleOptions.batteryScale) : 1;
       const rateScale = scaleOptions && Number.isFinite(scaleOptions.rateScale) ? Math.max(0, scaleOptions.rateScale) : 1;
+      const safeExpansionPackCount = sanitizeExpansionPackCount(powerwallCountOverride, expansionPackCountOverride);
+      const totalBatteryCapacityKwh = (powerwallCountOverride * inputs.battery.usableKwhPerBattery * batteryScale) + (safeExpansionPackCount * EXPANSION_PACK_ADDED_KWH * batteryScale);
       let annualBefore = 0;
       let annualImportKwh = 0;
       let annualImportPeakKwh = 0;
@@ -3552,6 +3614,7 @@
           exportPeak: monthExportRates.peak,
           powerwallCount: powerwallCountOverride,
           usableKwhPerBattery: inputs.battery.usableKwhPerBattery * batteryScale,
+          totalBatteryCapacityKwh,
           cyclesPerDay: inputs.battery.cyclesPerDay,
           solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
           maxAcOutputKw,
@@ -3624,7 +3687,8 @@
       }
 
       const annualEnergyNetAfterTrueUp = Math.max(0, annualImportEnergyCostAfter - annualExportCreditValue);
-      const annualVppCredit = inputs.vpp.enabled ? (powerwallCountOverride * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) : 0;
+      const annualVppEffectiveKw = computeVppEffectiveKw(powerwallCountOverride, totalBatteryCapacityKwh);
+      const annualVppCredit = inputs.vpp.enabled ? (annualVppEffectiveKw * VPP_CREDIT_PER_KW_YEAR) : 0;
       const annualUtilityBillAfter = annualFixedChargeTotal + annualNbcAfter + annualEnergyNetAfterTrueUp;
       const annualVppRevenue = annualVppCredit;
       const annualNetEnergyEconomics = annualUtilityBillAfter - annualVppRevenue;
@@ -3680,6 +3744,7 @@
         annualFixedChargeTotal,
         annualVppCredit,
         annualProgramRevenue: annualVppRevenue,
+        annualTotalBatteryStorageKwh: totalBatteryCapacityKwh,
         annualClippedSolarKwh,
         annualClippedSolarPct
       };
@@ -3693,41 +3758,72 @@
       return principal * (r / (1 - Math.pow(1 + r, -n)));
     }
 
-    function getBatteryCandidatesForPricing(pricingModelRaw) {
-      const pricingModel = normalizePricingModel(pricingModelRaw);
-      return pricingModel === "tesla_formula" ? [0, 1, 2] : [0, 1, 2, 3, 4];
+    function getBatteryCandidatesForPricing(_pricingModelRaw) {
+      return [0, 1, 2, 3, 4];
     }
 
-    function getTeslaSolarRatePerKw(solarKw) {
-      return solarKw < 10 ? TESLA_SOLAR_RATE_BELOW_10 : TESLA_SOLAR_RATE_AT_LEAST_10;
+    function getMaxExpansionPacksForPowerwall(powerwallCount) {
+      const safePowerwallCount = Math.max(0, Math.floor(powerwallCount));
+      if (safePowerwallCount <= 0) return 0;
+      return Math.min(MAX_EXPANSION_PACKS_UI, safePowerwallCount * MAX_EXPANSION_PACKS_PER_POWERWALL);
     }
 
-    function getSolarCostForModel(pricingModelRaw, solarKw, builderBase, builderPerKw) {
-      const pricingModel = normalizePricingModel(pricingModelRaw);
-      if (pricingModel === "tesla_formula") {
-        return getTeslaSolarRatePerKw(solarKw) * solarKw;
+    function sanitizeExpansionPackCount(powerwallCount, expansionPackCount = 0) {
+      const safeExpansionPackCount = Math.max(0, Math.floor(expansionPackCount));
+      const maxAllowed = getMaxExpansionPacksForPowerwall(powerwallCount);
+      return Math.min(safeExpansionPackCount, maxAllowed);
+    }
+
+    function computeVppEffectiveKw(powerwallCount, totalBatteryCapacityKwh) {
+      const safePowerwallCount = Math.max(0, Math.floor(powerwallCount));
+      const safeBatteryKwh = Number.isFinite(totalBatteryCapacityKwh) ? Math.max(0, totalBatteryCapacityKwh) : 0;
+      if (safePowerwallCount <= 0 || safeBatteryKwh <= 0) return 0;
+      const totalInverterKw = safePowerwallCount * POWERWALL3_AC_KW;
+      const durationConstrainedKw = safeBatteryKwh / VPP_DURATION_HOURS;
+      return Math.min(totalInverterKw, durationConstrainedKw);
+    }
+
+    function getExpansionPackCandidatesForPowerwall(powerwallCount, preferredExpansionPackCount = 0, lockExpansionPackCount = false) {
+      const preferred = Math.max(0, Math.floor(preferredExpansionPackCount));
+      if (powerwallCount <= 0) {
+        return [0];
       }
-      return builderBase + (builderPerKw * solarKw);
-    }
-
-    function getBatteryCostForModel(pricingModelRaw, powerwallCount, builderBatteryCosts) {
-      const pricingModel = normalizePricingModel(pricingModelRaw);
-      if (pricingModel === "tesla_formula") {
-        return TESLA_BATTERY_COSTS[powerwallCount] ?? 0;
+      const maxPacks = getMaxExpansionPacksForPowerwall(powerwallCount);
+      const allowed = [];
+      for (let i = 0; i <= maxPacks; i += 1) {
+        allowed.push(i);
       }
-      return builderBatteryCosts[powerwallCount] ?? 0;
+      if (!lockExpansionPackCount) return allowed;
+      return [allowed.includes(preferred) ? preferred : 0];
     }
 
-    function getSystemCostForModel(pricing, solarKw, powerwallCount) {
+    function getSystemCostForModel(pricing, solarKw, powerwallCount, expansionPackCount = 0) {
       const pricingModel = normalizePricingModel(pricing && pricing.model);
-      const solarCost = getSolarCostForModel(pricingModel, solarKw, pricing.solarBaseCost, pricing.solarCostPerKw);
-      const batteryCost = getBatteryCostForModel(pricingModel, powerwallCount, pricing.batteryCosts);
+      const spec = getBuilderPackageSpec(pricing && pricing.builderPackage);
+      const baseKw = spec.kw;
+      const baseCost = spec.price;
+      const addedKw = Math.max(0, Number(solarKw) - baseKw);
+      const addedPw = Math.max(0, Math.floor(powerwallCount));
+      const addedExpansionPacks = sanitizeExpansionPackCount(addedPw, expansionPackCount);
+      const teslaAdded = teslaAddedTotalCost(addedKw, addedPw, addedExpansionPacks);
+      const solarCost = baseCost + (teslaAdded > 0 ? teslaSolarCost(addedKw) : 0);
+      const batteryCost = teslaBatteryCost(addedPw, addedExpansionPacks);
       return {
         model: pricingModel,
+        builderPackage: spec.id,
+        builderPackageCode: spec.code,
+        builderBaseKw: baseKw,
+        builderBaseCost: baseCost,
+        addedSolarKw: addedKw,
+        addedPowerwalls: addedPw,
+        addedExpansionPacks,
+        teslaAddedCost: teslaAdded,
+        builderPrincipal: baseCost,
+        teslaPrincipal: teslaAdded,
         solarCost,
         batteryCost,
-        solarRatePerKw: pricingModel === "tesla_formula" ? getTeslaSolarRatePerKw(solarKw) : pricing.solarCostPerKw,
-        solarBranch: pricingModel === "tesla_formula" ? (solarKw < 10 ? "lt_10kw" : "gte_10kw") : "builder_manual",
+        solarRatePerKw: TESLA_SOLAR_COST_PER_KW,
+        solarBranch: "builder_then_tesla",
         systemCostGross: solarCost + batteryCost
       };
     }
@@ -3741,14 +3837,14 @@
     }
 
     function calculateNoControlsAnnualBefore(inputs) {
-      return calculateAnnualEnergyAndBills(buildNoControlsInputs(inputs), 0, 0).annualBefore;
+      return calculateAnnualEnergyAndBills(buildNoControlsInputs(inputs), 0, 0, 0).annualBefore;
     }
 
-    function computeAnnualComparisonAtSize(inputs, solarKw, powerwallCountOverride, precomputedNoControlsAnnualBefore = null) {
-      const annualConfigured = calculateAnnualEnergyAndBills(inputs, solarKw, powerwallCountOverride);
+    function computeAnnualComparisonAtSize(inputs, solarKw, powerwallCountOverride, expansionPackCountOverride, precomputedNoControlsAnnualBefore = null) {
+      const annualConfigured = calculateAnnualEnergyAndBills(inputs, solarKw, powerwallCountOverride, expansionPackCountOverride);
       const noControlsInputs = buildNoControlsInputs(inputs);
       const annualOff = inputs.ha.enabled
-        ? calculateAnnualEnergyAndBills(noControlsInputs, solarKw, powerwallCountOverride)
+        ? calculateAnnualEnergyAndBills(noControlsInputs, solarKw, powerwallCountOverride, expansionPackCountOverride)
         : null;
 
       let annualEffective = annualConfigured;
@@ -3774,11 +3870,18 @@
       };
     }
 
-    function evaluateScenario(inputs, solarKw, powerwallCountOverride = inputs.sizing.powerwallCount, options = null) {
+    function evaluateScenario(
+      inputs,
+      solarKw,
+      powerwallCountOverride = inputs.sizing.powerwallCount,
+      expansionPackCountOverride = inputs.sizing.expansionPackCount,
+      options = null
+    ) {
       const precomputedNoControlsAnnualBefore = options && Number.isFinite(options.noControlsAnnualBefore)
         ? options.noControlsAnnualBefore
         : null;
-      const comparison = computeAnnualComparisonAtSize(inputs, solarKw, powerwallCountOverride, precomputedNoControlsAnnualBefore);
+      const safeExpansionPackCount = sanitizeExpansionPackCount(powerwallCountOverride, expansionPackCountOverride);
+      const comparison = computeAnnualComparisonAtSize(inputs, solarKw, powerwallCountOverride, safeExpansionPackCount, precomputedNoControlsAnnualBefore);
       const annualConfigured = comparison.annualConfigured;
       const annualEffective = comparison.annualEffective;
       const pgeBeforeMonthly = annualEffective.annualBefore / 12;
@@ -3791,17 +3894,21 @@
       const utilitySavingsMonthlyWholeHome = -utilityBillChangeMonthlyWholeHome;
       const utilitySavingsMonthly = annualEffective.annualUtilitySavings / 12;
 
-      const pricingBreakdown = getSystemCostForModel(inputs.pricing, solarKw, powerwallCountOverride);
+      const pricingBreakdown = getSystemCostForModel(inputs.pricing, solarKw, powerwallCountOverride, safeExpansionPackCount);
       const systemCostGross = pricingBreakdown.systemCostGross;
-      const financedPrincipal = systemCostGross;
-      const mortgageMonthly = calculateMortgagePayment(financedPrincipal, inputs.financing.apr, inputs.financing.years);
-      const monthlyLoanPayment = mortgageMonthly;
+      const builderPrincipal = pricingBreakdown.builderPrincipal;
+      const teslaPrincipal = pricingBreakdown.teslaPrincipal;
+      const financedPrincipal = builderPrincipal + teslaPrincipal;
+      const builderLoanMonthly = calculateMortgagePayment(builderPrincipal, inputs.financing.builderApr, inputs.financing.years);
+      const teslaLoanMonthly = calculateMortgagePayment(teslaPrincipal, inputs.financing.teslaApr, inputs.financing.years);
+      const monthlyLoanPayment = builderLoanMonthly + teslaLoanMonthly;
       const monthlyNetOutflowLevered = monthlyLoanPayment + monthlyUtilityBillAfter - monthlyProgramRevenue;
       const monthlyDeltaLevered = monthlyNetOutflowLevered - pgeBaselineMonthlyNoControls;
 
       return {
         idealSolarKw: solarKw,
         powerwallCount: powerwallCountOverride,
+        expansionPackCount: safeExpansionPackCount,
         pgeBeforeMonthly,
         pgeBaselineMonthlyNoControls,
         pgeAfterMonthlyTrueUp: monthlyUtilityBillAfter,
@@ -3816,6 +3923,10 @@
         utilitySavingsMonthlyWholeHome,
         utilitySavingsMonthly,
         financedPrincipal,
+        builderPrincipal,
+        teslaPrincipal,
+        builderLoanMonthly,
+        teslaLoanMonthly,
         mortgageMonthly: monthlyLoanPayment,
         totalMonthlyOutflow: monthlyNetOutflowLevered,
         annualBefore: annualEffective.annualBefore,
@@ -3866,6 +3977,7 @@
         annualNbcAfter: annualEffective.annualNbcAfter,
         annualFixedChargeTotal: annualEffective.annualFixedChargeTotal,
         annualVppCredit: annualEffective.annualVppCredit,
+        totalBatteryStorageKwh: annualEffective.annualTotalBatteryStorageKwh,
         annualClippedSolarKwh: annualEffective.annualClippedSolarKwh,
         annualClippedSolarPct: annualEffective.annualClippedSolarPct,
         annualAfterRawConfigured: annualConfigured.annualNetEnergyEconomics,
@@ -3874,6 +3986,13 @@
         haGuardPreventedAnnualCost: comparison.haGuardPreventedAnnualCost,
         systemCostGross,
         pricingModel: pricingBreakdown.model,
+        builderPackage: pricingBreakdown.builderPackage,
+        builderPackageCode: pricingBreakdown.builderPackageCode,
+        builderBaseKw: pricingBreakdown.builderBaseKw,
+        addedSolarKw: pricingBreakdown.addedSolarKw,
+        addedPowerwalls: pricingBreakdown.addedPowerwalls,
+        addedExpansionPacks: pricingBreakdown.addedExpansionPacks,
+        teslaAddedCost: pricingBreakdown.teslaAddedCost,
         solarCostComponent: pricingBreakdown.solarCost,
         batteryCostComponent: pricingBreakdown.batteryCost,
         solarCostRatePerKw: pricingBreakdown.solarRatePerKw,
@@ -3918,6 +4037,9 @@
       }
       if (a.powerwallCount !== b.powerwallCount) {
         return a.powerwallCount - b.powerwallCount;
+      }
+      if ((a.expansionPackCount || 0) !== (b.expansionPackCount || 0)) {
+        return (a.expansionPackCount || 0) - (b.expansionPackCount || 0);
       }
       return a.idealSolarKw - b.idealSolarKw;
     }
@@ -4054,37 +4176,53 @@
     }
 
     function optimizeIdealScenario(inputs) {
-      const solarCandidates = buildSolarCandidates(
-        inputs.sizing.solarSearchMinKw,
-        inputs.sizing.solarSearchMaxKw,
-        inputs.sizing.solarSearchStepKw
-      );
-      const allowedBatteryCandidates = getBatteryCandidatesForPricing(inputs.pricing.model);
-      const batteryCandidates = inputs.sizing.lockPowerwallCount
-        ? [allowedBatteryCandidates.includes(inputs.sizing.powerwallCount)
+      const spec = getBuilderPackageSpec(inputs.pricing.builderPackage);
+      const maxKw = Math.max(spec.kw, inputs.sizing.solarSearchMaxKw);
+      const solarCandidates = buildSolarCandidates(spec.kw, maxKw, MODULE_KW);
+	      const allowedBatteryCandidates = getBatteryCandidatesForPricing(inputs.pricing.model);
+	      const batteryCandidates = inputs.sizing.lockPowerwallCount
+	        ? [allowedBatteryCandidates.includes(inputs.sizing.powerwallCount)
           ? inputs.sizing.powerwallCount
           : allowedBatteryCandidates[allowedBatteryCandidates.length - 1]]
         : allowedBatteryCandidates;
       if (!solarCandidates.length) {
-        return { error: "No valid solar candidates generated from min/max/step.", best: null, solarCandidates: [], batteryCandidates, candidates: [], results: [], paretoFrontier: [] };
+        return {
+          error: "No valid solar candidates generated from min/max/step.",
+          best: null,
+          solarCandidates: [],
+          batteryCandidates,
+          expansionCandidatesByPowerwall: {},
+          candidates: [],
+          results: [],
+          paretoFrontier: []
+        };
       }
 
       const noControlsAnnualBefore = calculateNoControlsAnnualBefore(inputs);
       const rawResults = [];
+      const expansionCandidatesByPowerwall = {};
       batteryCandidates.forEach((powerwallCount) => {
+        const expansionCandidates = getExpansionPackCandidatesForPowerwall(
+          powerwallCount,
+          inputs.sizing.expansionPackCount,
+          inputs.sizing.lockExpansionPackCount
+        );
+        expansionCandidatesByPowerwall[powerwallCount] = expansionCandidates;
         solarCandidates.forEach((solarKw) => {
-          const scenario = evaluateScenario(inputs, solarKw, powerwallCount, { noControlsAnnualBefore });
-          const returns = projectScenarioReturns(inputs, scenario);
-          rawResults.push({
-            ...scenario,
-            npvUnlevered: returns.npvUnlevered,
-            paybackYearsUnlevered: returns.paybackYearsUnlevered,
-            projectionCumulative15Unlevered: returns.projectionCumulative15Unlevered,
-            irrUnlevered: returns.irrUnlevered,
-            npv: returns.npv,
-            paybackYears: returns.paybackYears,
-            projectionCumulative15: returns.projectionCumulative15,
-            selectionReason: "objective-min"
+          expansionCandidates.forEach((expansionPackCount) => {
+            const scenario = evaluateScenario(inputs, solarKw, powerwallCount, expansionPackCount, { noControlsAnnualBefore });
+            const returns = projectScenarioReturns(inputs, scenario);
+            rawResults.push({
+              ...scenario,
+              npvUnlevered: returns.npvUnlevered,
+              paybackYearsUnlevered: returns.paybackYearsUnlevered,
+              projectionCumulative15Unlevered: returns.projectionCumulative15Unlevered,
+              irrUnlevered: returns.irrUnlevered,
+              npv: returns.npv,
+              paybackYears: returns.paybackYears,
+              projectionCumulative15: returns.projectionCumulative15,
+              selectionReason: "objective-min"
+            });
           });
         });
       });
@@ -4107,6 +4245,7 @@
         best,
         solarCandidates,
         batteryCandidates,
+        expansionCandidatesByPowerwall,
         candidates: solarCandidates,
         results: sorted,
         paretoFrontier
@@ -4121,29 +4260,78 @@
       const checks = [];
       const eps = 1e-6;
       const objectiveMode = normalizeObjectiveMode(inputs.sizing.objectiveMode);
-      const expectedRows = optimization.solarCandidates.length * optimization.batteryCandidates.length;
+      const expectedRows = optimization.batteryCandidates.reduce((sum, pw) => {
+        const expansionCandidates = optimization.expansionCandidatesByPowerwall && optimization.expansionCandidatesByPowerwall[pw]
+          ? optimization.expansionCandidatesByPowerwall[pw]
+          : [0];
+        return sum + (optimization.solarCandidates.length * expansionCandidates.length);
+      }, 0);
       const julExportRates = resolveExportRatesForMonth(inputs.rates, 6, 1);
       checks.push({
-        name: "Grid sweep count matches solar candidates x battery candidates",
+        name: "Grid sweep count matches solar x Powerwall x expansion pack candidates",
         ok: optimization.results.length === expectedRows
       });
-      if (inputs.pricing.model === "tesla_formula") {
-        checks.push({
-          name: "Tesla mode candidate set limited to 0-2 PW",
-          ok: optimization.batteryCandidates.every((pw) => pw >= 0 && pw <= 2)
-        });
-        const teslaBelow10 = getSolarCostForModel("tesla_formula", 9.9, 0, 0);
-        const teslaAt10 = getSolarCostForModel("tesla_formula", 10.0, 0, 0);
-        checks.push({
-          name: "Tesla solar formula branch switch at 10.0 kW behaves as expected",
-          ok: Math.abs(teslaBelow10 - (9.9 * TESLA_SOLAR_RATE_BELOW_10)) < 1e-6
-            && Math.abs(teslaAt10 - (10.0 * TESLA_SOLAR_RATE_AT_LEAST_10)) < 1e-6
-        });
-      }
+      const teslaSolarProbeKw = 2.4;
+      checks.push({
+        name: "Tesla solar pricing formula matches 620 + 2622.4*kW",
+        ok: Math.abs(teslaSolarCost(teslaSolarProbeKw) - (TESLA_SOLAR_BASE_FEE + (TESLA_SOLAR_COST_PER_KW * teslaSolarProbeKw))) < eps
+      });
+      checks.push({
+        name: "Tesla battery pricing formula covers full Powerwalls and expansion packs",
+        ok: teslaBatteryCost(0, 0) === 0
+          && teslaBatteryCost(1, 0) === 10700
+          && teslaBatteryCost(2, 0) === 17600
+          && teslaBatteryCost(3, 0) === 24500
+          && teslaBatteryCost(1, 1) === (10700 + TESLA_EXPANSION_PACK_COST)
+      });
+      checks.push({
+        name: "Expansion packs are blocked when Powerwall count is zero",
+        ok: getExpansionPackCandidatesForPowerwall(0, 3, true).length === 1
+          && getExpansionPackCandidatesForPowerwall(0, 3, true)[0] === 0
+      });
+      checks.push({
+        name: "Expansion pack candidates for 1 Powerwall are [0,1,2,3]",
+        ok: JSON.stringify(getExpansionPackCandidatesForPowerwall(1)) === JSON.stringify([0, 1, 2, 3])
+      });
+      checks.push({
+        name: "Expansion pack candidates for 2+ Powerwalls include 4 under UI cap",
+        ok: getExpansionPackCandidatesForPowerwall(2).includes(4)
+      });
+      const vppProbeInputs = {
+        ...inputs,
+        vpp: { ...inputs.vpp, enabled: true }
+      };
+      const vppProbePw1NoPack = calculateAnnualEnergyAndBills(vppProbeInputs, 0, 1, 0);
+      const vppProbePw1WithPack = calculateAnnualEnergyAndBills(vppProbeInputs, 0, 1, 1);
+      const vppProbePw0 = calculateAnnualEnergyAndBills(vppProbeInputs, 0, 0, 4);
+      checks.push({
+        name: "VPP revenue increases from 1 PW + 0 pack to 1 PW + 1 pack",
+        ok: vppProbePw1WithPack.annualVppRevenue > vppProbePw1NoPack.annualVppRevenue + eps
+      });
+      checks.push({
+        name: "VPP revenue is zero when Powerwalls are zero",
+        ok: Math.abs(vppProbePw0.annualVppRevenue) < eps
+      });
+      const base101 = getSystemCostForModel({ model: "builder_then_tesla", builderPackage: "solar101" }, 3.95, 0);
+      const base104 = getSystemCostForModel({ model: "builder_then_tesla", builderPackage: "solar104" }, 5.53, 0);
+      checks.push({
+        name: "Builder package baselines match provided costs at zero Tesla adds",
+        ok: Math.abs(base101.systemCostGross - 13710) < eps && Math.abs(base104.systemCostGross - 18110) < eps
+      });
+      const packScenario = getSystemCostForModel({ model: "builder_then_tesla", builderPackage: "solar101" }, 3.95, 1, 1);
+      checks.push({
+        name: "Tesla battery add with 1 PW + 1 pack includes base fee and pack cost",
+        ok: Math.abs(packScenario.teslaPrincipal - (TESLA_SOLAR_BASE_FEE + TESLA_POWERWALL_FIRST_COST + TESLA_EXPANSION_PACK_COST)) < eps
+      });
 
       checks.push({
-        name: "Loan payment flow is zero after loan term",
-        ok: Math.abs(annualMortgageForYear(inputs.financing.years + 1, best.mortgageMonthly, inputs.financing.years)) < eps
+        name: "Builder and Tesla loan components add up to total monthly payment",
+        ok: Math.abs(best.monthlyLoanPayment - (best.builderLoanMonthly + best.teslaLoanMonthly)) < 0.01
+      });
+      checks.push({
+        name: "Loan payment flow is zero after loan term for both financing components",
+        ok: Math.abs(annualMortgageForYear(inputs.financing.years + 1, best.builderLoanMonthly, inputs.financing.years)) < eps
+          && Math.abs(annualMortgageForYear(inputs.financing.years + 1, best.teslaLoanMonthly, inputs.financing.years)) < eps
       });
       checks.push({
         name: "Financed principal is non-negative",
@@ -4184,15 +4372,15 @@
 
       const recomputedBest = [...optimization.results].sort((a, b) => compareObjective(a, b, objectiveMode))[0];
       if (objectiveMode === "utility_bill_knee") {
-        const frontierKeys = new Set(optimization.paretoFrontier.map((row) => scenarioKey(row.idealSolarKw, row.powerwallCount)));
+        const frontierKeys = new Set(optimization.paretoFrontier.map((row) => scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount)));
         checks.push({
           name: "Utility-bill knee selection is on Pareto frontier",
-          ok: frontierKeys.has(scenarioKey(best.idealSolarKw, best.powerwallCount))
+          ok: frontierKeys.has(scenarioKey(best.idealSolarKw, best.powerwallCount, best.expansionPackCount))
         });
       } else {
         checks.push({
           name: "Objective selector consistency (selected scenario matches configured objective)",
-          ok: scenarioKey(recomputedBest.idealSolarKw, recomputedBest.powerwallCount) === scenarioKey(best.idealSolarKw, best.powerwallCount)
+          ok: scenarioKey(recomputedBest.idealSolarKw, recomputedBest.powerwallCount, recomputedBest.expansionPackCount) === scenarioKey(best.idealSolarKw, best.powerwallCount, best.expansionPackCount)
         });
       }
 
@@ -4213,7 +4401,13 @@
         ...inputs,
         vpp: { enabled: false }
       };
-      const vppOffScenario = evaluateScenario(vppOffInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore: calculateNoControlsAnnualBefore(vppOffInputs) });
+      const vppOffScenario = evaluateScenario(
+        vppOffInputs,
+        best.idealSolarKw,
+        best.powerwallCount,
+        best.expansionPackCount,
+        { noControlsAnnualBefore: calculateNoControlsAnnualBefore(vppOffInputs) }
+      );
       checks.push({
         name: "VPP ON/OFF does not change utility bill after",
         ok: Math.abs(vppOffScenario.annualUtilityBillAfter - best.annualUtilityBillAfter) < 0.01
@@ -4242,8 +4436,8 @@
         whf: { ...inputs.whf, enabled: false, activeMonths: [] }
       };
       const noControlsAnnualBefore = calculateNoControlsAnnualBefore(inputs);
-      const whfOnScenario = evaluateScenario(whfOnInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore });
-      const whfOffScenario = evaluateScenario(whfOffInputs, best.idealSolarKw, best.powerwallCount, { noControlsAnnualBefore });
+      const whfOnScenario = evaluateScenario(whfOnInputs, best.idealSolarKw, best.powerwallCount, best.expansionPackCount, { noControlsAnnualBefore });
+      const whfOffScenario = evaluateScenario(whfOffInputs, best.idealSolarKw, best.powerwallCount, best.expansionPackCount, { noControlsAnnualBefore });
       checks.push({
         name: "WHF ON reduces annual import at fixed solar and battery",
         ok: whfOnScenario.annualImportKwh <= whfOffScenario.annualImportKwh + 0.01
@@ -4516,6 +4710,16 @@
         name: "Clipping appears when Powerwalls >= 1 under oversized solar",
         ok: clipProbePw1.clippedSolarKwh > 0.01
       });
+      const clipInvariantProbeNoPack = calculateAnnualEnergyAndBills(inputs, 20, 1, 0);
+      const clipInvariantProbeWithPack = calculateAnnualEnergyAndBills(inputs, 20, 1, 1);
+      checks.push({
+        name: "Expansion packs do not change clipping at fixed full Powerwall count",
+        ok: Math.abs(clipInvariantProbeNoPack.annualClippedSolarKwh - clipInvariantProbeWithPack.annualClippedSolarKwh) < 0.01
+      });
+      checks.push({
+        name: "Expansion pack adds 13.5 kWh battery capacity",
+        ok: Math.abs((clipInvariantProbeWithPack.annualTotalBatteryStorageKwh - clipInvariantProbeNoPack.annualTotalBatteryStorageKwh) - EXPANSION_PACK_ADDED_KWH) < 1e-6
+      });
 
       if (inputs.rates.exportRateMode === "monthly_tou_12x2") {
         const monthlyArbitrageRisk = MONTH_LABELS.some((_, month) => {
@@ -4553,7 +4757,8 @@
         el.regressionOutput.textContent = "Regression probe skipped in NPV mode to keep interactivity fast. Switch objective to outflow or utility knee-point for v1/v2 comparison.";
         return;
       }
-      const moduleGridCandidates = buildSolarCandidates(inputs.sizing.solarSearchMinKw, inputs.sizing.solarSearchMaxKw, MODULE_KW);
+      const builderSpec = getBuilderPackageSpec(inputs.pricing.builderPackage);
+      const moduleGridCandidates = buildSolarCandidates(builderSpec.kw, Math.max(builderSpec.kw, inputs.sizing.solarSearchMaxKw), MODULE_KW);
       if (!moduleGridCandidates.length) {
         el.regressionOutput.textContent = "Regression probe unavailable: no v1-like module-grid candidates in this search range.";
         return;
@@ -4567,8 +4772,15 @@
           : allowedProbeBatteryCandidates[allowedProbeBatteryCandidates.length - 1]]
         : allowedProbeBatteryCandidates;
       probeBatteryCandidates.forEach((pw) => {
+        const probeExpansionCandidates = getExpansionPackCandidatesForPowerwall(
+          pw,
+          inputs.sizing.expansionPackCount,
+          inputs.sizing.lockExpansionPackCount
+        );
         moduleGridCandidates.forEach((kw) => {
-          moduleGridScenarios.push(evaluateScenario(inputs, kw, pw));
+          probeExpansionCandidates.forEach((pack) => {
+            moduleGridScenarios.push(evaluateScenario(inputs, kw, pw, pack));
+          });
         });
       });
       const bestModuleGridByV2 = [...moduleGridScenarios].sort((a, b) => compareObjective(a, b, objectiveMode))[0];
@@ -4584,16 +4796,18 @@
       const objectiveDeltaKw = bestV2.idealSolarKw - bestV1Like.idealSolarKw;
       const gridDeltaPw = bestV2.powerwallCount - bestModuleGridByV2.powerwallCount;
       const objectiveDeltaPw = bestV2.powerwallCount - bestV1Like.powerwallCount;
+      const gridDeltaPack = (bestV2.expansionPackCount || 0) - (bestModuleGridByV2.expansionPackCount || 0);
+      const objectiveDeltaPack = (bestV2.expansionPackCount || 0) - (bestV1Like.expansionPackCount || 0);
       const julReservePct = getMonthReservePct(inputs.battery, 6);
 
       const lines = [];
       lines.push("Shared baseline probe:");
       lines.push("Objective mode: " + objectiveLabel(objectiveMode) + ".");
       lines.push("Dispatch mode: " + inputs.battery.dispatchMode + " with reserve policy " + inputs.battery.reservePolicy + " (Jul reserve " + fmt(julReservePct * 100, 0) + "%).");
-      lines.push("v2 continuous-step best: " + fmt(bestV2.idealSolarKw, 3) + " kW / " + bestV2.powerwallCount + " PW.");
-      lines.push("Module-grid (0.395 kW step) best: " + fmt(bestModuleGridByV2.idealSolarKw, 3) + " kW / " + bestModuleGridByV2.powerwallCount + " PW.");
-      lines.push("v1-like objective best (includes 5% opportunity term): " + fmt(bestV1Like.idealSolarKw, 3) + " kW / " + bestV1Like.powerwallCount + " PW.");
-      lines.push("Expected differences: kW grid representation delta " + fmt(gridDeltaKw, 3) + " kW and " + gridDeltaPw + " PW; objective delta " + fmt(objectiveDeltaKw, 3) + " kW and " + objectiveDeltaPw + " PW.");
+      lines.push("v2 continuous-step best: " + fmt(bestV2.idealSolarKw, 3) + " kW / " + bestV2.powerwallCount + " PW / " + (bestV2.expansionPackCount || 0) + " packs.");
+      lines.push("Module-grid (0.395 kW step) best: " + fmt(bestModuleGridByV2.idealSolarKw, 3) + " kW / " + bestModuleGridByV2.powerwallCount + " PW / " + (bestModuleGridByV2.expansionPackCount || 0) + " packs.");
+      lines.push("v1-like objective best (includes 5% opportunity term): " + fmt(bestV1Like.idealSolarKw, 3) + " kW / " + bestV1Like.powerwallCount + " PW / " + (bestV1Like.expansionPackCount || 0) + " packs.");
+      lines.push("Expected differences: kW grid representation delta " + fmt(gridDeltaKw, 3) + " kW, " + gridDeltaPw + " PW, " + gridDeltaPack + " packs; objective delta " + fmt(objectiveDeltaKw, 3) + " kW, " + objectiveDeltaPw + " PW, " + objectiveDeltaPack + " packs.");
       el.regressionOutput.textContent = lines.join(" ");
     }
 
@@ -4605,7 +4819,7 @@
       const netPaymentChangeMonthly = result.monthlyDeltaLevered;
 
       el.cardIdealSolarKw.textContent = fmt(result.idealSolarKw, 3) + " kW";
-      el.cardPowerwallChoice.textContent = "Powerwalls: " + result.powerwallCount;
+      el.cardPowerwallChoice.textContent = "Powerwalls: " + result.powerwallCount + " | Expansion packs: " + (result.expansionPackCount || 0);
       el.cardPgeBefore.textContent = usdPrecise(result.pgeBaselineMonthlyNoControls);
       el.cardPgeAfter.textContent = usdPrecise(result.monthlyUtilityBillAfter);
       el.cardTrueUpNote.textContent = "Annual utility bill after: " + usdPrecise(result.annualUtilityBillAfter) + " | Energy net: " + usdPrecise(result.annualEnergyNetAfterTrueUp) + " | Battery->Grid: " + fmt(result.annualBatteryToGridExportKwh, 0) + " kWh/yr";
@@ -4614,15 +4828,14 @@
       el.cardNetEnergyEconomics.textContent = usdPrecise(result.monthlyNetEnergyEconomics);
       el.cardNbcNote.textContent = "NBC annual: " + usdPrecise(result.annualNbcAfter);
       el.cardClippedSolar.textContent = fmt(result.annualClippedSolarKwh, 0) + " kWh/yr";
-      el.cardClippedSolarNote.textContent = "Clipped share: " + fmt(result.annualClippedSolarPct * 100, 1) + "% (PW3 cap " + fmt(POWERWALL3_AC_KW, 1) + " kW/PW)";
+      el.cardClippedSolarNote.textContent = "Clipped share: " + fmt(result.annualClippedSolarPct * 100, 1) + "% (PW3 cap " + fmt(POWERWALL3_AC_KW, 1) + " kW/PW; packs add storage only)";
       renderDelta(el.cardSavings, utilityBillChangeMonthly);
       el.cardUtilityChangeFormula.textContent = "(Utility After - Baseline) + Loan - VPP = " + usdSigned(utilityBillChangeMonthly);
       el.cardSolarOnlyDelta.textContent = "Solar-only delta (same-load baseline): " + usdSigned(utilityBillChangeMonthlySolarOnly);
       el.cardFinanced.textContent = usd(result.financedPrincipal);
-      const pricingSummary = result.pricingModel === "tesla_formula"
-        ? ("Pricing: Tesla (" + (result.solarPricingBranch === "lt_10kw" ? "<10kW" : ">=10kW") + " branch)")
-        : "Pricing: Builder";
-      el.cardFinancedNote.textContent = pricingSummary + " | Gross system cost: " + usd(result.systemCostGross) + " | NPV (unlevered): " + usdPrecise(result.npvUnlevered) + " | IRR: " + formatIrr(result.irrUnlevered) + " | Payback: " + formatPaybackYears(result.paybackYearsUnlevered, inputs.analysis.years);
+      const pricingSummary = "Pricing: " + (result.builderPackageCode || "Builder package") + " + Tesla upgrades";
+      const loanSplitSummary = " | Builder principal: " + usd(result.builderPrincipal) + " (" + usdPrecise(result.builderLoanMonthly) + "/mo @ " + fmt(BUILDER_APR_PCT, 1) + "%) | Tesla principal: " + usd(result.teslaPrincipal) + " (" + usdPrecise(result.teslaLoanMonthly) + "/mo @ " + fmt(TESLA_APR_PCT, 1) + "%)";
+      el.cardFinancedNote.textContent = pricingSummary + loanSplitSummary + " | Gross system cost: " + usd(result.systemCostGross) + " | Battery storage: " + fmt(result.totalBatteryStorageKwh, 2) + " kWh | NPV (unlevered): " + usdPrecise(result.npvUnlevered) + " | IRR: " + formatIrr(result.irrUnlevered) + " | Payback: " + formatPaybackYears(result.paybackYearsUnlevered, inputs.analysis.years);
       renderDelta(el.cardMortgage, loanPaymentMonthly);
       el.cardOutflow.textContent = "Levered net outflow/mo: " + usdPrecise(result.monthlyNetOutflowLevered);
       renderDelta(el.cardNetPaymentChange, netPaymentChangeMonthly);
@@ -4635,7 +4848,7 @@
         : (result.selectionReason === "user-selected"
           ? "Selection reason: user override."
           : (result.selectionReason === "preferred-powerwall"
-            ? "Selection reason: best scenario within selected Powerwall count."
+            ? "Selection reason: best scenario within selected Powerwall/storage preference."
             : "Selection reason: objective minimum."));
       el.objectiveSummary.innerHTML = "Ideal size is selected by <strong>" + objectiveFormula(objectiveMode) + "</strong>. " + reasonText;
     }
@@ -4646,7 +4859,11 @@
       table.innerHTML = "";
       const byKey = new Map();
       optimization.results.forEach((row) => {
-        byKey.set(scenarioKey(row.idealSolarKw, row.powerwallCount), row);
+        const key = Number(row.idealSolarKw).toFixed(6) + "|" + row.powerwallCount;
+        const existing = byKey.get(key);
+        if (!existing || compareObjective(row, existing, objectiveMode) < 0) {
+          byKey.set(key, row);
+        }
       });
 
       const thead = document.createElement("thead");
@@ -4664,16 +4881,16 @@
         optimization.batteryCandidates.forEach((pw) => {
           const td = document.createElement("td");
           td.className = "matrix-cell";
-          const row = byKey.get(scenarioKey(solarKw, pw));
+          const row = byKey.get(Number(solarKw).toFixed(6) + "|" + pw);
           if (!row) {
             td.textContent = "--";
           } else {
-            td.innerHTML = "<div>" + usdPrecise(row.npvUnlevered) + "</div><div class='sub'>" + formatPaybackYears(row.paybackYearsUnlevered, inputs.analysis.years) + " | " + formatIrr(row.irrUnlevered) + "</div>";
-            if (scenarioKey(row.idealSolarKw, row.powerwallCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount)) {
+            td.innerHTML = "<div>" + usdPrecise(row.npvUnlevered) + "</div><div class='sub'>" + formatPaybackYears(row.paybackYearsUnlevered, inputs.analysis.years) + " | " + formatIrr(row.irrUnlevered) + " | " + (row.expansionPackCount || 0) + " packs</div>";
+            if (scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount, selectedScenario.expansionPackCount)) {
               td.classList.add("matrix-cell-selected");
             }
             td.addEventListener("click", () => {
-              selectedScenarioKey = scenarioKey(row.idealSolarKw, row.powerwallCount);
+              selectedScenarioKey = scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount);
               render();
             });
           }
@@ -4682,7 +4899,7 @@
         tbody.appendChild(tr);
       });
       table.appendChild(tbody);
-      el.scenarioMatrixNote.textContent = "Matrix values show unlevered NPV with payback/IRR subtext. Objective: " + objectiveLabel(objectiveMode) + ".";
+      el.scenarioMatrixNote.textContent = "Matrix values show best unlevered NPV per (solar, PW) cell with payback/IRR and selected expansion pack count. Objective: " + objectiveLabel(objectiveMode) + ".";
     }
 
     function renderTopScenarios(optimization, selectedScenario, inputs) {
@@ -4690,13 +4907,14 @@
       el.topScenariosBody.innerHTML = "";
       rows.forEach((row, idx) => {
         const tr = document.createElement("tr");
-        if (scenarioKey(row.idealSolarKw, row.powerwallCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount)) {
+        if (scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount, selectedScenario.expansionPackCount)) {
           tr.className = "row-selected";
         }
         tr.innerHTML = [
           "<td>" + (idx + 1) + "</td>",
           "<td>" + fmt(row.idealSolarKw, 3) + "</td>",
           "<td>" + row.powerwallCount + "</td>",
+          "<td>" + (row.expansionPackCount || 0) + "</td>",
           "<td>" + usdPrecise(row.npvUnlevered) + "</td>",
           "<td>" + formatIrr(row.irrUnlevered) + "</td>",
           "<td>" + formatPaybackYears(row.paybackYearsUnlevered, inputs.analysis.years) + "</td>",
@@ -4707,7 +4925,7 @@
           "<td>" + fmt(row.annualExportKwh, 0) + "</td>"
         ].join("");
         tr.addEventListener("click", () => {
-          selectedScenarioKey = scenarioKey(row.idealSolarKw, row.powerwallCount);
+          selectedScenarioKey = scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount);
           render();
         });
         el.topScenariosBody.appendChild(tr);
@@ -4718,17 +4936,23 @@
       const objectiveMode = normalizeObjectiveMode(inputs.sizing.objectiveMode);
       const rows = optimization.results;
       const samePw = rows
-        .filter((row) => row.powerwallCount === selectedScenario.powerwallCount)
+        .filter((row) => row.powerwallCount === selectedScenario.powerwallCount && (row.expansionPackCount || 0) === (selectedScenario.expansionPackCount || 0))
         .sort((a, b) => a.idealSolarKw - b.idealSolarKw);
       const sameKw = rows
-        .filter((row) => Math.abs(row.idealSolarKw - selectedScenario.idealSolarKw) < 1e-9)
+        .filter((row) => Math.abs(row.idealSolarKw - selectedScenario.idealSolarKw) < 1e-9 && (row.expansionPackCount || 0) === (selectedScenario.expansionPackCount || 0))
         .sort((a, b) => a.powerwallCount - b.powerwallCount);
-      const currentSolarIdx = samePw.findIndex((row) => scenarioKey(row.idealSolarKw, row.powerwallCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount));
-      const currentPwIdx = sameKw.findIndex((row) => scenarioKey(row.idealSolarKw, row.powerwallCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount));
+      const sameKwPw = rows
+        .filter((row) => Math.abs(row.idealSolarKw - selectedScenario.idealSolarKw) < 1e-9 && row.powerwallCount === selectedScenario.powerwallCount)
+        .sort((a, b) => (a.expansionPackCount || 0) - (b.expansionPackCount || 0));
+      const currentSolarIdx = samePw.findIndex((row) => scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount, selectedScenario.expansionPackCount));
+      const currentPwIdx = sameKw.findIndex((row) => scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount, selectedScenario.expansionPackCount));
+      const currentPackIdx = sameKwPw.findIndex((row) => scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount) === scenarioKey(selectedScenario.idealSolarKw, selectedScenario.powerwallCount, selectedScenario.expansionPackCount));
       const prevSolar = currentSolarIdx > 0 ? samePw[currentSolarIdx - 1] : null;
       const nextSolar = currentSolarIdx >= 0 && currentSolarIdx < (samePw.length - 1) ? samePw[currentSolarIdx + 1] : null;
       const prevPw = currentPwIdx > 0 ? sameKw[currentPwIdx - 1] : null;
       const nextPw = currentPwIdx >= 0 && currentPwIdx < (sameKw.length - 1) ? sameKw[currentPwIdx + 1] : null;
+      const prevPack = currentPackIdx > 0 ? sameKwPw[currentPackIdx - 1] : null;
+      const nextPack = currentPackIdx >= 0 && currentPackIdx < (sameKwPw.length - 1) ? sameKwPw[currentPackIdx + 1] : null;
 
       const scoreDirection = objectiveMode === "return_npv_unlevered" ? 1 : -1;
       const metricValue = (row) => {
@@ -4746,22 +4970,247 @@
       const deltaSolarNext = perUnitDelta(nextSolar, selectedScenario, nextSolar ? (nextSolar.idealSolarKw - selectedScenario.idealSolarKw) : 0);
       const deltaPwPrev = perUnitDelta(selectedScenario, prevPw, prevPw ? (selectedScenario.powerwallCount - prevPw.powerwallCount) : 0);
       const deltaPwNext = perUnitDelta(nextPw, selectedScenario, nextPw ? (nextPw.powerwallCount - selectedScenario.powerwallCount) : 0);
+      const deltaPackPrev = perUnitDelta(selectedScenario, prevPack, prevPack ? ((selectedScenario.expansionPackCount || 0) - (prevPack.expansionPackCount || 0)) : 0);
+      const deltaPackNext = perUnitDelta(nextPack, selectedScenario, nextPack ? ((nextPack.expansionPackCount || 0) - (selectedScenario.expansionPackCount || 0)) : 0);
 
       const fmtDelta = (value) => (value === null ? "N/A" : usdPrecise(value));
       const table = el.marginalValueTable;
       table.innerHTML = "<thead><tr><th>Metric</th><th>Backward</th><th>Forward</th></tr></thead><tbody>" +
         "<tr><td>Δ value / ΔkW solar</td><td>" + fmtDelta(deltaSolarPrev) + "</td><td>" + fmtDelta(deltaSolarNext) + "</td></tr>" +
         "<tr><td>Δ value / ΔPowerwall</td><td>" + fmtDelta(deltaPwPrev) + "</td><td>" + fmtDelta(deltaPwNext) + "</td></tr>" +
+        "<tr><td>Δ value / ΔExpansion Pack</td><td>" + fmtDelta(deltaPackPrev) + "</td><td>" + fmtDelta(deltaPackNext) + "</td></tr>" +
         "</tbody>";
       el.marginalValueNote.textContent = "Objective metric: " + objectiveValueLabel(objectiveMode) + ". Positive deltas indicate objective improvement.";
+    }
+
+    function objectiveMetricDisplay(row, objectiveModeRaw) {
+      const objectiveMode = normalizeObjectiveMode(objectiveModeRaw);
+      if (objectiveMode === "return_npv_unlevered") return usdPrecise(row.npvUnlevered);
+      if (objectiveMode === "net_outflow_levered") return usdPrecise(row.monthlyNetOutflowLevered);
+      return usdPrecise(row.monthlyUtilityBillAfter) + " @ " + usd(row.systemCostGross);
+    }
+
+    function evaluateScenarioWithReturns(inputs, solarKw, powerwallCount, expansionPackCount = 0, noControlsAnnualBefore = null) {
+      const scenario = evaluateScenario(
+        inputs,
+        solarKw,
+        powerwallCount,
+        expansionPackCount,
+        Number.isFinite(noControlsAnnualBefore) ? { noControlsAnnualBefore } : null
+      );
+      const returns = projectScenarioReturns(inputs, scenario);
+      return {
+        ...scenario,
+        npvUnlevered: returns.npvUnlevered,
+        paybackYearsUnlevered: returns.paybackYearsUnlevered,
+        projectionCumulative15Unlevered: returns.projectionCumulative15Unlevered,
+        irrUnlevered: returns.irrUnlevered,
+        npv: returns.npv,
+        paybackYears: returns.paybackYears,
+        projectionCumulative15: returns.projectionCumulative15
+      };
+    }
+
+    function renderBuilderPackageComparison(inputs) {
+      const objectiveMode = normalizeObjectiveMode(inputs.sizing.objectiveMode);
+      const packageIds = ["solar101", "solar104"];
+      const rows = [];
+      let hasError = false;
+
+      packageIds.forEach((packageId) => {
+        const packageInputs = {
+          ...inputs,
+          pricing: {
+            ...inputs.pricing,
+            builderPackage: packageId,
+            builderPackageSpec: getBuilderPackageSpec(packageId)
+          }
+        };
+        const optimization = getOptimizationCached(packageInputs);
+        if (optimization.error || !optimization.best) {
+          hasError = true;
+          return;
+        }
+        rows.push({
+          packageId,
+          spec: getBuilderPackageSpec(packageId),
+          packageInputs,
+          best: optimization.best
+        });
+      });
+
+      if (hasError || rows.length !== packageIds.length) {
+        el.builderPackageComparisonTable.innerHTML = "";
+        el.builderPackageComparisonNote.textContent = "Comparison unavailable: optimization failed for one or more builder packages.";
+        return;
+      }
+
+      const recommended = [...rows].sort((a, b) => compareObjective(a.best, b.best, objectiveMode))[0];
+      const selectedPackage = String(inputs.pricing.builderPackage || "solar101");
+      const table = el.builderPackageComparisonTable;
+      table.innerHTML = "<thead><tr>" +
+        "<th>Package</th><th>Base</th><th>Ideal kW</th><th>PW</th><th>Packs</th><th>Objective</th><th>Total Cost</th><th>Builder Loan/mo</th><th>Tesla Loan/mo</th><th>Net Outflow/mo</th><th>Status</th>" +
+        "</tr></thead><tbody>" +
+        rows.map((row) => {
+          const status = row.packageId === recommended.packageId ? "Recommended" : "";
+          const classes = [
+            "row-clickable",
+            row.packageId === recommended.packageId ? "row-recommended" : "",
+            row.packageId === selectedPackage ? "row-selected" : ""
+          ].filter(Boolean).join(" ");
+          return "<tr class='" + classes + "' data-builder-package='" + row.packageId + "'>" +
+            "<td>" + row.spec.code + "</td>" +
+            "<td>" + fmt(row.spec.kw, 2) + " kW / " + usd(row.spec.price) + "</td>" +
+            "<td>" + fmt(row.best.idealSolarKw, 3) + "</td>" +
+            "<td>" + row.best.powerwallCount + "</td>" +
+            "<td>" + (row.best.expansionPackCount || 0) + "</td>" +
+            "<td>" + objectiveMetricDisplay(row.best, objectiveMode) + "</td>" +
+            "<td>" + usd(row.best.systemCostGross) + "</td>" +
+            "<td>" + usdPrecise(row.best.builderLoanMonthly) + "</td>" +
+            "<td>" + usdPrecise(row.best.teslaLoanMonthly) + "</td>" +
+            "<td>" + usdPrecise(row.best.monthlyNetOutflowLevered) + "</td>" +
+            "<td>" + status + "</td>" +
+            "</tr>";
+        }).join("") +
+        "</tbody>";
+
+      table.querySelectorAll("tr[data-builder-package]").forEach((node) => {
+        node.addEventListener("click", () => {
+          const packageId = String(node.getAttribute("data-builder-package") || "");
+          if (!packageId || packageId === el.builderPackage.value) return;
+          el.builderPackage.value = packageId;
+          selectedScenarioKey = null;
+          render();
+        });
+      });
+
+      el.builderPackageComparisonNote.textContent = "Objective: " + objectiveLabel(objectiveMode) + ". Recommended package: " + recommended.spec.code + ". Click a row to switch package.";
+    }
+
+    function buildSequentialUpgradeSteps(inputs, selectedScenario) {
+      const objectiveMode = normalizeObjectiveMode(inputs.sizing.objectiveMode);
+      const builderSpec = getBuilderPackageSpec(inputs.pricing.builderPackage);
+      const baseKw = builderSpec.kw;
+      const targetAddedKw = Math.max(0, Number(selectedScenario.idealSolarKw) - baseKw);
+      const targetAddedPw = Math.max(0, Math.floor(selectedScenario.powerwallCount));
+      const targetAddedPacks = targetAddedPw >= 1 ? Math.max(0, Math.floor(selectedScenario.expansionPackCount || 0)) : 0;
+      const noControlsAnnualBefore = calculateNoControlsAnnualBefore(inputs);
+      const evaluateAt = (addedKw, addedPw, addedPacks) => {
+        const solarKw = baseKw + addedKw;
+        return evaluateScenarioWithReturns(inputs, solarKw, addedPw, addedPacks, noControlsAnnualBefore);
+      };
+      const rows = [];
+      let currentAddedKw = 0;
+      let currentAddedPw = 0;
+      let currentAddedPacks = 0;
+      let stepNumber = 1;
+      const baseline = evaluateAt(0, 0, 0);
+      rows.push({
+        step: 0,
+        action: "Builder package base purchase",
+        addedKw: 0,
+        addedPw: 0,
+        addedPacks: 0,
+        stepCost: 0,
+        cumulativeTeslaCost: 0,
+        totalKw: baseKw,
+        totalPw: 0,
+        totalPacks: 0,
+        scenario: baseline
+      });
+
+      const pushStep = (action, nextAddedKw, nextAddedPw, nextAddedPacks) => {
+        const prevTesla = teslaAddedTotalCost(currentAddedKw, currentAddedPw, currentAddedPacks);
+        const nextTesla = teslaAddedTotalCost(nextAddedKw, nextAddedPw, nextAddedPacks);
+        const scenario = evaluateAt(nextAddedKw, nextAddedPw, nextAddedPacks);
+        rows.push({
+          step: stepNumber,
+          action,
+          addedKw: nextAddedKw,
+          addedPw: nextAddedPw,
+          addedPacks: nextAddedPacks,
+          stepCost: nextTesla - prevTesla,
+          cumulativeTeslaCost: nextTesla,
+          totalKw: baseKw + nextAddedKw,
+          totalPw: nextAddedPw,
+          totalPacks: nextAddedPacks,
+          scenario
+        });
+        currentAddedKw = nextAddedKw;
+        currentAddedPw = nextAddedPw;
+        currentAddedPacks = nextAddedPacks;
+        stepNumber += 1;
+      };
+
+      const needsSolar = targetAddedKw > 1e-9;
+      const needsBattery = targetAddedPw > 0 || targetAddedPacks > 0;
+      let orderNote = "No Tesla upgrades required.";
+      if (needsSolar || needsBattery) orderNote = "Upgrade path computed from builder base to selected optimized scenario.";
+      const addBatterySteps = () => {
+        for (let pw = currentAddedPw + 1; pw <= targetAddedPw; pw += 1) {
+          pushStep("Add 1 Powerwall", currentAddedKw, pw, currentAddedPacks);
+        }
+        for (let pack = currentAddedPacks + 1; pack <= targetAddedPacks; pack += 1) {
+          pushStep("Add 1 expansion pack", currentAddedKw, currentAddedPw, pack);
+        }
+      };
+      if (needsSolar && needsBattery) {
+        const firstSolarScenario = evaluateAt(targetAddedKw, 0, 0);
+        const firstBatteryScenario = evaluateAt(0, 1, 0);
+        const batteryFirst = compareObjective(firstBatteryScenario, firstSolarScenario, objectiveMode) < 0;
+        if (batteryFirst) {
+          orderNote = "Step ordering chose battery-first based on stronger first-step objective improvement.";
+          addBatterySteps();
+          const modulesAdded = Math.round((targetAddedKw - currentAddedKw) / MODULE_KW);
+          pushStep("Add solar modules via Tesla (" + modulesAdded + " modules)", targetAddedKw, currentAddedPw, currentAddedPacks);
+        } else {
+          orderNote = "Step ordering chose solar-first based on stronger first-step objective improvement.";
+          const modulesAdded = Math.round((targetAddedKw - currentAddedKw) / MODULE_KW);
+          pushStep("Add solar modules via Tesla (" + modulesAdded + " modules)", targetAddedKw, currentAddedPw, currentAddedPacks);
+          addBatterySteps();
+        }
+      } else if (needsSolar) {
+        const modulesAdded = Math.round((targetAddedKw - currentAddedKw) / MODULE_KW);
+        pushStep("Add solar modules via Tesla (" + modulesAdded + " modules)", targetAddedKw, currentAddedPw, currentAddedPacks);
+      } else if (needsBattery) {
+        addBatterySteps();
+      }
+
+      return { rows, orderNote };
+    }
+
+    function renderTeslaUpgradePlan(inputs, selectedScenario) {
+      const objectiveMode = normalizeObjectiveMode(inputs.sizing.objectiveMode);
+      const plan = buildSequentialUpgradeSteps(inputs, selectedScenario);
+      const table = el.teslaUpgradePlanTable;
+      table.innerHTML = "<thead><tr>" +
+        "<th>Step</th><th>Action</th><th>Added kW</th><th>Added PW</th><th>Added Packs</th><th>Step cost</th><th>Cumulative cost</th><th>Resulting total kW</th><th>Resulting PW</th><th>Resulting Packs</th><th>Objective value</th>" +
+        "</tr></thead><tbody>" +
+        plan.rows.map((row) => {
+          return "<tr>" +
+            "<td>" + row.step + "</td>" +
+            "<td>" + row.action + "</td>" +
+            "<td>" + fmt(row.addedKw, 3) + "</td>" +
+            "<td>" + row.addedPw + "</td>" +
+            "<td>" + row.addedPacks + "</td>" +
+            "<td>" + usdPrecise(row.stepCost) + "</td>" +
+            "<td>" + usdPrecise(row.cumulativeTeslaCost) + "</td>" +
+            "<td>" + fmt(row.totalKw, 3) + "</td>" +
+            "<td>" + row.totalPw + "</td>" +
+            "<td>" + row.totalPacks + "</td>" +
+            "<td>" + objectiveMetricDisplay(row.scenario, objectiveMode) + "</td>" +
+            "</tr>";
+        }).join("") +
+        "</tbody>";
+      el.teslaUpgradePlanNote.textContent = plan.orderNote + " Objective: " + objectiveLabel(objectiveMode) + ".";
     }
 
     function renderHvacImpact(inputs, best, baseOptimization) {
       const haOnInputs = { ...inputs, ha: { ...inputs.ha, enabled: true } };
       const haOffInputs = { ...inputs, ha: { ...inputs.ha, enabled: false } };
 
-      const fixedOn = evaluateScenario(haOnInputs, best.idealSolarKw, best.powerwallCount);
-      const fixedOff = evaluateScenario(haOffInputs, best.idealSolarKw, best.powerwallCount);
+      const fixedOn = evaluateScenario(haOnInputs, best.idealSolarKw, best.powerwallCount, best.expansionPackCount);
+      const fixedOff = evaluateScenario(haOffInputs, best.idealSolarKw, best.powerwallCount, best.expansionPackCount);
       const fixedUtilityDelta = fixedOn.pgeAfterMonthlyTrueUp - fixedOff.pgeAfterMonthlyTrueUp;
       const fixedOutflowDelta = fixedOn.totalMonthlyOutflow - fixedOff.totalMonthlyOutflow;
 
@@ -4781,10 +5230,11 @@
       const optOutflowDelta = bestOn.totalMonthlyOutflow - bestOff.totalMonthlyOutflow;
       const optKwDelta = bestOn.idealSolarKw - bestOff.idealSolarKw;
       const optPwDelta = bestOn.powerwallCount - bestOff.powerwallCount;
+      const optPackDelta = (bestOn.expansionPackCount || 0) - (bestOff.expansionPackCount || 0);
 
       const lines = [];
-      lines.push("Fixed-size (same " + fmt(best.idealSolarKw, 3) + " kW / " + best.powerwallCount + " PW): utility-after delta (HA ON - HA OFF) = " + usdSigned(fixedUtilityDelta) + ", outflow delta = " + usdSigned(fixedOutflowDelta) + ".");
-      lines.push("Re-optimized: utility-after delta (HA ON - HA OFF) = " + usdSigned(optUtilityDelta) + ", outflow delta = " + usdSigned(optOutflowDelta) + ", selected kW delta = " + fmt(optKwDelta, 3) + " kW, PW delta = " + optPwDelta + ".");
+      lines.push("Fixed-size (same " + fmt(best.idealSolarKw, 3) + " kW / " + best.powerwallCount + " PW / " + (best.expansionPackCount || 0) + " packs): utility-after delta (HA ON - HA OFF) = " + usdSigned(fixedUtilityDelta) + ", outflow delta = " + usdSigned(fixedOutflowDelta) + ".");
+      lines.push("Re-optimized: utility-after delta (HA ON - HA OFF) = " + usdSigned(optUtilityDelta) + ", outflow delta = " + usdSigned(optOutflowDelta) + ", selected kW delta = " + fmt(optKwDelta, 3) + " kW, PW delta = " + optPwDelta + ", pack delta = " + optPackDelta + ".");
       if (fixedOn.haGuardApplied) {
         lines.push("Guard applied to prevent utility increase at fixed size.");
       }
@@ -4805,6 +5255,9 @@
       const shoulderLoadMult = clamp(0.5 * summerLoadMult + 0.5 * winterLoadMult, 0.7, 1.4);
       const candidates = optimization ? optimization.solarCandidates : [];
       const batteryCandidates = optimization ? optimization.batteryCandidates : getBatteryCandidatesForPricing(inputs.pricing.model);
+      const expansionCandidatesByPowerwall = optimization
+        ? (optimization.expansionCandidatesByPowerwall || {})
+        : Object.fromEntries(batteryCandidates.map((pw) => [pw, getExpansionPackCandidatesForPowerwall(pw, inputs.sizing.expansionPackCount, inputs.sizing.lockExpansionPackCount)]));
       const topRows = optimization ? optimization.results.slice(0, 5) : [];
 
       const lines = [];
@@ -4854,19 +5307,15 @@
       }
 
       lines.push("<p class='calc-line'><strong>3) System cost and financing</strong></p>");
-      if (result.pricingModel === "tesla_formula") {
-        const teslaBranchLabel = result.solarPricingBranch === "lt_10kw" ? "<10 kW branch" : ">=10 kW branch";
-        lines.push("<p class='calc-line'>Pricing model: Tesla formula (solar " + fmt(TESLA_SOLAR_RATE_BELOW_10, 0) + " $/kW below 10 kW; " + fmt(TESLA_SOLAR_RATE_AT_LEAST_10, 0) + " $/kW at/above 10 kW) and battery tiers 0/3900/9700 for 0/1/2 PW.</p>");
-        lines.push("<p class='calc-line'>Solar cost branch used: " + teslaBranchLabel + " => Solar Cost = " + fmt(result.idealSolarKw, 3) + " x " + usdPrecise(result.solarCostRatePerKw) + " = " + usdPrecise(result.solarCostComponent) + ".</p>");
-        lines.push("<p class='calc-line'>Battery cost component (Tesla tier) = " + usdPrecise(result.batteryCostComponent) + ".</p>");
-      } else {
-        lines.push("<p class='calc-line'>Pricing model: Builder manual tiers.</p>");
-        lines.push("<p class='calc-line'>Gross system cost = Solar base + (Solar kW x solar $/kW) + Battery tier cost.</p>");
-        lines.push("<p class='calc-line'>= " + usdPrecise(inputs.pricing.solarBaseCost) + " + (" + fmt(result.idealSolarKw, 3) + " x " + usdPrecise(inputs.pricing.solarCostPerKw) + ") + " + usdPrecise(result.batteryCostComponent) + " = " + usdPrecise(result.systemCostGross) + ".</p>");
-      }
+      lines.push("<p class='calc-line'>Pricing model: mandatory builder package + Tesla upgrades. Selected package: " + (result.builderPackageCode || "SOLAR101") + " (" + fmt(result.builderBaseKw, 2) + " kW base).</p>");
+      lines.push("<p class='calc-line'>Tesla upgrade formula: Total(kW, n, p) = 620 + 2622.4*kW + (n==0 ? 0 : 10700 + 6900*(n-1) + 5900*p), where p = expansion packs.</p>");
+      lines.push("<p class='calc-line'>Added upgrade quantities: +" + fmt(result.addedSolarKw, 3) + " kW solar, +" + result.addedPowerwalls + " Powerwalls, +" + (result.addedExpansionPacks || 0) + " expansion packs.</p>");
+      lines.push("<p class='calc-line'>Tesla added cost = " + usdPrecise(result.teslaAddedCost) + ".</p>");
+      lines.push("<p class='calc-line'>Solar cost component = Builder base " + usdPrecise(result.builderPrincipal) + " + Tesla solar component = " + usdPrecise(result.solarCostComponent) + ".</p>");
+      lines.push("<p class='calc-line'>Battery cost component (Tesla Powerwalls + packs) = " + usdPrecise(result.batteryCostComponent) + ".</p>");
       lines.push("<p class='calc-line'>Gross system cost total = " + usdPrecise(result.systemCostGross) + ".</p>");
-      lines.push("<p class='calc-line'>Financed Principal = Gross system cost = " + usdPrecise(result.financedPrincipal) + ".</p>");
-      lines.push("<p class='calc-line'>Loan Payment / Month = " + usdSigned(result.monthlyLoanPayment) + ".</p>");
+      lines.push("<p class='calc-line'>Financed principal split: Builder " + usdPrecise(result.builderPrincipal) + " + Tesla " + usdPrecise(result.teslaPrincipal) + " = " + usdPrecise(result.financedPrincipal) + ".</p>");
+      lines.push("<p class='calc-line'>Builder loan = " + usdPrecise(result.builderLoanMonthly) + "/mo @ " + fmt(BUILDER_APR_PCT, 1) + "%; Tesla loan = " + usdPrecise(result.teslaLoanMonthly) + "/mo @ " + fmt(TESLA_APR_PCT, 1) + "%; total Loan Payment / Month = " + usdPrecise(result.monthlyLoanPayment) + ".</p>");
       lines.push("<p class='calc-line'>Unlevered return metrics: NPV = " + usdPrecise(result.npvUnlevered) + ", IRR = " + formatIrr(result.irrUnlevered) + ", payback = " + formatPaybackYears(result.paybackYearsUnlevered, inputs.analysis.years) + ", cumulative net savings at " + inputs.analysis.years + "y = " + usdPrecise(result.projectionCumulative15Unlevered) + ".</p>");
 
       lines.push("<p class='calc-line'><strong>4) Net monthly payment impact</strong></p>");
@@ -4876,19 +5325,27 @@
 
       lines.push("<p class='calc-line'><strong>5) Ideal solar size selection logic</strong></p>");
       if (candidates.length) {
-        lines.push("<p class='calc-line'>Solar candidates are generated from min/max/step: " + fmt(inputs.sizing.solarSearchMinKw, 3) + " to " + fmt(inputs.sizing.solarSearchMaxKw, 3) + " kW at " + fmt(inputs.sizing.solarSearchStepKw, 3) + " kW increments (" + candidates.length + " candidates).</p>");
-        lines.push("<p class='calc-line'>Battery sweep candidates: " + batteryCandidates.join(", ") + " Powerwalls. Total scenarios = " + (candidates.length * batteryCandidates.length) + ".</p>");
+        const expansionSummary = batteryCandidates.map((pw) => {
+          const packs = expansionCandidatesByPowerwall[pw] || [0];
+          return pw + " PW -> [" + packs.join(", ") + " packs]";
+        }).join("; ");
+        const scenarioCount = batteryCandidates.reduce((sum, pw) => {
+          const packs = expansionCandidatesByPowerwall[pw] || [0];
+          return sum + (candidates.length * packs.length);
+        }, 0);
+        lines.push("<p class='calc-line'>Solar candidates are constrained to module grid from the chosen builder base: " + fmt(candidates[0], 3) + " to " + fmt(candidates[candidates.length - 1], 3) + " kW at fixed " + fmt(MODULE_KW, 3) + " kW module increments (" + candidates.length + " candidates).</p>");
+        lines.push("<p class='calc-line'>Battery sweep candidates: Powerwalls " + batteryCandidates.join(", ") + ". Expansion packs by Powerwall: " + expansionSummary + ". Total scenarios = " + scenarioCount + ".</p>");
       }
       lines.push("<p class='calc-line'>Configured objective = " + objectiveLabel(objectiveMode) + ".</p>");
       lines.push("<p class='calc-line'>For each candidate, objective value = " + objectiveFormula(objectiveMode) + ".</p>");
       lines.push("<p class='calc-line'>Tie-breakers if objective ties: lower financed principal, then lower solar kW.</p>");
-      lines.push("<p class='calc-line'>Selected ideal solar size = " + fmt(result.idealSolarKw, 3) + " kW (Powerwalls: " + result.powerwallCount + "). Selection reason = " + result.selectionReason + ".</p>");
+      lines.push("<p class='calc-line'>Selected ideal solar size = " + fmt(result.idealSolarKw, 3) + " kW (Powerwalls: " + result.powerwallCount + ", Expansion packs: " + (result.expansionPackCount || 0) + "). Selection reason = " + result.selectionReason + ".</p>");
 
       if (topRows.length) {
         const objectiveColLabel = objectiveMode === "return_npv_unlevered"
           ? "Objective (NPV Unlevered)"
           : (objectiveMode === "utility_bill_knee" ? "Objective (Pareto knee context)" : "Objective (Levered Net Outflow)");
-        lines.push("<table class='calc-table'><thead><tr><th>Rank</th><th>Solar kW</th><th>PW</th><th>Utility After/mo</th><th>Loan/mo</th><th>" + objectiveColLabel + "</th><th>Levered Delta/mo</th></tr></thead><tbody>");
+        lines.push("<table class='calc-table'><thead><tr><th>Rank</th><th>Solar kW</th><th>PW</th><th>Packs</th><th>Utility After/mo</th><th>Loan/mo</th><th>" + objectiveColLabel + "</th><th>Levered Delta/mo</th></tr></thead><tbody>");
         topRows.forEach((row, idx) => {
           const rowNetChange = row.monthlyDeltaLevered;
           const objectiveValue = objectiveMode === "return_npv_unlevered"
@@ -4899,6 +5356,7 @@
             "<td>" + (idx + 1) + (idx === 0 ? " (Selected)" : "") + "</td>" +
             "<td>" + fmt(row.idealSolarKw, 3) + "</td>" +
             "<td>" + row.powerwallCount + "</td>" +
+            "<td>" + (row.expansionPackCount || 0) + "</td>" +
             "<td>" + usdPrecise(row.monthlyUtilityBillAfter) + "</td>" +
             "<td>" + usdPrecise(row.monthlyLoanPayment) + "</td>" +
             "<td>" + objectiveValue + "</td>" +
@@ -4994,6 +5452,9 @@
       const exportOffRate = representativeExportRates.offPeak;
       const annualUtilityFromFlow = result.annualFixedChargeTotal + result.annualNbcAfter + result.annualEnergyNetAfterTrueUp;
       const annualNetEconomicsFromFlow = annualUtilityFromFlow - result.annualVppRevenue;
+      const vppInverterKw = result.powerwallCount * POWERWALL3_AC_KW;
+      const vppDurationKw = result.annualTotalBatteryStorageKwh / VPP_DURATION_HOURS;
+      const vppEffectiveKw = computeVppEffectiveKw(result.powerwallCount, result.annualTotalBatteryStorageKwh);
 
       lines.push("<p class='calc-line'><strong>Annual rollup and TOU/NEM3 bill linkage</strong></p>");
       if (inputs.rates.exportRateMode === "nem3_override") {
@@ -5012,7 +5473,7 @@
       lines.push("<p class='calc-line'>Battery_To_Grid_Export = " + fmt(result.annualBatteryToGridExportKwh, 0) + " kWh/year (included in annual export buckets).</p>");
       lines.push("<p class='calc-line'>Annual_Energy_Net = max(0, Annual_Import_Cost_After - Annual_Export_Value) = max(0, " + usdPrecise(result.annualImportEnergyCostAfter) + " - " + usdPrecise(result.annualExportCreditValue) + ") = " + usdPrecise(result.annualEnergyNetAfterTrueUp) + ".</p>");
       lines.push("<p class='calc-line'>Annual_Fixed_Total = " + usdPrecise(result.annualFixedChargeTotal) + ", Annual_NBC_After = " + usdPrecise(result.annualNbcAfter) + ".</p>");
-      lines.push("<p class='calc-line'>Annual_VPP_Revenue = " + fmt(result.powerwallCount, 0) + "*" + fmt(POWERWALL3_AC_KW, 1) + "*" + usdPrecise(VPP_CREDIT_PER_KW_YEAR) + " = " + usdPrecise(result.annualVppRevenue) + ".</p>");
+      lines.push("<p class='calc-line'>Annual_VPP_Revenue = min(total inverter kW, total battery kWh / " + fmt(VPP_DURATION_HOURS, 1) + "h) * " + usdPrecise(VPP_CREDIT_PER_KW_YEAR) + " = min(" + fmt(vppInverterKw, 2) + ", " + fmt(vppDurationKw, 2) + ") * " + usdPrecise(VPP_CREDIT_PER_KW_YEAR) + " = " + fmt(vppEffectiveKw, 2) + " * " + usdPrecise(VPP_CREDIT_PER_KW_YEAR) + " = " + usdPrecise(result.annualVppRevenue) + ".</p>");
       lines.push("<p class='calc-line'>Annual_Utility_Bill_After = Annual_Fixed_Total + Annual_NBC_After + Annual_Energy_Net = " + usdPrecise(result.annualFixedChargeTotal) + " + " + usdPrecise(result.annualNbcAfter) + " + " + usdPrecise(result.annualEnergyNetAfterTrueUp) + " = " + usdPrecise(annualUtilityFromFlow) + ".</p>");
       lines.push("<p class='calc-line'>Annual_Net_Energy_Economics = Annual_Utility_Bill_After - Annual_VPP_Revenue = " + usdPrecise(annualUtilityFromFlow) + " - " + usdPrecise(result.annualVppRevenue) + " = " + usdPrecise(annualNetEconomicsFromFlow) + ".</p>");
       if (annualNetEconomicsFromFlow < 0) {
@@ -5025,7 +5486,7 @@
 
     function renderInvalidState() {
       el.cardIdealSolarKw.textContent = "--";
-      el.cardPowerwallChoice.textContent = "Powerwalls: --";
+      el.cardPowerwallChoice.textContent = "Powerwalls: -- | Expansion packs: --";
       el.cardPgeBefore.textContent = "--";
       el.cardPgeAfter.textContent = "--";
       el.cardTrueUpNote.textContent = "Annual utility bill after: --";
@@ -5054,44 +5515,44 @@
       el.topScenariosBody.innerHTML = "";
       el.marginalValueTable.innerHTML = "";
       el.marginalValueNote.textContent = "Marginal values are unavailable until all input errors are resolved.";
+      el.builderTeslaResults.classList.add("hidden");
+      el.builderPackageComparisonTable.innerHTML = "";
+      el.builderPackageComparisonNote.textContent = "Comparison is unavailable until all input errors are resolved.";
+      el.teslaUpgradePlanTable.innerHTML = "";
+      el.teslaUpgradePlanNote.textContent = "Upgrade plan is unavailable until all input errors are resolved.";
     }
 
     function syncControlStates() {
       applyRescueDefaults();
       const objectiveMode = normalizeObjectiveMode(el.sizingObjective.value);
-      const pricingModel = normalizePricingModel(el.pricingModel.value);
-      const teslaMode = pricingModel === "tesla_formula";
-      let pricingModeLockNote = "";
-      if (lastPricingModelValue !== pricingModel && teslaMode) {
-        el.apr.value = fmt(TESLA_APR_DEFAULT_PCT, 1);
-      }
-      if (teslaMode && el.lockPowerwallCount.checked) {
-        const lockedPw = Number(el.powerwallCount.value) || 0;
-        if (lockedPw > 2) {
-          el.powerwallCount.value = "2";
-          selectedScenarioKey = null;
-          pricingModeLockNote = " Locked selection was adjusted to 2 PW for Tesla mode.";
-        }
-      }
-      lastPricingModelValue = pricingModel;
-      [el.solarBaseCost, el.solarCostPerKw, el.batteryCost1, el.batteryCost2, el.batteryCost3, el.batteryCost4].forEach((node) => {
-        node.disabled = teslaMode;
-      });
-      if (teslaMode) {
-        el.pricingModeNote.textContent = "Tesla mode active: solar pricing uses 2760 $/kW below 10 kW, 2660 $/kW at/above 10 kW; battery pricing fixed at 0/3900/9700 for 0/1/2 PW. Optimization uses 0-2 PW only." + pricingModeLockNote;
-      } else {
-        el.pricingModeNote.textContent = "Builder mode active: manual solar base + $/kW + 1-4 Powerwall tier costs are editable.";
-      }
+      el.builderPackageField.classList.remove("hidden");
+      const selectedBuilderSpec = getBuilderPackageSpec(el.builderPackage.value);
+      el.pricingModeNote.textContent = "Pricing is fixed to " + selectedBuilderSpec.code + " base (" + fmt(selectedBuilderSpec.kw, 2) + " kW, " + usd(selectedBuilderSpec.price) + ") + Tesla upgrades (620 + 2622.4*kW + Powerwall/Pack battery formula). APR split: Builder " + fmt(BUILDER_APR_PCT, 1) + "%, Tesla " + fmt(TESLA_APR_PCT, 1) + "% (shared term).";
+      el.solarSearchMinKw.value = fmt(selectedBuilderSpec.kw, 3);
+      el.solarSearchStepKw.value = fmt(MODULE_KW, 3);
+      el.solarSearchMinKw.disabled = true;
+      el.solarSearchStepKw.disabled = true;
+      el.solarSearchMaxKw.min = fmt(selectedBuilderSpec.kw, 3);
 
       el.sizingObjectiveHint.textContent = objectiveMode === "return_npv_unlevered"
         ? "Objective: maximize unlevered NPV. Tie-breakers: faster payback, then lower levered outflow."
         : (objectiveMode === "utility_bill_knee"
           ? "Objective: choose Pareto knee point on utility bill vs system cost."
           : "Objective: minimize loan + utility bill - program revenue.");
-      const pwRangeLabel = teslaMode ? "0-2" : "0-4";
-      el.sweepModeHint.textContent = el.lockPowerwallCount.checked
-        ? ("Sweep mode: LOCKED to " + el.powerwallCount.value + " Powerwalls (" + pwRangeLabel + " allowed in current pricing model).")
-        : ("Sweep mode: all Powerwall counts (" + pwRangeLabel + ").");
+      const pwRangeLabel = "0-4";
+      const packRangeLabel = "0-4";
+      const selectedPw = Math.max(0, Number(el.powerwallCount.value) || 0);
+      const selectedPacks = Math.max(0, Number(el.expansionPackCount.value) || 0);
+      const pwSweepText = el.lockPowerwallCount.checked
+        ? ("Powerwalls LOCKED to " + selectedPw + " (" + pwRangeLabel + " allowed).")
+        : ("Powerwalls sweep all values (" + pwRangeLabel + ").");
+      const packSweepText = el.lockExpansionPackCount.checked
+        ? ("Expansion packs LOCKED to " + selectedPacks + " when Powerwalls >= 1.")
+        : ("Expansion packs sweep " + packRangeLabel + " when Powerwalls >= 1.");
+      const eligibilityNote = (selectedPw === 0 && selectedPacks > 0)
+        ? " Note: packs require >=1 Powerwall; current display preference will fall back to 0 packs."
+        : "";
+      el.sweepModeHint.textContent = "Sweep mode: " + pwSweepText + " " + packSweepText + eligibilityNote;
       el.objectiveSummary.innerHTML = "Ideal size is selected by <strong>" + objectiveFormula(objectiveMode) + "</strong>.";
       const exportMode = el.exportRateMode.value;
       const nemMode = exportMode === "nem3_override";
@@ -5343,8 +5804,13 @@
       renderClimateStatusUi(climateSnapshot, climateContext);
       if (inputs) {
         const clipCap = inputs.sizing.powerwallCount >= 1 ? (inputs.sizing.powerwallCount * POWERWALL3_AC_KW) : 0;
+        const vppPw = Math.max(0, Math.floor(inputs.sizing.powerwallCount));
+        const vppPacks = sanitizeExpansionPackCount(vppPw, inputs.sizing.expansionPackCount);
+        const vppBatteryKwh = (vppPw * inputs.battery.usableKwhPerBattery) + (vppPacks * EXPANSION_PACK_ADDED_KWH);
+        const vppEffectiveKw = computeVppEffectiveKw(vppPw, vppBatteryKwh);
+        const vppAnnualProxy = vppEffectiveKw * VPP_CREDIT_PER_KW_YEAR;
         el.vppAssumptionPill.textContent = inputs.vpp.enabled
-          ? ("VPP: ON | " + usdPrecise(inputs.sizing.powerwallCount * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) + "/yr proxy (separate revenue).")
+          ? ("VPP: ON | " + usdPrecise(vppAnnualProxy) + "/yr proxy via min(total inverter kW, total battery kWh / " + fmt(VPP_DURATION_HOURS, 1) + "h).")
           : "VPP: OFF";
         el.tempAssumptionPill.textContent = getTemperatureSourceText(inputs.production);
         el.dispatchAssumptionPill.textContent = "Dispatch mode: " + inputs.battery.dispatchMode + ".";
@@ -5352,27 +5818,30 @@
         const julReserve = getMonthReservePct(inputs.battery, 6);
         el.reserveAssumptionPill.textContent = "Reserve policy: " + inputs.battery.reservePolicy + " (Jan " + fmt(janReserve * 100, 0) + "%, Jul " + fmt(julReserve * 100, 0) + "%).";
         el.clipAssumptionPill.textContent = inputs.sizing.powerwallCount >= 1
-          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW).")
+          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW). Packs add storage only.")
           : "Clipping: OFF for 0 Powerwalls.";
-        el.pricingAssumptionPill.textContent = inputs.pricing.model === "tesla_formula"
-          ? ("Pricing model: Tesla formula | Solar " + fmt(TESLA_SOLAR_RATE_BELOW_10, 0) + " $/kW (<10) and " + fmt(TESLA_SOLAR_RATE_AT_LEAST_10, 0) + " $/kW (>=10) | Battery 0/3900/9700 (0-2 PW).")
-          : "Pricing model: Builder manual tiers.";
+        const builderSpec = getBuilderPackageSpec(inputs.pricing.builderPackage);
+        el.pricingAssumptionPill.textContent = "Pricing: " + builderSpec.code + " base (" + fmt(builderSpec.kw, 2) + " kW, " + usd(builderSpec.price) + ") + Tesla upgrades (620 + 2622.4*kW + PW/Pack formula) | APR split " + fmt(BUILDER_APR_PCT, 1) + "%/" + fmt(TESLA_APR_PCT, 1) + "%.";
       } else {
         const pw = Math.max(0, Number(el.powerwallCount.value) || 0);
+        const packs = Math.max(0, Number(el.expansionPackCount.value) || 0);
+        const safePacks = sanitizeExpansionPackCount(pw, packs);
+        const vppBatteryKwh = (pw * BATTERY_USABLE_KWH) + (safePacks * EXPANSION_PACK_ADDED_KWH);
+        const vppEffectiveKw = computeVppEffectiveKw(pw, vppBatteryKwh);
+        const vppAnnualProxy = vppEffectiveKw * VPP_CREDIT_PER_KW_YEAR;
         const clipCap = pw >= 1 ? pw * POWERWALL3_AC_KW : 0;
         el.vppAssumptionPill.textContent = el.vppEnabled.checked
-          ? ("VPP: ON | " + usdPrecise(pw * POWERWALL3_AC_KW * VPP_CREDIT_PER_KW_YEAR) + "/yr proxy (separate revenue).")
+          ? ("VPP: ON | " + usdPrecise(vppAnnualProxy) + "/yr proxy via min(total inverter kW, total battery kWh / " + fmt(VPP_DURATION_HOURS, 1) + "h).")
           : "VPP: OFF";
         el.tempAssumptionPill.textContent = "Temperature source: pending climate profile.";
         el.dispatchAssumptionPill.textContent = "Dispatch mode: " + (el.dispatchMode.value || "self_consumption_peak_then_postpeak") + ".";
         const reservePolicyLabel = el.reservePolicy.value || "auto_seasonal";
         el.reserveAssumptionPill.textContent = "Reserve policy: " + reservePolicyLabel + ".";
         el.clipAssumptionPill.textContent = pw >= 1
-          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW).")
+          ? ("Clipping: ON at " + fmt(clipCap, 1) + " kW AC cap (" + fmt(POWERWALL3_AC_KW, 1) + " kW/PW). Packs add storage only.")
           : "Clipping: OFF for 0 Powerwalls.";
-        el.pricingAssumptionPill.textContent = normalizePricingModel(el.pricingModel.value) === "tesla_formula"
-          ? "Pricing model: Tesla formula (0-2 PW candidates)."
-          : "Pricing model: Builder manual tiers.";
+        const builderSpec = getBuilderPackageSpec(el.builderPackage.value);
+        el.pricingAssumptionPill.textContent = "Pricing: " + builderSpec.code + " base + Tesla upgrades (selected: " + pw + " PW / " + packs + " packs) | APR split " + fmt(BUILDER_APR_PCT, 1) + "%/" + fmt(TESLA_APR_PCT, 1) + "%.";
       }
       if (inputs && inputs.ev.enabled) {
         el.evAssumptionPill.textContent = "EV: ON | " + fmt(inputs.ev.milesPerMonth, 0) + " mi/mo | Day " + fmt(inputs.ev.dayChargingShare * 100, 0) + "% / Night " + fmt(inputs.ev.nightChargingShare * 100, 0) + "% | Solar-first day shift.";
@@ -5436,27 +5905,46 @@
       showErrors([]);
       el.recalculateBtn.disabled = false;
       const best = optimization.best;
+      const preferredStorageBest = optimization.results
+        .filter((row) => row.powerwallCount === inputs.sizing.powerwallCount && (row.expansionPackCount || 0) === inputs.sizing.expansionPackCount)
+        .sort((a, b) => compareObjective(a, b, normalizeObjectiveMode(inputs.sizing.objectiveMode)))[0];
       const preferredPowerwallBest = optimization.results
         .filter((row) => row.powerwallCount === inputs.sizing.powerwallCount)
         .sort((a, b) => compareObjective(a, b, normalizeObjectiveMode(inputs.sizing.objectiveMode)))[0];
-      const displayDefault = preferredPowerwallBest || best;
-      const clickedSelection = optimization.results.find((row) => scenarioKey(row.idealSolarKw, row.powerwallCount) === selectedScenarioKey);
+      const displayDefault = preferredStorageBest || preferredPowerwallBest || best;
+      const clickedSelection = optimization.results.find((row) => scenarioKey(row.idealSolarKw, row.powerwallCount, row.expansionPackCount) === selectedScenarioKey);
       const selected = clickedSelection || displayDefault;
       const selectedScenario = clickedSelection
         ? { ...selected, selectionReason: "user-selected" }
-        : ((preferredPowerwallBest && scenarioKey(selected.idealSolarKw, selected.powerwallCount) !== scenarioKey(best.idealSolarKw, best.powerwallCount))
+        : (((preferredStorageBest || preferredPowerwallBest)
+          && scenarioKey(selected.idealSolarKw, selected.powerwallCount, selected.expansionPackCount) !== scenarioKey(best.idealSolarKw, best.powerwallCount, best.expansionPackCount))
           ? { ...selected, selectionReason: "preferred-powerwall" }
           : selected);
       renderResultCards(selectedScenario, inputs);
       renderScenarioMatrix(optimization, selectedScenario, inputs);
       renderTopScenarios(optimization, selectedScenario, inputs);
       renderMarginalValue(optimization, selectedScenario, inputs);
+      el.builderTeslaResults.classList.remove("hidden");
+      renderBuilderPackageComparison(inputs);
+      renderTeslaUpgradePlan(inputs, selectedScenario);
       renderHvacImpact(inputs, selectedScenario, optimization);
       renderCalculationBreakdown(inputs, selectedScenario, optimization);
       const preferredPwInCandidateSet = optimization.batteryCandidates.includes(inputs.sizing.powerwallCount);
+      const preferredPackCandidates = getExpansionPackCandidatesForPowerwall(
+        inputs.sizing.powerwallCount,
+        inputs.sizing.expansionPackCount,
+        inputs.sizing.lockExpansionPackCount
+      );
+      const preferredPackInCandidateSet = preferredPackCandidates.includes(inputs.sizing.expansionPackCount);
+      const totalExpansionOptions = optimization.batteryCandidates.reduce((sum, pw) => {
+        const options = optimization.expansionCandidatesByPowerwall && optimization.expansionCandidatesByPowerwall[pw]
+          ? optimization.expansionCandidatesByPowerwall[pw]
+          : [0];
+        return sum + options.length;
+      }, 0);
       el.candidateNote.textContent = "Candidate set: " + optimization.solarCandidates.length + " solar sizes x " +
-        optimization.batteryCandidates.length + " battery options = " + optimization.results.length + " scenarios (" +
-        fmt(optimization.solarCandidates[0], 3) + " to " + fmt(optimization.solarCandidates[optimization.solarCandidates.length - 1], 3) + " kW). Battery candidates: " + optimization.batteryCandidates.join(", ") + " PW. Display preference: " + inputs.sizing.powerwallCount + " PW" + (preferredPwInCandidateSet ? "." : " (outside active candidate set).");
+        optimization.batteryCandidates.length + " Powerwall options with " + totalExpansionOptions + " total expansion-pack options across those levels = " + optimization.results.length + " scenarios (" +
+        fmt(optimization.solarCandidates[0], 3) + " to " + fmt(optimization.solarCandidates[optimization.solarCandidates.length - 1], 3) + " kW). Powerwall candidates: " + optimization.batteryCandidates.join(", ") + ". Display preference: " + inputs.sizing.powerwallCount + " PW / " + inputs.sizing.expansionPackCount + " packs" + ((preferredPwInCandidateSet && preferredPackInCandidateSet) ? "." : " (outside active candidate set).");
 
       runModelChecks(inputs, best, optimization);
       runRegressionProbe(inputs, best);
@@ -5478,6 +5966,9 @@
         hvacSensitivityTouched = true;
       });
       el.powerwallCount.addEventListener("input", () => {
+        selectedScenarioKey = null;
+      });
+      el.expansionPackCount.addEventListener("input", () => {
         selectedScenarioKey = null;
       });
       el.recalculateBtn.addEventListener("click", () => {
