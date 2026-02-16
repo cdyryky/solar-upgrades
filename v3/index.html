@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Solar Upgrade Planner v3.2.0</title>
+  <title>Solar Upgrade Planner v3.2.1</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
@@ -12,7 +12,7 @@
 
   <div class="app-shell">
     <header class="hero card reveal">
-      <p class="eyebrow">Solar Upgrade Planner v3.2.0</p>
+      <p class="eyebrow">Solar Upgrade Planner v3.2.1</p>
       <h1>Builder baseline first, Tesla upgrades after</h1>
       <p class="hero-subtitle">
         Hourly dispatch model aligned with v2.6.1. Select a Builder base system, then optimize Tesla-priced upgrades from that baseline.
@@ -98,6 +98,124 @@
             </div>
           </section>
 
+          <details class="form-group">
+            <summary>Home Flex (WHF + HVAC Shift)</summary>
+            <div class="field-grid two-col">
+              <label class="checkline">
+                <input id="enableWhf" name="enableWhf" type="checkbox" />
+                Enable WHF load replacement
+              </label>
+              <label>
+                WHF mode
+                <select id="whfMode" name="whfMode">
+                  <option value="auto" selected>Auto</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </label>
+              <label>
+                WHF fan watts
+                <input id="whfFanWatts" name="whfFanWatts" type="number" min="0" step="10" value="200" />
+              </label>
+              <label>
+                WHF displaced AC watts
+                <input id="whfDisplacedAcWatts" name="whfDisplacedAcWatts" type="number" min="0" step="50" value="3500" />
+              </label>
+              <label>
+                WHF success rate (%)
+                <input id="whfSuccessRatePct" name="whfSuccessRatePct" type="number" min="0" max="100" step="1" value="85" />
+              </label>
+              <label>
+                WHF start hour
+                <input id="whfStartHour" name="whfStartHour" type="number" min="0" max="23" step="1" value="20" />
+              </label>
+              <label>
+                WHF start minute
+                <input id="whfStartMinute" name="whfStartMinute" type="number" min="0" max="59" step="1" value="30" />
+              </label>
+              <label>
+                WHF end hour
+                <input id="whfEndHour" name="whfEndHour" type="number" min="0" max="23" step="1" value="6" />
+              </label>
+              <label>
+                WHF end minute
+                <input id="whfEndMinute" name="whfEndMinute" type="number" min="0" max="59" step="1" value="0" />
+              </label>
+            </div>
+            <p class="hint">WHF manual mode uses selected active months and manual window. Auto mode derives season windows from hourly temperature profile.</p>
+            <div class="month-grid">
+              <label class="checkline">Jan<input type="checkbox" data-whf-month="0" /></label>
+              <label class="checkline">Feb<input type="checkbox" data-whf-month="1" /></label>
+              <label class="checkline">Mar<input type="checkbox" data-whf-month="2" /></label>
+              <label class="checkline">Apr<input type="checkbox" data-whf-month="3" checked /></label>
+              <label class="checkline">May<input type="checkbox" data-whf-month="4" checked /></label>
+              <label class="checkline">Jun<input type="checkbox" data-whf-month="5" checked /></label>
+              <label class="checkline">Jul<input type="checkbox" data-whf-month="6" checked /></label>
+              <label class="checkline">Aug<input type="checkbox" data-whf-month="7" checked /></label>
+              <label class="checkline">Sep<input type="checkbox" data-whf-month="8" checked /></label>
+              <label class="checkline">Oct<input type="checkbox" data-whf-month="9" /></label>
+              <label class="checkline">Nov<input type="checkbox" data-whf-month="10" /></label>
+              <label class="checkline">Dec<input type="checkbox" data-whf-month="11" /></label>
+            </div>
+            <hr class="sub-sep" />
+            <div class="field-grid two-col">
+              <label class="checkline">
+                <input id="enableHaShift" name="enableHaShift" type="checkbox" />
+                Enable HVAC load shift
+              </label>
+              <label>
+                HVAC shift mode
+                <select id="haMode" name="haMode">
+                  <option value="auto" selected>Auto</option>
+                  <option value="manual">Manual</option>
+                </select>
+              </label>
+              <label>
+                Summer setpoint (F)
+                <input id="summerSetpointF" name="summerSetpointF" type="number" min="55" max="90" step="1" value="74" />
+              </label>
+              <label>
+                Winter setpoint (F)
+                <input id="winterSetpointF" name="winterSetpointF" type="number" min="55" max="90" step="1" value="68" />
+              </label>
+              <label>
+                Max pre-cool offset (F)
+                <input id="maxPrecoolOffsetF" name="maxPrecoolOffsetF" type="number" min="0" max="10" step="0.5" value="3" />
+              </label>
+              <label>
+                Max pre-heat offset (F)
+                <input id="maxPreheatOffsetF" name="maxPreheatOffsetF" type="number" min="0" max="10" step="0.5" value="2" />
+              </label>
+              <label>
+                Max peak drift (F)
+                <input id="maxPeakRelaxOffsetF" name="maxPeakRelaxOffsetF" type="number" min="0" max="10" step="0.5" value="2" />
+              </label>
+              <label>
+                HVAC sensitivity (kWh/deg-hr)
+                <input id="hvacSensitivityKwhPerDegHour" name="hvacSensitivityKwhPerDegHour" type="number" min="0" step="0.05" value="0.6" />
+              </label>
+              <label>
+                Shift success rate (%)
+                <input id="hvacShiftSuccessRatePct" name="hvacShiftSuccessRatePct" type="number" min="0" max="100" step="1" value="70" />
+              </label>
+              <label>
+                Pre-window start hour
+                <input id="preCoolStartHour" name="preCoolStartHour" type="number" min="0" max="23" step="1" value="12" />
+              </label>
+              <label>
+                Pre-window end hour
+                <input id="preCoolEndHour" name="preCoolEndHour" type="number" min="0" max="23" step="1" value="16" />
+              </label>
+              <label>
+                Max shift hours/day
+                <input id="maxShiftHoursPerDay" name="maxShiftHoursPerDay" type="number" min="1" max="12" step="1" value="4" />
+              </label>
+              <label>
+                Max shift kWh/day
+                <input id="maxShiftKwhPerDay" name="maxShiftKwhPerDay" type="number" min="0" step="0.1" value="6" />
+              </label>
+            </div>
+          </details>
+
           <details class="form-group" open>
             <summary>Builder Base Quotes (Editable)</summary>
             <div class="field-grid two-col">
@@ -146,8 +264,12 @@
             <summary>Financing + Analysis</summary>
             <div class="field-grid two-col">
               <label>
-                APR (%)
-                <input id="aprPct" name="aprPct" type="number" min="0" step="0.1" value="6" />
+                Builder APR (%)
+                <input id="builderAprPct" name="builderAprPct" type="number" min="0" step="0.1" value="6" />
+              </label>
+              <label>
+                Tesla APR (%)
+                <input id="teslaAprPct" name="teslaAprPct" type="number" min="0" step="0.1" value="7.5" />
               </label>
               <label>
                 Loan term (years)
@@ -196,7 +318,7 @@
             <p id="kpiUpgradeDetail" class="kpi-sub">--</p>
           </article>
           <article class="kpi card">
-            <p class="kpi-label">Incremental NPV</p>
+            <p class="kpi-label">Incremental Levered NPV</p>
             <p id="kpiIncrementalNpv" class="kpi-value">--</p>
             <p id="kpiIncrementalNpvDetail" class="kpi-sub">--</p>
           </article>
@@ -228,8 +350,8 @@
                   <th>Best solar (kW)</th>
                   <th>Annual solar (kWh)</th>
                   <th>Tesla-added solar (kWh)</th>
-                  <th>Delta annual benefit</th>
-                  <th>Delta NPV</th>
+                  <th>Delta annual operating benefit</th>
+                  <th>Delta levered NPV</th>
                   <th>Delta monthly outflow</th>
                   <th>Path status</th>
                 </tr>
@@ -254,9 +376,9 @@
                   <th>Added solar (kW)</th>
                   <th>Tesla-added solar (kWh)</th>
                   <th>Incremental capex</th>
-                  <th>Incremental annual benefit</th>
-                  <th>Incremental monthly delta</th>
-                  <th>Incremental NPV</th>
+                  <th>Annual operating benefit</th>
+                  <th>Monthly cashflow delta</th>
+                  <th>Incremental levered NPV</th>
                   <th>Payback</th>
                 </tr>
               </thead>

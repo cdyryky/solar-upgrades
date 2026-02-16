@@ -183,6 +183,29 @@ label {
   padding-top: 4px;
 }
 
+.month-grid {
+  margin-top: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.month-grid .checkline {
+  justify-content: space-between;
+  margin: 0;
+  padding: 4px 6px;
+  border: 1px solid #dbe4db;
+  border-radius: 8px;
+  background: #fcfefc;
+  font-size: 0.78rem;
+}
+
+.sub-sep {
+  margin: 10px 0;
+  border: 0;
+  border-top: 1px solid #dbe4db;
+}
+
 input,
 select,
 button {
@@ -424,6 +447,10 @@ tbody tr:hover {
   .metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .month-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1024px) {
@@ -441,6 +468,10 @@ tbody tr:hover {
   .field-grid.two-col {
     grid-template-columns: 1fr;
   }
+
+  .month-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 640px) {
@@ -454,5 +485,9 @@ tbody tr:hover {
 
   .app-shell {
     padding: 14px 10px 20px;
+  }
+
+  .month-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

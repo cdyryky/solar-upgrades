@@ -40,13 +40,39 @@
 
     vppEnabled: document.getElementById("vppEnabled"),
 
-    aprPct: document.getElementById("aprPct"),
+    builderAprPct: document.getElementById("builderAprPct"),
+    teslaAprPct: document.getElementById("teslaAprPct"),
     loanYears: document.getElementById("loanYears"),
     horizonYears: document.getElementById("horizonYears"),
     discountRatePct: document.getElementById("discountRatePct"),
     utilityEscalationPct: document.getElementById("utilityEscalationPct"),
     solarDegradationPct: document.getElementById("solarDegradationPct"),
     batteryDegradationPct: document.getElementById("batteryDegradationPct"),
+
+    enableWhf: document.getElementById("enableWhf"),
+    whfMode: document.getElementById("whfMode"),
+    whfFanWatts: document.getElementById("whfFanWatts"),
+    whfDisplacedAcWatts: document.getElementById("whfDisplacedAcWatts"),
+    whfSuccessRatePct: document.getElementById("whfSuccessRatePct"),
+    whfStartHour: document.getElementById("whfStartHour"),
+    whfStartMinute: document.getElementById("whfStartMinute"),
+    whfEndHour: document.getElementById("whfEndHour"),
+    whfEndMinute: document.getElementById("whfEndMinute"),
+    whfMonthNodes: Array.from(document.querySelectorAll("[data-whf-month]")),
+
+    enableHaShift: document.getElementById("enableHaShift"),
+    haMode: document.getElementById("haMode"),
+    summerSetpointF: document.getElementById("summerSetpointF"),
+    winterSetpointF: document.getElementById("winterSetpointF"),
+    maxPrecoolOffsetF: document.getElementById("maxPrecoolOffsetF"),
+    maxPreheatOffsetF: document.getElementById("maxPreheatOffsetF"),
+    maxPeakRelaxOffsetF: document.getElementById("maxPeakRelaxOffsetF"),
+    hvacSensitivityKwhPerDegHour: document.getElementById("hvacSensitivityKwhPerDegHour"),
+    hvacShiftSuccessRatePct: document.getElementById("hvacShiftSuccessRatePct"),
+    preCoolStartHour: document.getElementById("preCoolStartHour"),
+    preCoolEndHour: document.getElementById("preCoolEndHour"),
+    maxShiftHoursPerDay: document.getElementById("maxShiftHoursPerDay"),
+    maxShiftKwhPerDay: document.getElementById("maxShiftKwhPerDay"),
 
     climateStatus: document.getElementById("climateStatus"),
 
@@ -78,7 +104,21 @@
     return Number.isFinite(n) ? n : fallback;
   }
 
+  function clamp(n, low, high) {
+    return Math.min(high, Math.max(low, n));
+  }
+
+  function collectWhfActiveMonths() {
+    return dom.whfMonthNodes
+      .filter((node) => node.checked)
+      .map((node) => Number(node.dataset.whfMonth))
+      .filter((month) => Number.isInteger(month) && month >= 0 && month <= 11);
+  }
+
   function collectInputs() {
+    const whfEnabled = !!dom.enableWhf.checked;
+    const haEnabled = !!dom.enableHaShift.checked;
+
     return {
       sizing: {
         builderBasePresetKw: dom.builderBasePresetKw.value === "5.53" ? "5.53" : "3.95",
@@ -119,7 +159,8 @@
         vppEnabled: !!dom.vppEnabled.checked
       },
       financing: {
-        aprPct: valueOf(dom.aprPct, 6),
+        builderAprPct: valueOf(dom.builderAprPct, 6),
+        teslaAprPct: valueOf(dom.teslaAprPct, 7.5),
         loanYears: Math.max(1, Math.floor(valueOf(dom.loanYears, 15)))
       },
       analysis: {
@@ -128,6 +169,35 @@
         utilityEscalationPct: valueOf(dom.utilityEscalationPct, 3),
         solarDegradationPct: valueOf(dom.solarDegradationPct, 0.5),
         batteryDegradationPct: valueOf(dom.batteryDegradationPct, 2)
+      },
+      homeFlex: {
+        whf: {
+          enabled: whfEnabled,
+          mode: dom.whfMode.value === "manual" ? "manual" : "auto",
+          fanWatts: valueOf(dom.whfFanWatts, 200),
+          displacedAcWatts: valueOf(dom.whfDisplacedAcWatts, 3500),
+          successRatePct: valueOf(dom.whfSuccessRatePct, 85),
+          startHour: Math.floor(valueOf(dom.whfStartHour, 20)),
+          startMinute: Math.floor(valueOf(dom.whfStartMinute, 30)),
+          endHour: Math.floor(valueOf(dom.whfEndHour, 6)),
+          endMinute: Math.floor(valueOf(dom.whfEndMinute, 0)),
+          activeMonths: collectWhfActiveMonths()
+        },
+        ha: {
+          enabled: haEnabled,
+          mode: dom.haMode.value === "manual" ? "manual" : "auto",
+          summerSetpointF: valueOf(dom.summerSetpointF, 74),
+          winterSetpointF: valueOf(dom.winterSetpointF, 68),
+          maxPrecoolOffsetF: valueOf(dom.maxPrecoolOffsetF, 3),
+          maxPreheatOffsetF: valueOf(dom.maxPreheatOffsetF, 2),
+          maxPeakRelaxOffsetF: valueOf(dom.maxPeakRelaxOffsetF, 2),
+          hvacSensitivityKwhPerDegHour: valueOf(dom.hvacSensitivityKwhPerDegHour, 0.6),
+          successRatePct: valueOf(dom.hvacShiftSuccessRatePct, 70),
+          preCoolStartHour: Math.floor(valueOf(dom.preCoolStartHour, 12)),
+          preCoolEndHour: Math.floor(valueOf(dom.preCoolEndHour, 16)),
+          maxShiftHoursPerDay: Math.floor(valueOf(dom.maxShiftHoursPerDay, 4)),
+          maxShiftKwhPerDay: valueOf(dom.maxShiftKwhPerDay, 6)
+        }
       }
     };
   }
@@ -152,6 +222,33 @@
       errors.push("Builder base quote values cannot be negative.");
     }
 
+    if (inputs.financing.builderAprPct < 0 || inputs.financing.teslaAprPct < 0) {
+      errors.push("Builder/Tesla APR cannot be negative.");
+    }
+
+    const whf = inputs.homeFlex.whf;
+    if (whf.enabled && whf.mode === "manual") {
+      const startMinute = (clamp(whf.startHour, 0, 23) * 60) + clamp(whf.startMinute, 0, 59);
+      const endMinute = (clamp(whf.endHour, 0, 23) * 60) + clamp(whf.endMinute, 0, 59);
+      if (startMinute === endMinute) {
+        errors.push("WHF manual start and end times must define a non-zero window.");
+      }
+      if (!whf.activeMonths.length) {
+        errors.push("WHF manual mode requires at least one active month.");
+      }
+    }
+
+    const ha = inputs.homeFlex.ha;
+    if (ha.enabled && ha.mode === "manual") {
+      if (clamp(ha.preCoolStartHour, 0, 23) === clamp(ha.preCoolEndHour, 0, 23)) {
+        errors.push("HVAC manual pre-window must define a non-zero hour window.");
+      }
+    }
+
+    if (ha.enabled && ha.maxShiftHoursPerDay <= 0) {
+      errors.push("HVAC max shift hours/day must be at least 1 when enabled.");
+    }
+
     return errors;
   }
 
@@ -169,6 +266,42 @@
       dom.climateStatus.textContent =
         "Climate fallback: synthetic profile (" + (snapshot.fallbackReason || "missing_data") + ")";
     }
+  }
+
+  function setEnabled(input, enabled) {
+    if (!input) return;
+    input.disabled = !enabled;
+  }
+
+  function updateHomeFlexFieldStates() {
+    const whfEnabled = !!dom.enableWhf.checked;
+    const whfManual = whfEnabled && dom.whfMode.value === "manual";
+    setEnabled(dom.whfMode, whfEnabled);
+    setEnabled(dom.whfFanWatts, whfEnabled);
+    setEnabled(dom.whfDisplacedAcWatts, whfEnabled);
+    setEnabled(dom.whfSuccessRatePct, whfManual);
+    setEnabled(dom.whfStartHour, whfManual);
+    setEnabled(dom.whfStartMinute, whfManual);
+    setEnabled(dom.whfEndHour, whfManual);
+    setEnabled(dom.whfEndMinute, whfManual);
+    dom.whfMonthNodes.forEach((node) => {
+      node.disabled = !whfManual;
+    });
+
+    const haEnabled = !!dom.enableHaShift.checked;
+    const haManual = haEnabled && dom.haMode.value === "manual";
+    setEnabled(dom.haMode, haEnabled);
+    setEnabled(dom.summerSetpointF, haEnabled);
+    setEnabled(dom.winterSetpointF, haEnabled);
+    setEnabled(dom.maxPrecoolOffsetF, haEnabled);
+    setEnabled(dom.maxPreheatOffsetF, haEnabled);
+    setEnabled(dom.maxPeakRelaxOffsetF, haEnabled);
+    setEnabled(dom.hvacSensitivityKwhPerDegHour, haEnabled);
+    setEnabled(dom.maxShiftHoursPerDay, haEnabled);
+    setEnabled(dom.maxShiftKwhPerDay, haEnabled);
+    setEnabled(dom.hvacShiftSuccessRatePct, haManual);
+    setEnabled(dom.preCoolStartHour, haManual);
+    setEnabled(dom.preCoolEndHour, haManual);
   }
 
   async function runPlanner() {
@@ -235,25 +368,60 @@
     dom.teslaBattery1,
     dom.teslaBattery2,
     dom.vppEnabled,
-    dom.aprPct,
+    dom.builderAprPct,
+    dom.teslaAprPct,
     dom.loanYears,
     dom.horizonYears,
     dom.discountRatePct,
     dom.utilityEscalationPct,
     dom.solarDegradationPct,
-    dom.batteryDegradationPct
+    dom.batteryDegradationPct,
+    dom.enableWhf,
+    dom.whfMode,
+    dom.whfFanWatts,
+    dom.whfDisplacedAcWatts,
+    dom.whfSuccessRatePct,
+    dom.whfStartHour,
+    dom.whfStartMinute,
+    dom.whfEndHour,
+    dom.whfEndMinute,
+    ...dom.whfMonthNodes,
+    dom.enableHaShift,
+    dom.haMode,
+    dom.summerSetpointF,
+    dom.winterSetpointF,
+    dom.maxPrecoolOffsetF,
+    dom.maxPreheatOffsetF,
+    dom.maxPeakRelaxOffsetF,
+    dom.hvacSensitivityKwhPerDegHour,
+    dom.hvacShiftSuccessRatePct,
+    dom.preCoolStartHour,
+    dom.preCoolEndHour,
+    dom.maxShiftHoursPerDay,
+    dom.maxShiftKwhPerDay
   ];
 
   let renderTimer = null;
   liveInputs.forEach(function bindLive(input) {
+    if (!input) return;
     input.addEventListener("input", function onInput() {
+      updateHomeFlexFieldStates();
       if (renderTimer) clearTimeout(renderTimer);
       renderTimer = setTimeout(function rerender() {
         renderTimer = null;
         void runPlanner();
       }, 180);
     });
+    input.addEventListener("change", function onChange() {
+      updateHomeFlexFieldStates();
+      if (renderTimer) clearTimeout(renderTimer);
+      renderTimer = setTimeout(function rerenderFromChange() {
+        renderTimer = null;
+        void runPlanner();
+      }, 180);
+    });
   });
 
+  updateHomeFlexFieldStates();
   void runPlanner();
 })(window);

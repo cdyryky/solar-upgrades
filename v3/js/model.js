@@ -147,6 +147,53 @@
     };
   }
 
+  function projectIncrementalLeveredReturns(runtimeContext, incrementalCapexRaw, incrementalAnnualBenefitRaw, candidatePowerwallsRaw) {
+    const analysis = runtimeContext.simulationInputs.analysis;
+
+    const incrementalCapex = Math.max(0, asFinite(incrementalCapexRaw, 0));
+    const incrementalAnnualBenefit = asFinite(incrementalAnnualBenefitRaw, 0);
+    const candidatePowerwalls = Math.max(0, Math.floor(asFinite(candidatePowerwallsRaw, 0)));
+
+    const years = Math.max(1, Math.floor(asFinite(analysis.years, 15)));
+    const discountRate = clamp(asFinite(analysis.discountRate, 0.05), 0, 2);
+    const utilityEscalation = clamp(asFinite(analysis.utilityEscalation, 0.03), 0, 1);
+    const solarDegradation = clamp(asFinite(analysis.solarDegradation, 0.005), 0, 1);
+    const batteryDegradation = clamp(asFinite(analysis.batteryDegradation, 0.02), 0, 1);
+    const loanYears = Math.max(1, Math.floor(asFinite(runtimeContext.financing.loanYears, 15)));
+    const annualLoanCost = mortgagePayment(
+      incrementalCapex,
+      runtimeContext.financing.teslaAprPct,
+      loanYears
+    ) * 12;
+
+    const batteryFactor = candidatePowerwalls > 0 ? (1 - batteryDegradation) : 1;
+    const annualScale = (1 + utilityEscalation) * (1 - solarDegradation) * batteryFactor;
+
+    let npv = -incrementalCapex;
+    let cumulative = -incrementalCapex;
+    let paybackYears = Number.POSITIVE_INFINITY;
+    const cashflows = [-incrementalCapex];
+
+    for (let year = 1; year <= years; year += 1) {
+      const operatingBenefit = incrementalAnnualBenefit * Math.pow(annualScale, year - 1);
+      const financingCost = year <= loanYears ? annualLoanCost : 0;
+      const leveredCashflow = operatingBenefit - financingCost;
+      cashflows.push(leveredCashflow);
+      cumulative += leveredCashflow;
+      npv += leveredCashflow / Math.pow(1 + discountRate, year);
+      if (!Number.isFinite(paybackYears) && cumulative >= 0) {
+        paybackYears = year;
+      }
+    }
+
+    return {
+      npv,
+      paybackYears,
+      cumulative,
+      irr: irrFromCashflows(cashflows)
+    };
+  }
+
   function buildRuntimeContext(rawInputs, climateSnapshot) {
     const preset = String(rawInputs.sizing.builderBasePresetKw || "3.95");
     const baseSolarKw = preset === "5.53" ? 5.53 : 3.95;
@@ -177,7 +224,8 @@
         }
       },
       financing: {
-        aprPct: Math.max(0, asFinite(rawInputs.financing.aprPct, 6)),
+        builderAprPct: Math.max(0, asFinite(rawInputs.financing.builderAprPct, 6)),
+        teslaAprPct: Math.max(0, asFinite(rawInputs.financing.teslaAprPct, 7.5)),
         loanYears: Math.max(1, Math.floor(asFinite(rawInputs.financing.loanYears, 15)))
       },
       simulationInputs,
@@ -194,6 +242,7 @@
     getTeslaBatteryTotalCost,
     computeTeslaUpgradeCosts,
     projectIncrementalReturns,
+    projectIncrementalLeveredReturns,
     buildRuntimeContext
   };
 })(window);

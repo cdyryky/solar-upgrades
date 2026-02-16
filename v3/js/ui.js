@@ -76,32 +76,45 @@
 
     const baseline = summary.baseline;
     const best = summary.bestUpgrade;
+    const showNoUpgrade = !!summary.noUpgradeRecommended || !!best.isNoUpgrade;
+    const showBatteryOnlyUpgrade = !showNoUpgrade && best.addedSolarKw <= 1e-6 && best.finalPowerwalls > baseline.basePowerwalls;
 
     setText(dom.kpiBaseSystem, num(baseline.baseSolarKw, 2) + " kW + 0 PW");
     setText(dom.kpiBaseDetail, "Builder quote: " + usd(baseline.baseQuote));
 
-    setText(dom.kpiUpgradeSystem, num(best.finalSolarKw, 2) + " kW + " + best.finalPowerwalls + " PW");
-    setText(dom.kpiUpgradeDetail, "Tesla incremental capex: " + usd(best.incrementalCapex));
+    if (showNoUpgrade) {
+      setText(dom.kpiUpgradeSystem, "No Tesla upgrade");
+      setText(dom.kpiUpgradeDetail, "Stay at Builder base.");
+    } else if (showBatteryOnlyUpgrade) {
+      setText(dom.kpiUpgradeSystem, num(best.finalSolarKw, 2) + " kW + " + best.finalPowerwalls + " PW");
+      setText(dom.kpiUpgradeDetail, "Battery-only Tesla upgrade (solar unchanged).");
+    } else {
+      setText(dom.kpiUpgradeSystem, num(best.finalSolarKw, 2) + " kW + " + best.finalPowerwalls + " PW");
+      setText(dom.kpiUpgradeDetail, "Tesla incremental capex: " + usd(best.incrementalCapex));
+    }
 
-    setText(dom.kpiIncrementalNpv, usd(best.incrementalNpv));
+    setText(dom.kpiIncrementalNpv, usd(best.incrementalLeveredNpv));
     setText(
       dom.kpiIncrementalNpvDetail,
-      "Annual delta: " + usdSigned(best.incrementalAnnualBenefit) + " | Monthly delta: " + usdSigned(best.incrementalMonthlyNetOutflow)
+      "Annual operating benefit: " + usdSigned(best.incrementalAnnualOperatingBenefit) +
+      " | Monthly cashflow delta: " + usdSigned(best.incrementalMonthlyEnergyDelta) +
+      " + " + usdSigned(best.monthlyFinancingCostDelta) +
+      " = " + usdSigned(best.incrementalMonthlyNetOutflow)
     );
 
     if (expansion && !expansion.error) {
       const additionalPw = Math.max(0, expansion.recommendedPowerwalls - expansion.startPowerwalls);
       setText(dom.kpiExpansion, additionalPw > 0 ? ("Add " + additionalPw + " PW") : "No PW expansion");
-      setText(dom.kpiExpansionDetail, "Global best PW: " + expansion.recommendedPowerwalls + " (engine-aligned)");
+      setText(dom.kpiExpansionDetail, "Global best PW: " + expansion.recommendedPowerwalls + " (aligned)");
     } else {
       setText(dom.kpiExpansion, "Expansion unavailable");
       setText(dom.kpiExpansionDetail, "Check expansion inputs.");
     }
 
     if (dom.noUpgradeBanner) {
-      if (summary.noUpgradeRecommended) {
+      if (showNoUpgrade) {
         dom.noUpgradeBanner.classList.remove("hidden");
-        dom.noUpgradeBanner.textContent = "No-upgrade recommended: best incremental NPV is non-positive.";
+        dom.noUpgradeBanner.textContent = "No-upgrade recommended: best incremental levered NPV is non-positive.";
       } else {
         dom.noUpgradeBanner.classList.add("hidden");
         dom.noUpgradeBanner.textContent = "";
@@ -119,26 +132,39 @@
 
     const baseline = summary.baseline;
     const best = summary.bestUpgrade;
+    const showNoUpgrade = !!summary.noUpgradeRecommended || !!best.isNoUpgrade;
 
-    setText(dom.scenarioLabel, "Hourly dispatch model aligned with v2.6.1. Objective: max incremental NPV.");
+    setText(
+      dom.scenarioLabel,
+      "Hourly dispatch model aligned with v2.6.1. Recommendation is conditional on selected Builder base."
+    );
 
     dom.scenarioMetrics.innerHTML = [
       metricCard("Builder base preset", baseline.presetLabel),
       metricCard("Builder base quote", usd(baseline.baseQuote)),
-      metricCard("Builder base solar", num(baseline.annual.annualSolarGenerationKwh || 0, 0) + " kWh"),
-      metricCard("Builder base utility after", usd((baseline.annual.annualUtilityBillAfter || 0) / 12) + "/mo"),
-      metricCard("Upgrade final system", num(best.finalSolarKw, 2) + " kW + " + best.finalPowerwalls + " PW"),
-      metricCard("Tesla-added solar", num(best.teslaAddedSolarKwh || 0, 0) + " kWh"),
+      metricCard("Builder base solar", num(baseline.annual.annualSolarGenerationKwh, 0) + " kWh"),
+      metricCard("Builder base utility after", usd(baseline.annual.annualUtilityBillAfter / 12) + "/mo"),
+      metricCard(
+        "Upgrade final system",
+        showNoUpgrade
+          ? "No Tesla upgrade"
+          : (showBatteryOnlyUpgrade
+            ? (num(best.finalSolarKw, 2) + " kW + " + best.finalPowerwalls + " PW (battery-only)")
+            : (num(best.finalSolarKw, 2) + " kW + " + best.finalPowerwalls + " PW"))
+      ),
+      metricCard("Tesla-added solar", num(best.teslaAddedSolarKwh, 0) + " kWh"),
       metricCard("Solar add size", num(best.addedSolarKw, 2) + " kW"),
       metricCard("Tesla solar upgrade cost", usd(best.solarUpgradeCost)),
       metricCard("Tesla battery upgrade cost", usd(best.batteryUpgradeCost)),
       metricCard("Incremental capex", usd(best.incrementalCapex)),
-      metricCard("Incremental annual benefit", usdSigned(best.incrementalAnnualBenefit)),
-      metricCard("Incremental monthly delta", usdSigned(best.incrementalMonthlyNetOutflow)),
-      metricCard("Incremental NPV", usd(best.incrementalNpv)),
-      metricCard("Incremental payback", fmtPayback(best.incrementalPaybackYears)),
-      metricCard("Incremental IRR", fmtIrr(best.incrementalIrr)),
-      metricCard("Total system cost proxy", usd(best.totalSystemCostProxy))
+      metricCard("Annual operating benefit (pre-financing)", usdSigned(best.incrementalAnnualOperatingBenefit)),
+      metricCard("Monthly energy delta", usdSigned(best.incrementalMonthlyEnergyDelta)),
+      metricCard("Monthly financing delta", usdSigned(best.monthlyFinancingCostDelta)),
+      metricCard("Monthly cashflow delta (incl financing)", usdSigned(best.incrementalMonthlyNetOutflow)),
+      metricCard("Incremental levered NPV", usd(best.incrementalLeveredNpv)),
+      metricCard("Incremental levered payback", fmtPayback(best.incrementalLeveredPaybackYears)),
+      metricCard("Incremental levered IRR", fmtIrr(best.incrementalLeveredIrr)),
+      metricCard("Incremental unlevered NPV", usd(best.incrementalNpv))
     ].join("");
   }
 
@@ -185,25 +211,32 @@
       return;
     }
 
+    const invalidNote = optimization.invalidScenarioCount > 0
+      ? (" | skipped " + optimization.invalidScenarioCount + " invalid scenarios")
+      : "";
+    const noUpgradeNote = optimization.noUpgradeRecommended
+      ? " | recommendation: no Tesla upgrade"
+      : "";
+
     setText(
       dom.topScenarioHint,
       optimization.solarCandidates.length + " solar candidates x " +
-      optimization.powerwallCandidates.length + " PW options, ranked by incremental NPV."
+      optimization.powerwallCandidates.length + " PW options, ranked by incremental levered NPV" + invalidNote + noUpgradeNote + "."
     );
 
     dom.topScenarioTableBody.innerHTML = optimization.results.slice(0, 10).map((row, idx) => {
       return (
         "<tr>" +
           "<td>" + (idx + 1) + "</td>" +
-          "<td>" + num(row.finalSolarKw, 2) + "</td>" +
-          "<td>" + row.finalPowerwalls + "</td>" +
+          "<td>" + (row.isNoUpgrade ? ("Baseline " + num(row.finalSolarKw, 2)) : num(row.finalSolarKw, 2)) + "</td>" +
+          "<td>" + (row.isNoUpgrade ? "0 (no-upgrade)" : row.finalPowerwalls) + "</td>" +
           "<td>" + num(row.addedSolarKw, 2) + "</td>" +
-          "<td>" + num(row.teslaAddedSolarKwh || 0, 0) + "</td>" +
+          "<td>" + num(row.teslaAddedSolarKwh, 0) + "</td>" +
           "<td>" + usd(row.incrementalCapex) + "</td>" +
-          "<td>" + usdSigned(row.incrementalAnnualBenefit) + "</td>" +
+          "<td>" + usdSigned(row.incrementalAnnualOperatingBenefit) + "</td>" +
           "<td>" + usdSigned(row.incrementalMonthlyNetOutflow) + "</td>" +
-          "<td>" + usd(row.incrementalNpv) + "</td>" +
-          "<td>" + fmtPayback(row.incrementalPaybackYears) + "</td>" +
+          "<td>" + usd(row.incrementalLeveredNpv) + "</td>" +
+          "<td>" + fmtPayback(row.incrementalLeveredPaybackYears) + "</td>" +
         "</tr>"
       );
     }).join("");
