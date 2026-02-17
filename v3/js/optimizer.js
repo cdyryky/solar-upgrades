@@ -97,7 +97,35 @@
     };
   }
 
-  function buildUpgradeScenario(runtimeContext, baselineScenario, finalSolarKwRaw, finalPowerwallsRaw) {
+  function getSolarOnlyCounterfactual(runtimeContext, baselineScenario, finalSolarKw, solarOnlyCache) {
+    const key = Number(finalSolarKw).toFixed(6);
+    if (solarOnlyCache.has(key)) return solarOnlyCache.get(key);
+
+    const annual = engine.calculateAnnualEnergyAndBills(
+      runtimeContext.simulationInputs,
+      finalSolarKw,
+      baselineScenario.basePowerwalls
+    );
+    const annualCheck = getFiniteAnnualMetrics(annual);
+    if (!annualCheck.ok) {
+      const failed = {
+        ok: false,
+        error: "Solar-only counterfactual failed: " + annualCheck.error
+      };
+      solarOnlyCache.set(key, failed);
+      return failed;
+    }
+
+    const success = {
+      ok: true,
+      annual,
+      annualMetrics: annualCheck.metrics
+    };
+    solarOnlyCache.set(key, success);
+    return success;
+  }
+
+  function buildUpgradeScenario(runtimeContext, baselineScenario, finalSolarKwRaw, finalPowerwallsRaw, solarOnlyCache) {
     const costs = model.computeTeslaUpgradeCosts(runtimeContext, finalSolarKwRaw, finalPowerwallsRaw);
     const isNoUpgrade = costs.addedSolarKw <= EPSILON && costs.finalPowerwalls === baselineScenario.basePowerwalls;
 
@@ -117,6 +145,8 @@
         incrementalCapex: 0,
         incrementalAnnualBenefit: 0,
         incrementalAnnualOperatingBenefit: 0,
+        incrementalSolarBenefitYear1: 0,
+        incrementalBatteryBenefitYear1: 0,
         incrementalMonthlyEnergyDelta: 0,
         incrementalLoanPayment: 0,
         monthlyFinancingCostDelta: 0,
@@ -153,8 +183,27 @@
       };
     }
     const annualMetrics = annualCheck.metrics;
+    const solarOnly = getSolarOnlyCounterfactual(
+      runtimeContext,
+      baselineScenario,
+      costs.finalSolarKw,
+      solarOnlyCache
+    );
+    if (!solarOnly.ok) {
+      return {
+        finalSolarKw: costs.finalSolarKw,
+        finalPowerwalls: costs.finalPowerwalls,
+        error: solarOnly.error
+      };
+    }
 
     const incrementalAnnualOperatingBenefit = annualMetrics.annualNetBenefit - baselineScenario.annualNetBenefit;
+    const solarBenefitYear1 = solarOnly.annualMetrics.annualNetBenefit - baselineScenario.annualNetBenefit;
+    const batteryBenefitYear1 = annualMetrics.annualNetBenefit - solarOnly.annualMetrics.annualNetBenefit;
+    const benefitComponents = {
+      solarBenefitYear1,
+      batteryBenefitYear1
+    };
     const incrementalMonthlyEnergyDelta =
       (annualMetrics.annualNetEnergyEconomics - baselineScenario.annual.annualNetEnergyEconomics) / 12;
 
@@ -170,13 +219,13 @@
     const unleveredReturns = model.projectIncrementalReturns(
       runtimeContext,
       costs.incrementalCapex,
-      incrementalAnnualOperatingBenefit,
+      benefitComponents,
       costs.finalPowerwalls
     );
     const leveredReturns = model.projectIncrementalLeveredReturns(
       runtimeContext,
       costs.incrementalCapex,
-      incrementalAnnualOperatingBenefit,
+      benefitComponents,
       costs.finalPowerwalls
     );
 
@@ -197,6 +246,8 @@
       incrementalCapex: costs.incrementalCapex,
       incrementalAnnualBenefit: incrementalAnnualOperatingBenefit,
       incrementalAnnualOperatingBenefit,
+      incrementalSolarBenefitYear1: solarBenefitYear1,
+      incrementalBatteryBenefitYear1: batteryBenefitYear1,
       incrementalMonthlyEnergyDelta,
       incrementalLoanPayment,
       monthlyFinancingCostDelta,
@@ -266,9 +317,10 @@
 
     let invalidScenarioCount = 0;
     const byKey = new Map();
+    const solarOnlyCounterfactualCache = new Map();
     powerwallCandidates.forEach((pw) => {
       solarCandidates.forEach((solarKw) => {
-        const scenario = buildUpgradeScenario(runtimeContext, baseline, solarKw, pw);
+        const scenario = buildUpgradeScenario(runtimeContext, baseline, solarKw, pw, solarOnlyCounterfactualCache);
         if (scenario.error) {
           invalidScenarioCount += 1;
           return;
@@ -278,7 +330,13 @@
     });
 
     // Always include explicit no-upgrade candidate.
-    const noUpgrade = buildUpgradeScenario(runtimeContext, baseline, baseline.baseSolarKw, baseline.basePowerwalls);
+    const noUpgrade = buildUpgradeScenario(
+      runtimeContext,
+      baseline,
+      baseline.baseSolarKw,
+      baseline.basePowerwalls,
+      solarOnlyCounterfactualCache
+    );
     if (!noUpgrade.error) {
       byKey.set(noUpgrade.finalSolarKw.toFixed(6) + "|" + noUpgrade.finalPowerwalls, noUpgrade);
     } else {

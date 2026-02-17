@@ -99,7 +99,8 @@
       "Annual operating benefit: " + usdSigned(best.incrementalAnnualOperatingBenefit) +
       " | Monthly cashflow delta: " + usdSigned(best.incrementalMonthlyEnergyDelta) +
       " + " + usdSigned(best.monthlyFinancingCostDelta) +
-      " = " + usdSigned(best.incrementalMonthlyNetOutflow)
+      " = " + usdSigned(best.incrementalMonthlyNetOutflow) +
+      " | Levered NPV assumes 0% down financing."
     );
 
     if (expansion && !expansion.error) {
@@ -133,6 +134,7 @@
     const baseline = summary.baseline;
     const best = summary.bestUpgrade;
     const showNoUpgrade = !!summary.noUpgradeRecommended || !!best.isNoUpgrade;
+    const showBatteryOnlyUpgrade = !showNoUpgrade && best.addedSolarKw <= 1e-6 && best.finalPowerwalls > baseline.basePowerwalls;
 
     setText(
       dom.scenarioLabel,
@@ -161,10 +163,10 @@
       metricCard("Monthly energy delta", usdSigned(best.incrementalMonthlyEnergyDelta)),
       metricCard("Monthly financing delta", usdSigned(best.monthlyFinancingCostDelta)),
       metricCard("Monthly cashflow delta (incl financing)", usdSigned(best.incrementalMonthlyNetOutflow)),
-      metricCard("Incremental levered NPV", usd(best.incrementalLeveredNpv)),
+      metricCard("Incremental levered NPV (0% down financed)", usd(best.incrementalLeveredNpv)),
       metricCard("Incremental levered payback", fmtPayback(best.incrementalLeveredPaybackYears)),
       metricCard("Incremental levered IRR", fmtIrr(best.incrementalLeveredIrr)),
-      metricCard("Incremental unlevered NPV", usd(best.incrementalNpv))
+      metricCard("Incremental unlevered NPV (cash purchase)", usd(best.incrementalNpv))
     ].join("");
   }
 
@@ -221,7 +223,7 @@
     setText(
       dom.topScenarioHint,
       optimization.solarCandidates.length + " solar candidates x " +
-      optimization.powerwallCandidates.length + " PW options, ranked by incremental levered NPV" + invalidNote + noUpgradeNote + "."
+      optimization.powerwallCandidates.length + " PW options, ranked by incremental levered NPV (0% down financed)" + invalidNote + noUpgradeNote + "."
     );
 
     dom.topScenarioTableBody.innerHTML = optimization.results.slice(0, 10).map((row, idx) => {

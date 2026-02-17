@@ -31,6 +31,10 @@
   const ZIP_COORD_CACHE_STORAGE_KEY = "solarUpgradeV3.zipCoordCache.v1";
   const NREL_CACHE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
   const ZIP_COORD_CACHE_TTL_MS = 180 * 24 * 60 * 60 * 1000;
+  const CLIMATE_PROFILE_TYPE_PVWATTS_AC = "pvwatts_ac";
+  const CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED = "synthetic_unclipped";
+  const CLIMATE_PROFILE_SOURCE_PVWATTS = "pvwatts_hourly_ac";
+  const CLIMATE_PROFILE_SOURCE_SYNTHETIC = "synthetic_fallback";
 
   const DEFAULT_LOAD_PROFILE_RAW = [1.02, 0.95, 0.91, 0.82, 0.79, 0.83, 0.96, 1.07, 0.96, 0.89, 0.91, 0.99];
   const DEFAULT_SOLAR_PROFILE_RAW = [0.58, 0.66, 0.86, 1.02, 1.12, 1.18, 1.16, 1.08, 0.98, 0.83, 0.64, 0.53];
@@ -229,6 +233,50 @@
         && row.every((v) => Number.isFinite(v)));
   }
 
+  function isValidProfileType(profileType) {
+    return profileType === CLIMATE_PROFILE_TYPE_PVWATTS_AC
+      || profileType === CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED;
+  }
+
+  function isValidProfileSource(profileSource) {
+    return profileSource === CLIMATE_PROFILE_SOURCE_PVWATTS
+      || profileSource === CLIMATE_PROFILE_SOURCE_SYNTHETIC;
+  }
+
+  function profileTypeFromSource(profileSource) {
+    if (profileSource === CLIMATE_PROFILE_SOURCE_PVWATTS) return CLIMATE_PROFILE_TYPE_PVWATTS_AC;
+    if (profileSource === CLIMATE_PROFILE_SOURCE_SYNTHETIC) return CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED;
+    return null;
+  }
+
+  function profileSourceFromType(profileType) {
+    if (profileType === CLIMATE_PROFILE_TYPE_PVWATTS_AC) return CLIMATE_PROFILE_SOURCE_PVWATTS;
+    if (profileType === CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED) return CLIMATE_PROFILE_SOURCE_SYNTHETIC;
+    return null;
+  }
+
+  function resolveClimateProfileProvenance(profile) {
+    if (!profile || typeof profile !== "object") return null;
+    const profileType = isValidProfileType(profile.profileType) ? profile.profileType : null;
+    const profileSource = isValidProfileSource(profile.profileSource) ? profile.profileSource : null;
+
+    if (profileType) {
+      return {
+        profileType,
+        profileSource: profileSource || profileSourceFromType(profileType)
+      };
+    }
+    if (profileSource) {
+      const mappedType = profileTypeFromSource(profileSource);
+      if (!mappedType) return null;
+      return {
+        profileType: mappedType,
+        profileSource
+      };
+    }
+    return null;
+  }
+
   function profileHasPositiveEnergy(profile) {
     if (!profile || !isValidMonthlyProfile(profile.monthlyProfile) || !isValidHourlyByMonth(profile.hourlyByMonth)) {
       return false;
@@ -398,14 +446,40 @@
       writeClimateCacheStore(store);
       return null;
     }
+    const provenance = resolveClimateProfileProvenance(entry.profile);
+    if (!provenance) {
+      delete store[String(cacheKey)];
+      writeClimateCacheStore(store);
+      return null;
+    }
+    let provenanceChanged = false;
+    if (entry.profile.profileType !== provenance.profileType) {
+      entry.profile.profileType = provenance.profileType;
+      provenanceChanged = true;
+    }
+    if (entry.profile.profileSource !== provenance.profileSource) {
+      entry.profile.profileSource = provenance.profileSource;
+      provenanceChanged = true;
+    }
+    if (provenanceChanged) {
+      store[String(cacheKey)] = entry;
+      writeClimateCacheStore(store);
+    }
     return entry;
   }
 
   function putCachedClimateEntry(cacheKey, entry) {
     if (!entry || !isValidClimateProfile(entry.profile)) return;
+    const provenance = resolveClimateProfileProvenance(entry.profile);
+    if (!provenance) return;
+    const normalizedProfile = {
+      ...entry.profile,
+      profileType: provenance.profileType,
+      profileSource: provenance.profileSource
+    };
     const store = readClimateCacheStore();
     store[String(cacheKey)] = {
-      profile: entry.profile,
+      profile: normalizedProfile,
       locationLabel: entry.locationLabel || "",
       cachedAt: Date.now(),
       lastVerifiedAt: new Date().toISOString(),
@@ -452,7 +526,9 @@
       monthlyProfile: SOLAR_PROFILE,
       hourlyByMonth: getSyntheticHourlyByMonthProfiles(),
       tempHourlyFByMonth: getSyntheticTempHourlyByMonthProfiles(),
-      tempSource: "synthetic_temp_fallback"
+      tempSource: "synthetic_temp_fallback",
+      profileType: CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED,
+      profileSource: CLIMATE_PROFILE_SOURCE_SYNTHETIC
     };
   }
 
@@ -509,7 +585,9 @@
         return total > 0 ? normalizeProfile(row) : buildSyntheticSolarHourlyShape(idx);
       }),
       tempHourlyFByMonth,
-      tempSource: tempFullyValid ? "nrel_tamb" : "synthetic_temp_fallback"
+      tempSource: tempFullyValid ? "nrel_tamb" : "synthetic_temp_fallback",
+      profileType: CLIMATE_PROFILE_TYPE_PVWATTS_AC,
+      profileSource: CLIMATE_PROFILE_SOURCE_PVWATTS
     };
   }
 
@@ -881,9 +959,17 @@
   function simulateRepresentativeDay(dayInput) {
     const loadShape = buildHourlyLoadShape(dayInput.peakShare);
     const solarShape = buildSolarHourlyShape(dayInput.monthIndex, dayInput.solarHourlyByMonth);
-    const batteryCapacity = dayInput.powerwallCount * dayInput.usableKwhPerBattery;
-    const maxDischargeKwhHour = batteryCapacity > 0 ? ((batteryCapacity * dayInput.cyclesPerDay) / 24) : 0;
-    const maxChargeKwhHour = batteryCapacity > 0 ? ((batteryCapacity * dayInput.cyclesPerDay) / 24) : 0;
+    const powerwallCount = Math.max(0, Math.floor(asFinite(dayInput.powerwallCount, 0)));
+    const batteryCapacity = powerwallCount * dayInput.usableKwhPerBattery;
+    const rawDtHours = Number(dayInput.dispatchStepHours);
+    const dtHours = Math.max(1e-6, Number.isFinite(rawDtHours) ? rawDtHours : 1);
+    if (dtHours > 1 + 1e-9) {
+      throw new Error("dispatchStepHours > 1 is unsupported for hourly dispatch buckets.");
+    }
+    const maxDischargeKwPerBattery = Math.max(0, asFinite(dayInput.maxDischargeKwPerBattery, POWERWALL3_AC_KW));
+    const maxChargeKwPerBattery = Math.max(0, asFinite(dayInput.maxChargeKwPerBattery, POWERWALL3_AC_KW));
+    const maxDischargeKwhStep = batteryCapacity > 0 ? (powerwallCount * maxDischargeKwPerBattery * dtHours) : 0;
+    const maxChargeKwhStep = batteryCapacity > 0 ? (powerwallCount * maxChargeKwPerBattery * dtHours) : 0;
     const solarToHomeEfficiency = clamp(dayInput.solarToHomeEfficiency || 1, 0.8, 1);
     const minSocKwh = batteryCapacity * clamp(dayInput.minSocReservePct || 0, 0, 0.95);
 
@@ -956,7 +1042,7 @@
       if (batteryCapacity > 0 && solarRemaining > 0) {
         const chargeRoom = Math.max(0, batteryCapacity - socKwh);
         if (chargeRoom > 0) {
-          const chargeInput = Math.min(solarRemaining, maxChargeKwhHour, chargeRoom / dayInput.roundTripEfficiency);
+          const chargeInput = Math.min(solarRemaining, maxChargeKwhStep, chargeRoom / dayInput.roundTripEfficiency);
           if (chargeInput > 0) {
             const storedEnergy = chargeInput * dayInput.roundTripEfficiency;
             socKwh += storedEnergy;
@@ -970,7 +1056,7 @@
       if (batteryCapacity > 0 && loadRemaining > 0) {
         const availableFromBattery = Math.max(0, socKwh - minSocKwh);
         if (availableFromBattery > 0) {
-          const dischargeCandidate = Math.min(maxDischargeKwhHour, availableFromBattery, loadRemaining);
+          const dischargeCandidate = Math.min(maxDischargeKwhStep, availableFromBattery, loadRemaining);
           const shouldDischarge =
             dayInput.dispatchMode === "self_consumption_always"
             || (dayInput.dispatchMode === "self_consumption_peak_then_postpeak" && (PEAK_HOURS.has(hour) || POST_PEAK_HOUR_SET.has(hour)))
@@ -1163,7 +1249,10 @@
       whfSuccessRate: monthInput.whfSuccessRate,
       whfStartMinuteOfDay: monthInput.whfStartMinuteOfDay,
       whfEndMinuteOfDay: monthInput.whfEndMinuteOfDay,
-      solarHourlyByMonth: monthInput.solarHourlyByMonth
+      solarHourlyByMonth: monthInput.solarHourlyByMonth,
+      maxChargeKwPerBattery: monthInput.maxChargeKwPerBattery,
+      maxDischargeKwPerBattery: monthInput.maxDischargeKwPerBattery,
+      dispatchStepHours: monthInput.dispatchStepHours
     });
 
     const scale = safeDays;
@@ -1278,7 +1367,13 @@
     const evKwhMonth = inputs.ev.enabled ? inputs.ev.kwhPerMonth : 0;
     const solarMonthlyProfile = isValidMonthlyProfile(inputs.production.solarMonthlyProfile) ? inputs.production.solarMonthlyProfile : SOLAR_PROFILE;
     const solarHourlyByMonth = isValidHourlyByMonth(inputs.production.solarHourlyByMonth) ? inputs.production.solarHourlyByMonth : null;
-    const maxAcOutputKw = pw >= 1 ? pw * POWERWALL3_AC_KW : Number.POSITIVE_INFINITY;
+    const profileType = inputs.production.profileType === CLIMATE_PROFILE_TYPE_PVWATTS_AC
+      ? CLIMATE_PROFILE_TYPE_PVWATTS_AC
+      : CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED;
+    const pvDcAcRatio = Math.max(0.05, asFinite(inputs.production.pvDcAcRatio, 1.2));
+    const maxAcOutputKw = profileType === CLIMATE_PROFILE_TYPE_PVWATTS_AC
+      ? Number.POSITIVE_INFINITY
+      : Math.max(0, solarKw / pvDcAcRatio);
 
     for (let month = 0; month < 12; month += 1) {
       const baseHomeLoadKwh = inputs.load.annualKwh * inputs.load.monthProfile[month];
@@ -1307,6 +1402,9 @@
         solarToHomeEfficiency: inputs.production.solarToHomeEfficiency,
         maxAcOutputKw,
         roundTripEfficiency: inputs.battery.roundTripEfficiency,
+        maxChargeKwPerBattery: inputs.battery.maxChargeKwPerBattery,
+        maxDischargeKwPerBattery: inputs.battery.maxDischargeKwPerBattery,
+        dispatchStepHours: inputs.battery.dispatchStepHours,
         dispatchMode: inputs.battery.dispatchMode,
         minSocReservePct: monthReservePct,
         evEnabled: inputs.ev.enabled,
@@ -1446,6 +1544,10 @@
     const climateProfile = hasValidClimateProfileSnapshot
       ? climateSnapshot.profile
       : getSyntheticClimateProfile(rawInputs.climate && rawInputs.climate.zipCode);
+    const provenance = resolveClimateProfileProvenance(climateProfile) || {
+      profileType: CLIMATE_PROFILE_TYPE_SYNTHETIC_UNCLIPPED,
+      profileSource: CLIMATE_PROFILE_SOURCE_SYNTHETIC
+    };
     const tempHourlyFByMonth = isValidTempHourlyByMonth(climateProfile.tempHourlyFByMonth)
       ? climateProfile.tempHourlyFByMonth
       : getSyntheticTempHourlyByMonthProfiles();
@@ -1507,11 +1609,14 @@
       },
       production: {
         annualYield: climateProfile.annualKwhPerKw,
-        solarToHomeEfficiency: 0.975,
+        solarToHomeEfficiency: 1,
         solarMonthlyProfile: climateProfile.monthlyProfile,
         solarHourlyByMonth: climateProfile.hourlyByMonth,
         tempHourlyFByMonth,
-        tempSource: climateProfile.tempSource
+        tempSource: climateProfile.tempSource,
+        profileType: provenance.profileType,
+        profileSource: provenance.profileSource,
+        pvDcAcRatio: Math.max(0.05, asFinite(rawInputs.production && rawInputs.production.pvDcAcRatio, 1.2))
       },
       load: {
         annualKwh: Math.max(0, asFinite(rawInputs.home.annualLoadKwh, 24000)),
@@ -1586,6 +1691,9 @@
         usableKwhPerBattery: BATTERY_USABLE_KWH,
         cyclesPerDay: 0.85,
         roundTripEfficiency: 0.9,
+        maxChargeKwPerBattery: Math.max(0, asFinite(rawInputs.battery && rawInputs.battery.maxChargeKwPerBattery, POWERWALL3_AC_KW)),
+        maxDischargeKwPerBattery: Math.max(0, asFinite(rawInputs.battery && rawInputs.battery.maxDischargeKwPerBattery, POWERWALL3_AC_KW)),
+        dispatchStepHours: Math.max(1e-6, asFinite(rawInputs.battery && rawInputs.battery.dispatchStepHours, 1)),
         dispatchMode: "self_consumption_peak_then_postpeak",
         reservePolicy: "auto_seasonal",
         minSocReservePct: 0.2,

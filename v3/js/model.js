@@ -108,12 +108,34 @@
     };
   }
 
+  function normalizeBenefitComponents(incrementalAnnualBenefitRaw) {
+    if (incrementalAnnualBenefitRaw && typeof incrementalAnnualBenefitRaw === "object" && !Array.isArray(incrementalAnnualBenefitRaw)) {
+      return {
+        solarBenefitYear1: asFinite(incrementalAnnualBenefitRaw.solarBenefitYear1, 0),
+        batteryBenefitYear1: asFinite(incrementalAnnualBenefitRaw.batteryBenefitYear1, 0)
+      };
+    }
+    return {
+      solarBenefitYear1: asFinite(incrementalAnnualBenefitRaw, 0),
+      batteryBenefitYear1: 0
+    };
+  }
+
+  function annualBenefitForYear(benefitComponents, utilityEscalation, solarDegradation, batteryDegradation, yearIndex) {
+    const n = Math.max(0, yearIndex);
+    const utilityFactor = Math.pow(1 + utilityEscalation, n);
+    const solarFactor = Math.pow(1 - solarDegradation, n);
+    const batteryFactor = Math.pow(1 - batteryDegradation, n);
+    const solarComponent = benefitComponents.solarBenefitYear1 * utilityFactor * solarFactor;
+    const batteryComponent = benefitComponents.batteryBenefitYear1 * utilityFactor * batteryFactor;
+    return solarComponent + batteryComponent;
+  }
+
   function projectIncrementalReturns(runtimeContext, incrementalCapexRaw, incrementalAnnualBenefitRaw, candidatePowerwallsRaw) {
     const analysis = runtimeContext.simulationInputs.analysis;
 
     const incrementalCapex = Math.max(0, asFinite(incrementalCapexRaw, 0));
-    const incrementalAnnualBenefit = asFinite(incrementalAnnualBenefitRaw, 0);
-    const candidatePowerwalls = Math.max(0, Math.floor(asFinite(candidatePowerwallsRaw, 0)));
+    const benefitComponents = normalizeBenefitComponents(incrementalAnnualBenefitRaw);
 
     const years = Math.max(1, Math.floor(asFinite(analysis.years, 15)));
     const discountRate = clamp(asFinite(analysis.discountRate, 0.05), 0, 2);
@@ -121,16 +143,19 @@
     const solarDegradation = clamp(asFinite(analysis.solarDegradation, 0.005), 0, 1);
     const batteryDegradation = clamp(asFinite(analysis.batteryDegradation, 0.02), 0, 1);
 
-    const batteryFactor = candidatePowerwalls > 0 ? (1 - batteryDegradation) : 1;
-    const annualScale = (1 + utilityEscalation) * (1 - solarDegradation) * batteryFactor;
-
     let npv = -incrementalCapex;
     let cumulative = -incrementalCapex;
     let paybackYears = Number.POSITIVE_INFINITY;
     const cashflows = [-incrementalCapex];
 
     for (let year = 1; year <= years; year += 1) {
-      const annualBenefit = incrementalAnnualBenefit * Math.pow(annualScale, year - 1);
+      const annualBenefit = annualBenefitForYear(
+        benefitComponents,
+        utilityEscalation,
+        solarDegradation,
+        batteryDegradation,
+        year - 1
+      );
       cashflows.push(annualBenefit);
       cumulative += annualBenefit;
       npv += annualBenefit / Math.pow(1 + discountRate, year);
@@ -151,8 +176,7 @@
     const analysis = runtimeContext.simulationInputs.analysis;
 
     const incrementalCapex = Math.max(0, asFinite(incrementalCapexRaw, 0));
-    const incrementalAnnualBenefit = asFinite(incrementalAnnualBenefitRaw, 0);
-    const candidatePowerwalls = Math.max(0, Math.floor(asFinite(candidatePowerwallsRaw, 0)));
+    const benefitComponents = normalizeBenefitComponents(incrementalAnnualBenefitRaw);
 
     const years = Math.max(1, Math.floor(asFinite(analysis.years, 15)));
     const discountRate = clamp(asFinite(analysis.discountRate, 0.05), 0, 2);
@@ -166,16 +190,19 @@
       loanYears
     ) * 12;
 
-    const batteryFactor = candidatePowerwalls > 0 ? (1 - batteryDegradation) : 1;
-    const annualScale = (1 + utilityEscalation) * (1 - solarDegradation) * batteryFactor;
-
-    let npv = -incrementalCapex;
-    let cumulative = -incrementalCapex;
+    let npv = 0;
+    let cumulative = 0;
     let paybackYears = Number.POSITIVE_INFINITY;
-    const cashflows = [-incrementalCapex];
+    const cashflows = [0];
 
     for (let year = 1; year <= years; year += 1) {
-      const operatingBenefit = incrementalAnnualBenefit * Math.pow(annualScale, year - 1);
+      const operatingBenefit = annualBenefitForYear(
+        benefitComponents,
+        utilityEscalation,
+        solarDegradation,
+        batteryDegradation,
+        year - 1
+      );
       const financingCost = year <= loanYears ? annualLoanCost : 0;
       const leveredCashflow = operatingBenefit - financingCost;
       cashflows.push(leveredCashflow);
